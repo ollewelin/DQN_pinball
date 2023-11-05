@@ -25,6 +25,7 @@ private:
     vector<vector<vector<double>>> change_weights;//3D [layer_nr][node_nr][weights_from_previous_layer]
     double activation_function(double, int);
     double delta_activation_func(double,double);
+    double delta_only_sigmoid_func(double,double);
 
     int skip_conn_rest_part;
     int skip_conn_multiple_part;
@@ -48,6 +49,9 @@ public:
     //0 = sigmoid activation function
     //1 = Relu simple activation function
     //2 = Relu fix leaky activation function
+    int force_last_activation_function_to_sigmoid;
+    //0 = All activation functions same
+    //1 = Last activation layer will set to sigmoid regardless activation_function_mode above
     double fix_leaky_proportion;
     int use_skip_connect_mode;
     //0 = turn OFF skip connections, ordinary fully connected nn block only

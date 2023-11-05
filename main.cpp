@@ -157,6 +157,18 @@ int main()
 
     srand(static_cast<unsigned>(time(NULL))); // Seed the randomizer
 
+    cout << "Do you want use default settings of the pinball game = Y/N " << endl;
+    cin >> answer;
+    if (answer == 'Y' || answer == 'y')
+    {
+        cout << "User select default game settings " << endl;
+    }
+    else
+    {
+        gameObj1.set_user_settings();
+        fc_nn_end_block.learning_rate = gameObj1.pix2hid_learning_rate;
+        fc_nn_end_block.learning_rate = gameObj1.hid2out_learning_rate;
+    }
 
     cout << "gameObj1.gameObj1.game_Height " << gameObj1.game_Height << endl;
     cout << "gameObj1.gameObj1.game_Width " << gameObj1.game_Width << endl;

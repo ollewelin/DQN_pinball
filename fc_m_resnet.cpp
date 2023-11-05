@@ -11,7 +11,7 @@ fc_m_resnet::fc_m_resnet(/* args */)
 {
     version_major = 0;
     version_mid = 1;
-    version_minor = 1;
+    version_minor = 2;
     // 0.0.4 fix softmax bugs
     // 0.0.5 fix bug when block type < 2 remove loss calclulation in backprop if not end block
     // 0.0.6 fix bug at  if (block_type < 2){} add else{ .... for end block } at  void fc_m_resnet::set_nr_of_hidden_nodes_on_layer_nr(int nodes)
@@ -20,6 +20,7 @@ fc_m_resnet::fc_m_resnet(/* args */)
     // 0.0.8 fix use_skip_connect_mode printout no mater if (inp_l_size != out_l_size)
     // 0.1.0 "shift_ununiform_skip_connection_after_samp_n" are introduced when ununifor skip connections is the case.
     // 0.1.1 loss_A and loss_B
+    // 0.1.2 Add force_last_activation_function_to_sigmoid = 0;// 1 = Last activation layer will set to sigmoid regardless activation_function_mode set
     shift_ununiform_skip_connection_after_samp_n = 0;
     shift_ununiform_skip_connection_sample_counter = 0;
     switch_skip_con_selector = 0;
@@ -43,6 +44,9 @@ fc_m_resnet::fc_m_resnet(/* args */)
     // 1 = Relu simple activation function
     // 2 = Relu fix leaky activation function
     // 3 = Relu random variable leaky activation function
+    force_last_activation_function_to_sigmoid = 0;
+    //0 = All activation functions same
+    //1 = Last activation layer will set to sigmoid regardless activation_function_mode above
     fix_leaky_proportion = 0.05;
     use_skip_connect_mode = 0;
     // 0 = turn OFF skip connections, ordinary fully connected nn block only
@@ -487,7 +491,7 @@ double fc_m_resnet::activation_function(double input_data, int end_layer)
     }
     if (this_node_dopped_out == 0)
     {
-        if (activation_function_mode == 0)
+        if (activation_function_mode == 0 || (force_last_activation_function_to_sigmoid == 1 && end_layer == 1))
         {
             // 0 = sigmoid activation function
             output_data = 1.0 / (1.0 + exp(-input_data)); // Sigmoid function and put it into
@@ -524,6 +528,15 @@ double fc_m_resnet::activation_function(double input_data, int end_layer)
     }
     return output_data;
 }
+
+double fc_m_resnet::delta_only_sigmoid_func(double delta_outside_function, double value_from_node_outputs)
+{
+    double delta_inside_func = 0.0;
+    // 0 = sigmoid activation function
+    delta_inside_func = delta_outside_function * value_from_node_outputs * (1.0 - value_from_node_outputs); // Sigmoid function and put it into
+    return delta_inside_func;
+}
+
 double fc_m_resnet::delta_activation_func(double delta_outside_function, double value_from_node_outputs)
 {
     double delta_inside_func = 0.0;
@@ -771,7 +784,15 @@ void fc_m_resnet::backpropagtion_and_update(void)
         {
             if (use_softmax == 0)
             {
-                internal_delta[last_delta_layer_nr][i] = delta_activation_func((target_layer[i] - output_layer[i]), output_layer[i]);
+                if(force_last_activation_function_to_sigmoid == 0)
+                {
+                    internal_delta[last_delta_layer_nr][i] = delta_activation_func((target_layer[i] - output_layer[i]), output_layer[i]);
+                }
+                else
+                {
+                    //Forced last layer to sigmoid regardless common activation mode settings
+                    internal_delta[last_delta_layer_nr][i] = delta_only_sigmoid_func((target_layer[i] - output_layer[i]), output_layer[i]);
+                }
             }
             else
             {

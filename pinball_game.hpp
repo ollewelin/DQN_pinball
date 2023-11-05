@@ -24,11 +24,11 @@ class pinball_game
 public:
     pinball_game()///Constructor
     {
-        printf("Construct a arcade game object\n");
+        std::cout << "Construct a arcade game object" << std::endl;
     }
     virtual ~pinball_game()///Destructor
     {
-        printf("Destruct game object\n");
+        std::cout << "Destruct game object" << std::endl;
     }
     ///== User settings used outside this object but Set by this object =============
     int use_character;///1=enable charackters
@@ -149,7 +149,7 @@ void pinball_game::set_user_settings(void)
     {
         Not_dropout=0;
         printf("Enter (int) drop_out_percent (drop_out_percent =%d)\n", drop_out_percent);
-        scanf("%d", &drop_out_percent);
+        cin >> drop_out_percent;
     }
     else
     {
@@ -218,11 +218,11 @@ void pinball_game::set_user_settings(void)
     else
     {
         printf("Enter (float) pix2hid_learning_rate (default was =%f)\n", pix2hid_learning_rate);
-        scanf("%f", &pix2hid_learning_rate);
+        cin >> pix2hid_learning_rate;
         printf("Enter (float) hid2out_learning_rate (default was =%f)\n", hid2out_learning_rate);
-        scanf("%f", &hid2out_learning_rate);
+        cin >> hid2out_learning_rate;
         printf("Enter (float) max_rewards (default was =%f)\n", max_rewards);
-        scanf("%f", &max_rewards);
+        cin >> max_rewards;
     }
 
     getchar();
@@ -232,7 +232,7 @@ void pinball_game::set_user_settings(void)
     if(answer_character == 'Y' || answer_character == 'y')
     {
         printf("Enter (int) replay_times (default was =%d)\n", replay_times);
-        scanf("%d", &replay_times);
+        cin >> replay_times;
      }
     else
     {
@@ -261,7 +261,7 @@ void pinball_game::set_user_settings(void)
     {
         use_unfair_dice =1;
         printf("Enter (float) random_unfair_dice_gain (default was =%f)\n", random_unfair_dice_gain);
-        scanf("%f", &random_unfair_dice_gain);
+        cin >> random_unfair_dice_gain;
     }
     else
     {
@@ -360,6 +360,7 @@ void pinball_game::start_episode(void)
         square = 0;
     }
 }
+
 
 void pinball_game::run_episode(void)
 {
