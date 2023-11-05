@@ -4,12 +4,12 @@
 ///Fix bugg in pinball_game.hpp (was work on raspierry pi but not on PC) replay_count was not set to 0 at init state. Now replay_count=0;
 ///Increase size of angle character and sign of angle so the Agent cas see this rezized char and sign +/- then it seems to learn that.
 
-#include <opencv2/highgui/highgui.hpp>  // OpenCV window I/O
-#include <opencv2/imgproc/imgproc.hpp> // Gaussian Blur
+//#include <opencv2/highgui/highgui.hpp>  // OpenCV window I/O
+//#include <opencv2/imgproc/imgproc.hpp> // Gaussian Blur
 #include <stdio.h>
 ///#include <raspicam/raspicam_cv.h>
 #include <opencv2/opencv.hpp>
-#include <opencv2/core/core.hpp>        // Basic OpenCV structures (cv::Mat, Scalar)
+#include <opencv2/core/core.hpp> // Basic OpenCV structures (cv::Mat, Scalar)
 #include <cstdlib>
 #include <ctime>
 #include <math.h>  // exp
@@ -373,7 +373,6 @@ void pinball_game::run_episode(void)
     int pad_height = 40;
     int pad_speed = 4;//4
 
-
 ///The frame loop is outside this class so The Agient cad do actions each frame step
 
     frame_steps++;///This is need to handle bounce. This will reset when bounce
@@ -431,7 +430,6 @@ void pinball_game::run_episode(void)
     {
         gameGrapics = Scalar(0.05f);///Begin with all black then draw up grapics ball and pad
     }
-
     if(square == 0)
     {
         ///Ball
@@ -539,9 +537,9 @@ void pinball_game::run_episode(void)
                 printf("Win \n");
             }
         }
+
         pad_ball_diff = pad_position - ball_pos_y;
     }
-
     if(use_character==1)
     {
 
@@ -580,7 +578,6 @@ void pinball_game::run_episode(void)
         //cv::putText(gameGrapics, random, cvPoint((3+episode_char/20),(35+((char) (rand() % 16)))), CV_FONT_HERSHEY_PLAIN, 2, cvScalar(0.5),2);// CV_... for Opencv3.1
         cv::putText(gameGrapics, random, cvPoint((3+episode_char/20),(35+((char) (rand() % 16)))), FONT_HERSHEY_PLAIN, 2, cvScalar(0.5),2);
     }
-
     imshow("Game", gameGrapics);
     if(slow_motion==1)
     {

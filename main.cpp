@@ -33,11 +33,26 @@ int main()
     gameObj1.slow_motion=0;///0=full speed game. 1= slow down
     gameObj1.replay_times = 0;///If =0 no replay. >0 this is the nuber of replay with serveral diffrent actions so the ageint take the best rewards before make any weights update
     gameObj1.advanced_game = 1;///0= only a ball. 1= ball give awards. square gives punish
+    gameObj1.use_image_diff=0;
+    gameObj1.high_precition_mode = 1; ///This will make adjustable rewards highest at center of the pad.
+    gameObj1.use_dice_action=1;
+    gameObj1.drop_out_percent=0;
+    gameObj1.Not_dropout=1;
+    gameObj1.flip_reward_sign =0;
+    gameObj1.print_out_nodes = 0;
+    gameObj1.enable_ball_swan =1;
+    gameObj1.use_character =0;
+    gameObj1.enabel_3_state = 1;//Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
+
+    float gamma = 0.91f;
+
+    //Set up a OpenCV mat
+    cv::Mat game_video(gameObj1.game_Height, gameObj1.game_Width, CV_32F);//Show input image
 
     const int pixel_height = 50;///The input data pixel height, note game_Width = 220
     const int pixel_width = 50;///The input data pixel width, note game_Height = 200
     Mat resized_grapics, test, pix2hid_weight, hid2out_weight;
-    Size size(pixel_width,pixel_height);//the dst image size,e.g.50x50
+    Size image_size_reduced(pixel_width,pixel_height);//the dst image size,e.g.50x50
     const int nr_frames_strobed = 4;
     //=========== Neural Network size settings ==============
     fc_m_resnet fc_nn_end_block;
@@ -139,9 +154,28 @@ int main()
         conv_L1.randomize_weights(init_random_weight_propotion_conv);
         conv_L2.randomize_weights(init_random_weight_propotion_conv);
     }
-    //Set up a OpenCV mat
+
     srand(static_cast<unsigned>(time(NULL))); // Seed the randomizer
 
+
+    cout << "gameObj1.gameObj1.game_Height " << gameObj1.game_Height << endl;
+    cout << "gameObj1.gameObj1.game_Width " << gameObj1.game_Width << endl;
+
+    //Start one game
+    gameObj1.replay_episode = 0;
+    gameObj1.start_episode();
+
+    for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) /// Loop throue each of the 100 frames
+    {
+
+        gameObj1.frame = frame_g;
+        gameObj1.run_episode();
+        test = gameObj1.gameGrapics.clone();
+        resize(test, resized_grapics, image_size_reduced);
+        imshow("resized_grapics", resized_grapics);///  resize(src, dst, size);
+
+        waitKey(1);
+    }
 
     //Save all weights
     fc_nn_end_block.save_weights(weight_filename_end);
