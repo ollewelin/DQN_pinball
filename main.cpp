@@ -27,6 +27,9 @@ int main()
     // ======== create 2 convolution layer objects =========
     convolution conv_L1;
     convolution conv_L2;
+    convolution conv_frozen_L1_target_net;
+    convolution conv_frozen_L2_target_net;
+
     //======================================================
     pinball_game gameObj1;///Instaniate the pinball game
     gameObj1.init_game();///Initialize the pinball game with serten parametrers
@@ -51,11 +54,13 @@ int main()
 
     const int pixel_height = 50;///The input data pixel height, note game_Width = 220
     const int pixel_width = 50;///The input data pixel width, note game_Height = 200
-    Mat resized_grapics, test, pix2hid_weight, hid2out_weight;
+    Mat resized_grapics, game_video_full_size;
     Size image_size_reduced(pixel_width,pixel_height);//the dst image size,e.g.50x50
     const int nr_frames_strobed = 4;
     //=========== Neural Network size settings ==============
     fc_m_resnet fc_nn_end_block;
+    fc_m_resnet fc_nn_frozen_target_net;
+
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
     string L1_kernel_k_weight_filename;
@@ -74,27 +79,58 @@ int main()
     fc_nn_end_block.use_skip_connect_mode = 0; // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
     fc_nn_end_block.dropout_proportion = 0.4;
+
+    fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
+    fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
+    fc_nn_frozen_target_net.force_last_activation_function_to_sigmoid = fc_nn_end_block.force_last_activation_function_to_sigmoid;
+    fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
+    fc_nn_frozen_target_net.use_dropouts = 0;
+    
+
     conv_L1.get_version();
 
     //==== Set up convolution layers ===========
     cout << "conv_L1 setup:" << endl;
     
-    int input_channels = 1;     //=== one channel MNIST dataset is used ====
-    conv_L1.set_kernel_size(5); // Odd number
-    conv_L1.set_stride(2);
-    conv_L1.set_in_tensor(pixel_width*pixel_height*nr_frames_strobed, input_channels); // data_size_one_sample_one_channel, input channels
-    conv_L1.set_out_tensor(30);                                              // output channels
-    conv_L1.output_tensor.size();
+    const int L1_input_channels = 1;     //=== one channel MNIST dataset is used ====
+    const int L1_tensor_in_size = pixel_width*pixel_height*nr_frames_strobed;
+    const int L1_tensor_out_channels = 30;
+    const int L1_kernel_size = 5;
+    const int L1_stride = 2;
+    conv_L1.set_kernel_size(L1_kernel_size); // Odd number
+    conv_L1.set_stride(L1_stride);
+    conv_L1.set_in_tensor(L1_tensor_in_size, L1_input_channels); // data_size_one_sample_one_channel, input channels
+    conv_L1.set_out_tensor(L1_tensor_out_channels);                                              // output channels
     conv_L1.top_conv = 1;
+    //copy to a frozen copy network for target network
+    conv_frozen_L1_target_net.set_kernel_size(L1_kernel_size);
+    conv_frozen_L1_target_net.set_stride(L1_stride);
+    conv_frozen_L1_target_net.set_in_tensor(L1_tensor_in_size, L1_input_channels);
+    conv_frozen_L1_target_net.set_out_tensor(L1_tensor_out_channels);
+    conv_frozen_L1_target_net.top_conv = conv_L1.top_conv;
     //========= L1 convolution (vectors) all tensor size for convolution object is finnish =============
 
     //==== Set up convolution layers ===========
+    const int L2_input_channels = conv_L1.output_tensor.size();    
+    const int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
+    const int L2_tensor_out_channels = 25;
+    const int L2_kernel_size = 5;
+    const int L2_stride = 2;
+
     cout << "conv_L2 setup:" << endl;
-    conv_L2.set_kernel_size(5); // Odd number
-    conv_L2.set_stride(2);
-    conv_L2.set_in_tensor((conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size()), conv_L1.output_tensor.size()); // data_size_one_sample_one_channel, input channels
-    conv_L2.set_out_tensor(25);                                                                                               // output channels
-    conv_L2.output_tensor.size();
+    conv_L2.set_kernel_size(L2_kernel_size); // Odd number
+    conv_L2.set_stride(L2_stride);
+    conv_L2.set_in_tensor(L2_tensor_in_size, L2_input_channels); // data_size_one_sample_one_channel, input channels
+    conv_L2.set_out_tensor(L2_tensor_out_channels);     
+    conv_L2.top_conv = 0;
+    //copy to a frozen copy network for target network
+    conv_frozen_L2_target_net.set_kernel_size(L2_kernel_size);
+    conv_frozen_L2_target_net.set_stride(L2_stride);
+    conv_frozen_L2_target_net.set_in_tensor(L2_tensor_in_size, L2_input_channels);
+    conv_frozen_L2_target_net.set_out_tensor(L2_tensor_out_channels);
+    conv_frozen_L2_target_net.top_conv = conv_L2.top_conv;
+    
+                                                                                              // output channels
     const int end_inp_nodes = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size()) * conv_L2.output_tensor.size();
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 2;
@@ -128,6 +164,8 @@ int main()
     conv_L2.momentum = 0.9;
     conv_L1.activation_function_mode = 2;
     conv_L2.activation_function_mode = 2;
+    conv_frozen_L1_target_net.activation_function_mode = conv_L1.activation_function_mode;
+    conv_frozen_L2_target_net.activation_function_mode = conv_L2.activation_function_mode;
 
     char answer;
     double init_random_weight_propotion = 0.25;
@@ -180,13 +218,11 @@ int main()
 
     for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) /// Loop throue each of the 100 frames
     {
-
         gameObj1.frame = frame_g;
         gameObj1.run_episode();
-        test = gameObj1.gameGrapics.clone();
-        resize(test, resized_grapics, image_size_reduced);
+        game_video_full_size = gameObj1.gameGrapics.clone();
+        resize(game_video_full_size, resized_grapics, image_size_reduced);
         imshow("resized_grapics", resized_grapics);///  resize(src, dst, size);
-
         waitKey(1);
     }
 
