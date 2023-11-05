@@ -44,7 +44,7 @@ int main()
     gameObj1.use_character =0;
     gameObj1.enabel_3_state = 1;//Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
-    float gamma = 0.91f;
+    double gamma = 0.91f;
 
     //Set up a OpenCV mat
     cv::Mat game_video(gameObj1.game_Height, gameObj1.game_Width, CV_32F);//Show input image
@@ -68,8 +68,9 @@ int main()
     L2_kernel_b_weight_filename = "L2_kernel_b.dat";
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
-    fc_nn_end_block.use_softmax = 1;
-    fc_nn_end_block.activation_function_mode = 2;
+    fc_nn_end_block.use_softmax = 0;//0= Not softmax for DQN reinforcement learning
+    fc_nn_end_block.activation_function_mode = 2;// ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.force_last_activation_function_to_sigmoid = 1;//1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0; // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
     fc_nn_end_block.dropout_proportion = 0.4;
