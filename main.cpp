@@ -50,13 +50,12 @@ int main()
     double gamma = 0.91f;
 
     //Set up a OpenCV mat
-    cv::Mat game_video(gameObj1.game_Height, gameObj1.game_Width, CV_32F);//Show input image
 
     const int pixel_height = 50;///The input data pixel height, note game_Width = 220
     const int pixel_width = 50;///The input data pixel width, note game_Height = 200
-    Mat resized_grapics, game_video_full_size;
-    Size image_size_reduced(pixel_width,pixel_height);//the dst image size,e.g.50x50
-    const int nr_frames_strobed = 4;
+    Mat resized_grapics, replay_grapics_buffert, game_video_full_size;
+    Size image_size_reduced(pixel_height,pixel_width);//the dst image size,e.g.50x50
+    
     //=========== Neural Network size settings ==============
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
@@ -91,9 +90,10 @@ int main()
 
     //==== Set up convolution layers ===========
     cout << "conv_L1 setup:" << endl;
-    
-    const int L1_input_channels = 1;     //=== one channel MNIST dataset is used ====
-    const int L1_tensor_in_size = pixel_width*pixel_height*nr_frames_strobed;
+    const int nr_color_channels = 1;//=== 1 channel gray scale ====
+    const int nr_frames_strobed = 4;// 4 Images in serie to make neural network to see movments
+    const int L1_input_channels = nr_color_channels * nr_frames_strobed;//color channels * Images in serie
+    const int L1_tensor_in_size = pixel_width*pixel_height;
     const int L1_tensor_out_channels = 30;
     const int L1_kernel_size = 5;
     const int L1_stride = 2;
@@ -196,18 +196,18 @@ int main()
 
     srand(static_cast<unsigned>(time(NULL))); // Seed the randomizer
 
-    cout << "Do you want use default settings of the pinball game = Y/N " << endl;
-    cin >> answer;
-    if (answer == 'Y' || answer == 'y')
-    {
-        cout << "User select default game settings " << endl;
-    }
-    else
-    {
-        gameObj1.set_user_settings();
-        fc_nn_end_block.learning_rate = gameObj1.pix2hid_learning_rate;
-        fc_nn_end_block.learning_rate = gameObj1.hid2out_learning_rate;
-    }
+//    cout << "Do you want use default settings of the pinball game = Y/N " << endl;
+//    cin >> answer;
+//    if (answer == 'Y' || answer == 'y')
+//    {
+//        cout << "User select default game settings " << endl;
+//    }
+//    else
+//    {
+//        gameObj1.set_user_settings();
+//        fc_nn_end_block.learning_rate = gameObj1.pix2hid_learning_rate;
+//        fc_nn_end_block.learning_rate = gameObj1.hid2out_learning_rate;
+//    }
 
     cout << "gameObj1.gameObj1.game_Height " << gameObj1.game_Height << endl;
     cout << "gameObj1.gameObj1.game_Width " << gameObj1.game_Width << endl;
@@ -216,15 +216,63 @@ int main()
     gameObj1.replay_episode = 0;
     gameObj1.start_episode();
 
+    game_video_full_size = gameObj1.gameGrapics.clone();
+    resize(game_video_full_size, resized_grapics, image_size_reduced);
+    imshow("resized_grapics", resized_grapics); ///  resize(src, dst, size);
+    replay_grapics_buffert.create(pixel_height * gameObj1.nr_of_frames , pixel_width , CV_32FC1);
+    //replay_grapics_buffert.create(pixel_height * 2 ,pixel_width , CV_32FC1);
+    cout << "replay_grapics_buffert rows = " << replay_grapics_buffert.rows << endl;
+    cout << "replay_grapics_buffert cols = " << replay_grapics_buffert.cols << endl;
+    cout << "resized_grapics rows = " << resized_grapics.rows << endl;
+    cout << "resized_grapics cols = " << resized_grapics.cols << endl;
+//    Mat debug_input_vector;
+//    debug_input_vector.create(pixel_height*nr_frames_strobed,pixel_width,CV_32FC1);
+
     for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) /// Loop throue each of the 100 frames
+    //for (int frame_g = 0; frame_g < 8; frame_g++) /// Loop throue each of the 100 frames
     {
         gameObj1.frame = frame_g;
         gameObj1.run_episode();
         game_video_full_size = gameObj1.gameGrapics.clone();
+        //Size image_size_reduced(pixel_height,pixel_width);//the dst image size,e.g.50x50
         resize(game_video_full_size, resized_grapics, image_size_reduced);
         imshow("resized_grapics", resized_grapics);///  resize(src, dst, size);
-        waitKey(1);
+        //Insert resized_grapics into replay_grapics_buffert below
+        //replay_grapics_buffert filled with data from resized_grapics rows from 0 to pixel_height-1 into replay_grapics_buffert rows index pixel_height * frame_g + (resized_grapics rows from 0 to pixel_height-1)
+        //Insert resized_grapics into replay_grapics_buffert
+        cv::Mat targetRow = replay_grapics_buffert.rowRange(pixel_height * frame_g, pixel_height * (frame_g+1));
+        resized_grapics.rowRange(0, pixel_height).copyTo(targetRow);
+
+        //const int nr_color_channels = 1;//=== 1 channel gray scale ====
+        //const int nr_frames_strobed = 4;// 4 Images in serie to make neural network to see movments
+        //const int L1_input_channels = nr_color_channels * nr_frames_strobed;//color channels * Images in serie
+        //const int L1_tensor_in_size = pixel_width*pixel_height;
+        if(frame_g >= nr_frames_strobed-1)//Wait until all 4 images is up there in the game after start
+        {
+            //Put in data from replay_grapics_buffert to L1_tensor_in_size 
+            for (int i = 0; i < L1_input_channels; i++)
+            {
+                for (int j = 0; j < L1_tensor_in_size; j++)
+                {
+                    int row = j / pixel_width;
+                    int col = j % pixel_width;
+                    float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (frame_g - (nr_frames_strobed-1) + i) + row, col);
+                    //float pixelValue = replay_grapics_buffert.at<float>(pixel_height * frame_g + row, col);
+                    // conv_L1.input_tensor is a 3D vector vector<vector<vector<double>>> input_tensor;//3D [input_channel][row][col]. 
+                    conv_L1.input_tensor[i][row][col] = pixelValue;
+    //                debug_input_vector.at<float>(i * pixel_height + row, col) = conv_L1.input_tensor[i][row][col];
+                }
+            }
+    //        imshow("debug_input_vector", debug_input_vector);
+    //        waitKey(1);
+            conv_L1.conv_forward1();
+            conv_L2.input_tensor = conv_L1.output_tensor;
+            conv_L2.conv_forward1();
+            
+        }
     }
+    imshow("replay_grapics_buffert", replay_grapics_buffert);
+    waitKey(10000);
 
     //Save all weights
     fc_nn_end_block.save_weights(weight_filename_end);
