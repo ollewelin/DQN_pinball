@@ -21,6 +21,9 @@ using namespace std;
 #define MOVE_UP 1
 #define MOVE_STOP 2
 
+
+vector<int> fisher_yates_shuffle(vector<int> table);
+
 int main()
 {
     cout << "Convolution neural network under work..." << endl;
@@ -43,13 +46,22 @@ int main()
     gameObj1.Not_dropout=1;
     gameObj1.flip_reward_sign =0;
     gameObj1.print_out_nodes = 0;
-    gameObj1.enable_ball_swan =1;
+    gameObj1.enable_ball_swan =0;
     gameObj1.use_character =0;
     gameObj1.enabel_3_state = 1;//Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
     double gamma = 0.91f;
+    
+    const int batch_size = 10;
+    int batch_nr = 0;
+    vector<int> batch_rand_list;
+    for(int i=0;i<batch_size;i++)
+    {
+        batch_rand_list.push_back(0);
+    }
+    batch_rand_list = fisher_yates_shuffle(batch_rand_list);
 
-    //Set up a OpenCV mat
+    // Set up a OpenCV mat
 
     const int pixel_height = 50;///The input data pixel height, note game_Width = 220
     const int pixel_width = 50;///The input data pixel width, note game_Height = 200
@@ -136,21 +148,29 @@ int main()
     const int end_hid_layers = 2;
     const int end_hid_nodes_L1 = 200;
     const int end_hid_nodes_L2 = 50;
-    const int end_out_nodes = 10;
+    const int end_out_nodes = 3;//Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
         fc_nn_end_block.input_layer.push_back(0.0);
         fc_nn_end_block.i_layer_delta.push_back(0.0);
+        fc_nn_frozen_target_net.input_layer.push_back(0.0);
+        fc_nn_frozen_target_net.i_layer_delta.push_back(0.0);
     }
 
     for (int i = 0; i < end_out_nodes; i++)
     {
         fc_nn_end_block.output_layer.push_back(0.0);
         fc_nn_end_block.target_layer.push_back(0.0);
+        fc_nn_frozen_target_net.output_layer.push_back(0.0);
+        fc_nn_frozen_target_net.target_layer.push_back(0.0);
     }
     fc_nn_end_block.set_nr_of_hidden_layers(end_hid_layers);
     fc_nn_end_block.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L1);
     fc_nn_end_block.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L2);
+    fc_nn_frozen_target_net.set_nr_of_hidden_layers(end_hid_layers);
+    fc_nn_frozen_target_net.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L1);
+    fc_nn_frozen_target_net.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L2);
+
     //  Note that set_nr_of_hidden_nodes_on_layer_nr() cal must be exactly same number as the set_nr_of_hidden_layers(end_hid_layers)
     //============ Neural Network Size setup is finnish ! ==================
 
@@ -219,64 +239,123 @@ int main()
     game_video_full_size = gameObj1.gameGrapics.clone();
     resize(game_video_full_size, resized_grapics, image_size_reduced);
     imshow("resized_grapics", resized_grapics); ///  resize(src, dst, size);
-    replay_grapics_buffert.create(pixel_height * gameObj1.nr_of_frames , pixel_width , CV_32FC1);
+    replay_grapics_buffert.create(pixel_height * gameObj1.nr_of_frames , pixel_width * batch_size, CV_32FC1);
     //replay_grapics_buffert.create(pixel_height * 2 ,pixel_width , CV_32FC1);
     cout << "replay_grapics_buffert rows = " << replay_grapics_buffert.rows << endl;
     cout << "replay_grapics_buffert cols = " << replay_grapics_buffert.cols << endl;
     cout << "resized_grapics rows = " << resized_grapics.rows << endl;
     cout << "resized_grapics cols = " << resized_grapics.cols << endl;
-//    Mat debug_input_vector;
-//    debug_input_vector.create(pixel_height*nr_frames_strobed,pixel_width,CV_32FC1);
 
-    for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) /// Loop throue each of the 100 frames
-    //for (int frame_g = 0; frame_g < 8; frame_g++) /// Loop throue each of the 100 frames
+    const int max_nr_epochs = 1000000;
+    for (int epoch = 0; epoch < max_nr_epochs; epoch++)
     {
-        gameObj1.frame = frame_g;
-        gameObj1.run_episode();
-        game_video_full_size = gameObj1.gameGrapics.clone();
-        //Size image_size_reduced(pixel_height,pixel_width);//the dst image size,e.g.50x50
-        resize(game_video_full_size, resized_grapics, image_size_reduced);
-        imshow("resized_grapics", resized_grapics);///  resize(src, dst, size);
-        //Insert resized_grapics into replay_grapics_buffert below
-        //replay_grapics_buffert filled with data from resized_grapics rows from 0 to pixel_height-1 into replay_grapics_buffert rows index pixel_height * frame_g + (resized_grapics rows from 0 to pixel_height-1)
-        //Insert resized_grapics into replay_grapics_buffert
-        cv::Mat targetRow = replay_grapics_buffert.rowRange(pixel_height * frame_g, pixel_height * (frame_g+1));
-        resized_grapics.rowRange(0, pixel_height).copyTo(targetRow);
-
-        //const int nr_color_channels = 1;//=== 1 channel gray scale ====
-        //const int nr_frames_strobed = 4;// 4 Images in serie to make neural network to see movments
-        //const int L1_input_channels = nr_color_channels * nr_frames_strobed;//color channels * Images in serie
-        //const int L1_tensor_in_size = pixel_width*pixel_height;
-        if(frame_g >= nr_frames_strobed-1)//Wait until all 4 images is up there in the game after start
+        batch_rand_list = fisher_yates_shuffle(batch_rand_list);
+        for (int batch_cnt=0; batch_cnt < batch_size; batch_cnt++)
         {
-            //Put in data from replay_grapics_buffert to L1_tensor_in_size 
-            for (int i = 0; i < L1_input_channels; i++)
+            batch_nr = batch_rand_list[batch_cnt];
+            gameObj1.start_episode();
+            cout << "batch_rand_list[" << batch_cnt << "] = " << batch_rand_list[batch_cnt] << " = batch_nr = " << batch_nr << endl;
+            for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) /// Loop throue each of the 100 frames
+            // for (int frame_g = 0; frame_g < 8; frame_g++) /// Loop throue each of the 100 frames
             {
-                for (int j = 0; j < L1_tensor_in_size; j++)
+                gameObj1.frame = frame_g;
+                gameObj1.run_episode();
+                game_video_full_size = gameObj1.gameGrapics.clone();
+                resize(game_video_full_size, resized_grapics, image_size_reduced);
+                imshow("resized_grapics", resized_grapics); ///  resize(src, dst, size);
+                // Insert resized_grapics into replay_grapics_buffert below
+                // replay_grapics_buffert filled with data from resized_grapics rows from 0 to pixel_height-1 into replay_grapics_buffert rows index pixel_height * frame_g + (resized_grapics rows from 0 to pixel_height-1)
+                // Insert resized_grapics into replay_grapics_buffert
+
+                // Calculate the starting column index for the ROI in replay_grapics_buffert
+                int startCol = pixel_width * batch_nr;
+                // Create a Rect to define the ROI in replay_grapics_buffert
+                cv::Rect roi(startCol, pixel_height * frame_g, pixel_width, pixel_height);
+                // Copy the relevant region from resized_grapics to replay_grapics_buffert
+                resized_grapics(cv::Rect(0, 0, pixel_width, pixel_height)).copyTo(replay_grapics_buffert(roi));
+                if (frame_g >= nr_frames_strobed - 1) // Wait until all 4 images is up there in the game after start
                 {
-                    int row = j / pixel_width;
-                    int col = j % pixel_width;
-                    float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (frame_g - (nr_frames_strobed-1) + i) + row, col);
-                    //float pixelValue = replay_grapics_buffert.at<float>(pixel_height * frame_g + row, col);
-                    // conv_L1.input_tensor is a 3D vector vector<vector<vector<double>>> input_tensor;//3D [input_channel][row][col]. 
-                    conv_L1.input_tensor[i][row][col] = pixelValue;
-    //                debug_input_vector.at<float>(i * pixel_height + row, col) = conv_L1.input_tensor[i][row][col];
+                    // Put in data from replay_grapics_buffert to L1_tensor_in_size
+                    for (int i = 0; i < L1_input_channels; i++)
+                    {
+                        for (int j = 0; j < L1_tensor_in_size; j++)
+                        {
+                            int row = j / pixel_width;
+                            int col = j % pixel_width;
+                            float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (frame_g - (nr_frames_strobed - 1) + i) + row, col + pixel_width * batch_nr);
+                            conv_L1.input_tensor[i][row][col] = pixelValue;
+                        }
+                    }
+                    //**********************************************************************
+                    //****************** Forward Pass training network *********************
+                    conv_L1.conv_forward1();
+                    conv_L2.input_tensor = conv_L1.output_tensor;
+                    conv_L2.conv_forward1();
+                    int L2_out_one_side = conv_L2.output_tensor[0].size();
+                    int L2_out_ch = conv_L2.output_tensor.size();
+                    for (int oc = 0; oc < L2_out_ch; oc++)
+                    {
+                        for (int yi = 0; yi < L2_out_one_side; yi++)
+                        {
+                            for (int xi = 0; xi < L2_out_one_side; xi++)
+                            {
+                                fc_nn_end_block.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_L2.output_tensor[oc][yi][xi];
+                            }
+                        }
+                    }
+                    // Start Forward pass fully connected network
+                    fc_nn_end_block.forward_pass();
+                    // Forward pass though fully connected network
+                    //****************** Forward Pass training network complete ************
+                    //**********************************************************************
+
+                    //======================================================================
+                    //================== Forward Pass Frozen network =====================
+                    conv_frozen_L1_target_net.conv_forward1();
+                    conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
+                    conv_frozen_L2_target_net.conv_forward1();
+                    for (int oc = 0; oc < L2_out_ch; oc++)
+                    {
+                        for (int yi = 0; yi < L2_out_one_side; yi++)
+                        {
+                            for (int xi = 0; xi < L2_out_one_side; xi++)
+                            {
+                                fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
+                            }
+                        }
+                    }
+                    // Start Forward pass fully connected network
+                    fc_nn_frozen_target_net.forward_pass();
+                    // Forward pass though fully connected network
+                    //================== Forward Pass Frozen network complete ============
+                    //======================================================================
                 }
             }
-    //        imshow("debug_input_vector", debug_input_vector);
-    //        waitKey(1);
-            conv_L1.conv_forward1();
-            conv_L2.input_tensor = conv_L1.output_tensor;
-            conv_L2.conv_forward1();
-            
         }
+        imshow("replay_grapics_buffert", replay_grapics_buffert);
+        waitKey(10000);
     }
-    imshow("replay_grapics_buffert", replay_grapics_buffert);
-    waitKey(10000);
 
     //Save all weights
     fc_nn_end_block.save_weights(weight_filename_end);
     conv_L1.save_weights(L1_kernel_k_weight_filename, L1_kernel_b_weight_filename);
     conv_L2.save_weights(L2_kernel_k_weight_filename, L2_kernel_b_weight_filename);
     //End
+}
+
+vector<int> fisher_yates_shuffle(vector<int> table)
+{
+  int size = table.size();
+  for (int i = 0; i < size; i++)
+  {
+    table[i] = i;
+  }
+  for (int i = size - 1; i > 0; i--)
+  {
+    int j = rand() % (i + 1);
+    int temp = table[i];
+    table[i] = table[j];
+    table[j] = temp;
+  }
+  return table;
 }
