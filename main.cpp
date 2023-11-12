@@ -67,6 +67,9 @@ int main()
     const int pixel_width = 50;///The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size;
     Size image_size_reduced(pixel_height,pixel_width);//the dst image size,e.g.50x50
+
+    vector<vector<int>> replay_actions_buffert;
+    vector<double> target_max_value;
     
     //=========== Neural Network size settings ==============
     fc_m_resnet fc_nn_end_block;
@@ -240,11 +243,21 @@ int main()
     resize(game_video_full_size, resized_grapics, image_size_reduced);
     imshow("resized_grapics", resized_grapics); ///  resize(src, dst, size);
     replay_grapics_buffert.create(pixel_height * gameObj1.nr_of_frames , pixel_width * batch_size, CV_32FC1);
-    //replay_grapics_buffert.create(pixel_height * 2 ,pixel_width , CV_32FC1);
     cout << "replay_grapics_buffert rows = " << replay_grapics_buffert.rows << endl;
     cout << "replay_grapics_buffert cols = " << replay_grapics_buffert.cols << endl;
     cout << "resized_grapics rows = " << resized_grapics.rows << endl;
     cout << "resized_grapics cols = " << resized_grapics.cols << endl;
+
+    vector<int> dummy_1D_vect;
+    for(int i=0;i<batch_size;i++)
+    {
+        dummy_1D_vect.push_back(0);//Prepare an inner 1D vector to put to next replay_action_buffert 2D vector with size of batch_size
+    }
+    for(int i=0;i<gameObj1.nr_of_frames;i++)
+    {
+        replay_actions_buffert.push_back(dummy_1D_vect);//Create the size of replay_action_buffert memory how store replay action of all states and the whole batch
+        target_max_value.push_back(0.0);//
+    }
 
     const int max_nr_epochs = 1000000;
     for (int epoch = 0; epoch < max_nr_epochs; epoch++)
@@ -255,18 +268,16 @@ int main()
             batch_nr = batch_rand_list[batch_cnt];
             gameObj1.start_episode();
             cout << "batch_rand_list[" << batch_cnt << "] = " << batch_rand_list[batch_cnt] << " = batch_nr = " << batch_nr << endl;
-            for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) /// Loop throue each of the 100 frames
-            // for (int frame_g = 0; frame_g < 8; frame_g++) /// Loop throue each of the 100 frames
+            for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
             {
                 gameObj1.frame = frame_g;
                 gameObj1.run_episode();
                 game_video_full_size = gameObj1.gameGrapics.clone();
                 resize(game_video_full_size, resized_grapics, image_size_reduced);
-                imshow("resized_grapics", resized_grapics); ///  resize(src, dst, size);
+                imshow("resized_grapics", resized_grapics); //  resize(src, dst, size);
                 // Insert resized_grapics into replay_grapics_buffert below
                 // replay_grapics_buffert filled with data from resized_grapics rows from 0 to pixel_height-1 into replay_grapics_buffert rows index pixel_height * frame_g + (resized_grapics rows from 0 to pixel_height-1)
                 // Insert resized_grapics into replay_grapics_buffert
-
                 // Calculate the starting column index for the ROI in replay_grapics_buffert
                 int startCol = pixel_width * batch_nr;
                 // Create a Rect to define the ROI in replay_grapics_buffert
@@ -304,30 +315,33 @@ int main()
                         }
                     }
                     // Start Forward pass fully connected network
-                    fc_nn_end_block.forward_pass();
-                    // Forward pass though fully connected network
+                    fc_nn_end_block.forward_pass();// Forward pass though fully connected network
+                    
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************
 
                     //======================================================================
-                    //================== Forward Pass Frozen network =====================
-                    conv_frozen_L1_target_net.conv_forward1();
-                    conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
-                    conv_frozen_L2_target_net.conv_forward1();
-                    for (int oc = 0; oc < L2_out_ch; oc++)
+                    //================== Forward Pass Frozen network NEXT state ============
+                    if (frame_g < gameObj1.nr_of_frames)
                     {
-                        for (int yi = 0; yi < L2_out_one_side; yi++)
+                        conv_frozen_L1_target_net.conv_forward1();
+                        conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
+                        conv_frozen_L2_target_net.conv_forward1();
+                        for (int oc = 0; oc < L2_out_ch; oc++)
                         {
-                            for (int xi = 0; xi < L2_out_one_side; xi++)
+                            for (int yi = 0; yi < L2_out_one_side; yi++)
                             {
-                                fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
+                                for (int xi = 0; xi < L2_out_one_side; xi++)
+                                {
+                                    fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
+                                }
                             }
                         }
+                        // Start Forward pass fully connected network
+                        fc_nn_frozen_target_net.forward_pass();// Forward pass though fully connected network
+                        
                     }
-                    // Start Forward pass fully connected network
-                    fc_nn_frozen_target_net.forward_pass();
-                    // Forward pass though fully connected network
-                    //================== Forward Pass Frozen network complete ============
+                    //================== Forward Pass Frozen network complete ==============
                     //======================================================================
                 }
             }
