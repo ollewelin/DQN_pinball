@@ -403,7 +403,8 @@ int main()
         {
             check_state_nr = batch_state_rand_list[batch_state_cnt];
             cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
-            batch_nr =  single_game_state_size % check_state_nr;
+            cout << "single_game_state_size = " << single_game_state_size << endl;
+            batch_nr =  check_state_nr / single_game_state_size;
             cout << "Run one training state sample at batch_nr = " << batch_nr << endl;
             for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
             {
