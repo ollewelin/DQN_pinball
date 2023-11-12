@@ -314,7 +314,6 @@ int main()
                             {
                                 fc_nn_end_block.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_L2.output_tensor[oc][yi][xi];
                                // cout << "conv_L2.output_tensor[oc][yi][xi] = " << conv_L2.output_tensor[oc][yi][xi] << endl;
-                               // fc_nn_end_block.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = 0.001;
                             }
                         }
                     }
@@ -364,30 +363,6 @@ int main()
                     
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************
-
-                    //======================================================================
-                    //================== Forward Pass Frozen network NEXT state ============
-                    if (frame_g < gameObj1.nr_of_frames)
-                    {
-                        conv_frozen_L1_target_net.conv_forward1();
-                        conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
-                        conv_frozen_L2_target_net.conv_forward1();
-                        for (int oc = 0; oc < L2_out_ch; oc++)
-                        {
-                            for (int yi = 0; yi < L2_out_one_side; yi++)
-                            {
-                                for (int xi = 0; xi < L2_out_one_side; xi++)
-                                {
-                                    fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
-                                }
-                            }
-                        }
-                        // Start Forward pass fully connected network
-                        fc_nn_frozen_target_net.forward_pass();// Forward pass though fully connected network
-                        
-                    }
-                    //================== Forward Pass Frozen network complete ==============
-                    //======================================================================
                 }
             }
         }
@@ -406,72 +381,138 @@ int main()
             cout << "single_game_state_size = " << single_game_state_size << endl;
             batch_nr =  check_state_nr / single_game_state_size;
             cout << "Run one training state sample at batch_nr = " << batch_nr << endl;
-            for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
+            int single_game_frame_state = check_state_nr % single_game_state_size;
+            cout << "single_game_frame_state = " << single_game_frame_state << endl;
+            if (single_game_frame_state < single_game_state_size - 1)
             {
-
-            }
-
-
-
-
-
-            ///---TODO remove below
-            cout << "TODO code not finnish" << endl;
-
-            for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
-            {
-
                 // Calculate the starting column index for the ROI in replay_grapics_buffert
                 int startCol = pixel_width * batch_nr;
-                // Create a Rect to define the ROI in replay_grapics_buffert
-                cv::Rect roi(startCol, pixel_height * frame_g, pixel_width, pixel_height);
-                // Copy the relevant region from resized_grapics to replay_grapics_buffert
-                resized_grapics(cv::Rect(0, 0, pixel_width, pixel_height)).copyTo(replay_grapics_buffert(roi));
-                if (frame_g >= nr_frames_strobed - 1) // Wait until all 4 images is up there in the game after start
+                int startRow = pixel_height * single_game_frame_state + pixel_height * nr_frames_strobed;
+
+                for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
                 {
-                    // Put in data from replay_grapics_buffert to L1_tensor_in_size
+                    cv::Rect replay_roi(startCol, (startRow + pixel_height * frame_t), pixel_width, pixel_height);
                     for (int i = 0; i < L1_input_channels; i++)
                     {
                         for (int j = 0; j < L1_tensor_in_size; j++)
                         {
                             int row = j / pixel_width;
                             int col = j % pixel_width;
-                            float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (frame_g - (nr_frames_strobed - 1) + i) + row, col + pixel_width * batch_nr);
-                            conv_frozen_L1_target_net.input_tensor[i][row][col] = pixelValue;
-                        }
-                    }
 
-                    //======================================================================
-                    //================== Forward Pass Frozen network NEXT state ============
-                    if (frame_g < gameObj1.nr_of_frames)
-                    {
-                        conv_frozen_L1_target_net.conv_forward1();
-                        conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
-                        conv_frozen_L2_target_net.conv_forward1();
-                        int L2_out_one_side = conv_L2.output_tensor[0].size();
-                        int L2_out_ch = conv_L2.output_tensor.size();
+                            // Calculate the actual row and column indices in replay_roi
+                            int roi_row = row + replay_roi.y;
+                            int roi_col = col + replay_roi.x;
 
-                        for (int oc = 0; oc < L2_out_ch; oc++)
-                        {
-                            for (int yi = 0; yi < L2_out_one_side; yi++)
+                            // Ensure the indices are within bounds
+                            if (roi_row < replay_roi.y + replay_roi.height && roi_col < replay_roi.x + replay_roi.width)
                             {
-                                for (int xi = 0; xi < L2_out_one_side; xi++)
-                                {
-                                    fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
-                                }
+                                // Extract replay_roi data here to pixelValue
+                                float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
+                                conv_L1.input_tensor[i][row][col] = pixelValue;
+                            }
+                            else
+                            {
+                                // Handle the case where the indices are out of bounds
+                                // You might want to set a default value or handle it differently based on your requirements.
+                                cout << "error case where the indices are out of bounds" << endl;
+                                conv_L1.input_tensor[i][row][col] = 0.0; // Set a default value to 0.0 for example
                             }
                         }
-                        // Start Forward pass fully connected network
-                        fc_nn_frozen_target_net.forward_pass();// Forward pass though fully connected network
-                        
                     }
-                    //================== Forward Pass Frozen network complete ==============
-                    //======================================================================
                 }
+
+                //**********************************************************************
+                //****************** Forward Pass training network *********************
+                conv_L1.conv_forward1();
+                conv_L2.input_tensor = conv_L1.output_tensor;
+                conv_L2.conv_forward1();
+                int L2_out_one_side = conv_L2.output_tensor[0].size();
+                int L2_out_ch = conv_L2.output_tensor.size();
+                for (int oc = 0; oc < L2_out_ch; oc++)
+                {
+                    for (int yi = 0; yi < L2_out_one_side; yi++)
+                    {
+                        for (int xi = 0; xi < L2_out_one_side; xi++)
+                        {
+                            fc_nn_end_block.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_L2.output_tensor[oc][yi][xi];
+                        }
+                    }
+                }
+                // Start Forward pass fully connected network
+                fc_nn_end_block.forward_pass(); // Forward pass though fully connected network
+
+                //TODO
+                //****************** Forward Pass training network complete ************
+                //**********************************************************************
+
+
+                //===================================
+                single_game_frame_state++;//Take NEXT state to peak into and get next state Q-value for a target value to train on 
+                // Calculate the starting column index for the ROI in replay_grapics_buffert
+                startCol = pixel_width * batch_nr;
+                startRow = pixel_height * single_game_frame_state + pixel_height * nr_frames_strobed;
+                for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
+                {
+                    cv::Rect replay_roi(startCol, (startRow + pixel_height * frame_t), pixel_width, pixel_height);
+                    for (int i = 0; i < L1_input_channels; i++)
+                    {
+                        for (int j = 0; j < L1_tensor_in_size; j++)
+                        {
+                            int row = j / pixel_width;
+                            int col = j % pixel_width;
+
+                            // Calculate the actual row and column indices in replay_roi
+                            int roi_row = row + replay_roi.y;
+                            int roi_col = col + replay_roi.x;
+
+                            // Ensure the indices are within bounds
+                            if (roi_row < replay_roi.y + replay_roi.height && roi_col < replay_roi.x + replay_roi.width)
+                            {
+                                // Extract replay_roi data here to pixelValue
+                                float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
+                                conv_frozen_L1_target_net.input_tensor[i][row][col] = pixelValue;
+                            }
+                            else
+                            {
+                                // Handle the case where the indices are out of bounds
+                                // You might want to set a default value or handle it differently based on your requirements.
+                                cout << "error case where the indices are out of bounds" << endl;
+                                conv_frozen_L1_target_net.input_tensor[i][row][col] = 0.0; // Set a default value to 0.0 for example
+                            }
+                        }
+                    }
+                }
+
+                //======================================================================
+                //================== Forward Pass Frozen network NEXT state ============
+                conv_frozen_L1_target_net.conv_forward1();
+                conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
+                conv_frozen_L2_target_net.conv_forward1();
+
+                for (int oc = 0; oc < L2_out_ch; oc++)
+                {
+                    for (int yi = 0; yi < L2_out_one_side; yi++)
+                    {
+                        for (int xi = 0; xi < L2_out_one_side; xi++)
+                        {
+                            fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
+                        }
+                    }
+                }
+                // Start Forward pass fully connected network
+                fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
+                //================== Forward Pass Frozen network complete ==============
+                //======================================================================
+            }
+            else
+            {
+                // End game state
+                //Get the end reward here for a target Q-value
+
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
-        waitKey(10000);
+        waitKey(1);
 
         //******************** End of replay batch *************************************
 
