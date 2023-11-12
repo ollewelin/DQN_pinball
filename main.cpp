@@ -367,7 +367,7 @@ int main()
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
-        waitKey(10000);
+        waitKey(1000);
 
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
@@ -387,7 +387,7 @@ int main()
             {
                 // Calculate the starting column index for the ROI in replay_grapics_buffert
                 int startCol = pixel_width * batch_nr;
-                int startRow = pixel_height * single_game_frame_state + pixel_height * nr_frames_strobed;
+                int startRow = pixel_height * (single_game_frame_state + nr_frames_strobed);
 
                 for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
                 {
@@ -441,10 +441,10 @@ int main()
                 // Start Forward pass fully connected network
                 fc_nn_end_block.forward_pass(); // Forward pass though fully connected network
 
-                //TODO
+
                 //****************** Forward Pass training network complete ************
                 //**********************************************************************
-
+                int decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed-1][batch_nr]; 
 
                 //===================================
                 single_game_frame_state++;//Take NEXT state to peak into and get next state Q-value for a target value to train on 
@@ -503,6 +503,20 @@ int main()
                 fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
                 //================== Forward Pass Frozen network complete ==============
                 //======================================================================
+
+                // Search for max Q-value
+                double  max_Q_target_value = 0.0; 
+                for (int i = 0; i < end_out_nodes; i++)
+                {
+                    double action_node = fc_nn_frozen_target_net.output_layer[i];
+                    if (action_node > max_Q_target_value)
+                    {
+                        max_Q_target_value  = action_node;
+                    }
+                }
+
+                //TODO backprop fc_nn_end_block
+
             }
             else
             {
