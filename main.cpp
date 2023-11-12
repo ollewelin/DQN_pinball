@@ -41,7 +41,7 @@ int main()
     gameObj1.advanced_game = 1;///0= only a ball. 1= ball give awards. square gives punish
     gameObj1.use_image_diff=0;
     gameObj1.high_precition_mode = 1; ///This will make adjustable rewards highest at center of the pad.
-    gameObj1.use_dice_action=1;
+    gameObj1.use_dice_action=0;
     gameObj1.drop_out_percent=0;
     gameObj1.Not_dropout=1;
     gameObj1.flip_reward_sign =0;
@@ -88,10 +88,10 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;//0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 2;// ReLU for all fully connected activation functions except output last layer
-    fc_nn_end_block.force_last_activation_function_to_sigmoid = 1;//1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
+    fc_nn_end_block.activation_function_mode = 0;// ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.force_last_activation_function_to_sigmoid = 0;//1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0; // 1 for residual network architetcture
-    fc_nn_end_block.use_dropouts = 1;
+    fc_nn_end_block.use_dropouts = 0;
     fc_nn_end_block.dropout_proportion = 0.4;
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
@@ -109,9 +109,9 @@ int main()
     const int nr_frames_strobed = 4;// 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels * nr_frames_strobed;//color channels * Images in serie
     const int L1_tensor_in_size = pixel_width*pixel_height;
-    const int L1_tensor_out_channels = 30;
+    const int L1_tensor_out_channels = 50;
     const int L1_kernel_size = 5;
-    const int L1_stride = 2;
+    const int L1_stride = 3;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
     conv_L1.set_stride(L1_stride);
     conv_L1.set_in_tensor(L1_tensor_in_size, L1_input_channels); // data_size_one_sample_one_channel, input channels
@@ -128,9 +128,9 @@ int main()
     //==== Set up convolution layers ===========
     const int L2_input_channels = conv_L1.output_tensor.size();    
     const int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    const int L2_tensor_out_channels = 25;
+    const int L2_tensor_out_channels = 50;
     const int L2_kernel_size = 5;
-    const int L2_stride = 2;
+    const int L2_stride = 3;
 
     cout << "conv_L2 setup:" << endl;
     conv_L2.set_kernel_size(L2_kernel_size); // Odd number
@@ -150,7 +150,7 @@ int main()
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 2;
     const int end_hid_nodes_L1 = 200;
-    const int end_hid_nodes_L2 = 50;
+    const int end_hid_nodes_L2 = 100;
     const int end_out_nodes = 3;//Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -185,14 +185,19 @@ int main()
     conv_L1.momentum = 0.9;
     conv_L2.learning_rate = 0.0001;
     conv_L2.momentum = 0.9;
+    double init_random_weight_propotion = 1.2;
+    double init_random_weight_propotion_conv = 0.01;
+    double dqn_epsilon = 1.0;//Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
+    //==== Hyper parameter settings End ===========================
+
+    //==== Set modes ===============
     conv_L1.activation_function_mode = 2;
     conv_L2.activation_function_mode = 2;
     conv_frozen_L1_target_net.activation_function_mode = conv_L1.activation_function_mode;
     conv_frozen_L2_target_net.activation_function_mode = conv_L2.activation_function_mode;
+    //==============================
 
     char answer;
-    double init_random_weight_propotion = 0.25;
-    double init_random_weight_propotion_conv = 0.25;
     cout << "Do you want to load kernel weights from saved weight file = Y/N " << endl;
     cin >> answer;
     if (answer == 'Y' || answer == 'y')
@@ -218,24 +223,10 @@ int main()
     }
 
     srand(static_cast<unsigned>(time(NULL))); // Seed the randomizer
-
-//    cout << "Do you want use default settings of the pinball game = Y/N " << endl;
-//    cin >> answer;
-//    if (answer == 'Y' || answer == 'y')
-//    {
-//        cout << "User select default game settings " << endl;
-//    }
-//    else
-//    {
-//        gameObj1.set_user_settings();
-//        fc_nn_end_block.learning_rate = gameObj1.pix2hid_learning_rate;
-//        fc_nn_end_block.learning_rate = gameObj1.hid2out_learning_rate;
-//    }
-
     cout << "gameObj1.gameObj1.game_Height " << gameObj1.game_Height << endl;
     cout << "gameObj1.gameObj1.game_Width " << gameObj1.game_Width << endl;
 
-    //Start one game
+    //Start onlu one game now, only for get out size of grapichs to prepare memory
     gameObj1.replay_episode = 0;
     gameObj1.start_episode();
 
@@ -311,11 +302,47 @@ int main()
                             for (int xi = 0; xi < L2_out_one_side; xi++)
                             {
                                 fc_nn_end_block.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_L2.output_tensor[oc][yi][xi];
+                               // cout << "conv_L2.output_tensor[oc][yi][xi] = " << conv_L2.output_tensor[oc][yi][xi] << endl;
+                               // fc_nn_end_block.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = 0.001;
                             }
                         }
                     }
                     // Start Forward pass fully connected network
                     fc_nn_end_block.forward_pass();// Forward pass though fully connected network
+                   
+                    float exploring_dice = (float) (rand() % 65535) / 65536;//Through a fair dice. Random value 0..1.0 range
+                    //dqn_epsilon = 0.5;//Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
+                    int decided_action = 0;
+                    double max_decision = 0.0f;
+                    if(exploring_dice > dqn_epsilon)
+                    {
+                        //Choose dice action (Exploration mode)
+                        for(int i=0;i<end_out_nodes;i++)//end_out_nodes = numbere of actions
+                        {
+                            float action_dice = (float)(rand() % 65535) / 65536; // Through a fair dice. Random value 0..1.0 range
+                            //cout << "action_dice = " << action_dice << endl;
+                            if(action_dice > (float)max_decision)
+                            {
+                                max_decision = (float)action_dice;
+                                decided_action = i;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //Choose predicted action (Exploit mode)
+                        for(int i=0;i<end_out_nodes;i++)
+                        {
+                            //end_out_nodes = numbere of actions
+                            double action_node = fc_nn_end_block.output_layer[i];
+                            cout << "action_node = " << action_node << " i = " << i << endl;
+                        }
+                    }
+                    cout << "decided_action = " << decided_action << endl;
+                    cout << "exploring_dice = " << exploring_dice << endl;
+
+                    gameObj1.move_up = decided_action;//Input Action from Agent. 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
+                    replay_actions_buffert[frame_g][batch_nr] = decided_action;
                     
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************

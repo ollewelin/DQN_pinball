@@ -29,45 +29,53 @@ private:
 
     int skip_conn_rest_part;
     int skip_conn_multiple_part;
-    int skip_conn_in_out_relation;
+    
     //0 = same input/output
     //1 = input > output
     //2 = output > input
+    int skip_conn_in_out_relation;
     int shift_ununiform_skip_connection_sample_counter;//Sample coutner related to shift_ununiform_skip_connection_after_samp_n
     int switch_skip_con_selector;
 public:
     fc_m_resnet(/* args */);
     ~fc_m_resnet();
-    int block_type;//0..2
+    
     //0 = start block 
     //1 = middle block means both i_layer_delta is produced (backpropagate) and o_layer_delta is needed
     //2 = end block. target_nodes is used but o_layer_delta not used only loss and i_layer_delta i calculated. 
-    int use_softmax;
+    int block_type;//0..2
+    
     //0 = No softmax
     //1 = Use softmax at end. Only possible to enable if block_type = 2 end block
-    int activation_function_mode;
+    int use_softmax;
+    
     //0 = sigmoid activation function
     //1 = Relu simple activation function
     //2 = Relu fix leaky activation function
-    int force_last_activation_function_to_sigmoid;
+    int activation_function_mode;
+    
     //0 = All activation functions same
     //1 = Last activation layer will set to sigmoid regardless activation_function_mode above
+    int force_last_activation_function_to_sigmoid;
     double fix_leaky_proportion;
-    int use_skip_connect_mode;
+    
     //0 = turn OFF skip connections, ordinary fully connected nn block only
     //1 = turn ON skip connectons
-    int shift_ununiform_skip_connection_after_samp_n;
+    int use_skip_connect_mode;
+   
     //0 = all ununiform in/out skip connections are connected every sample every where (forward and backwards). default
     //1 = If ununiform in/out skip connectetions are the case, only uniform in/out skip connection is made forward and backwards and switched every sample
     //2....n = uniform in/out skip connection switch after this number of samples
-
-    int training_mode;
+     int shift_ununiform_skip_connection_after_samp_n;
+    
     //0 = SGD Stocastic Gradient Decent
     //1 = Batch Gradient Decent, not yet implemented
+    int training_mode;
     int batch_size; //Only used if trainging_mode 1
-    int use_dropouts;
+    
     //0 = No dropout
     //1 = Use dropout
+    int use_dropouts;
     double loss_A;//
     double loss_B;//Same calculation as A just to diffrent how user can zero out as needed outide this class
     double learning_rate;
