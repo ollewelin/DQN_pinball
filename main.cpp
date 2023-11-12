@@ -50,16 +50,9 @@ int main()
     gameObj1.use_character =0;
     gameObj1.enabel_3_state = 1;//Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
-    double gamma = 0.91f;
     
-    const int batch_size = 10;
-    int batch_nr = 0;
-    vector<int> batch_rand_list;
-    for(int i=0;i<batch_size;i++)
-    {
-        batch_rand_list.push_back(0);
-    }
-    batch_rand_list = fisher_yates_shuffle(batch_rand_list);
+
+
 
     // Set up a OpenCV mat
 
@@ -185,9 +178,13 @@ int main()
     conv_L1.momentum = 0.9;
     conv_L2.learning_rate = 0.0001;
     conv_L2.momentum = 0.9;
-    double init_random_weight_propotion = 1.2;
+    double init_random_weight_propotion = 0.02;
     double init_random_weight_propotion_conv = 0.01;
-    double dqn_epsilon = 1.0;//Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
+    const double start_epsilon = 0.5;
+    const double stop_min_epsilon = 0.25;
+    const double derating_epsilon = 0.01;//Derating speed per batch game
+    double dqn_epsilon = start_epsilon;//Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
+    double gamma = 0.91f;
     //==== Hyper parameter settings End ===========================
 
     //==== Set modes ===============
@@ -196,6 +193,21 @@ int main()
     conv_frozen_L1_target_net.activation_function_mode = conv_L1.activation_function_mode;
     conv_frozen_L2_target_net.activation_function_mode = conv_L2.activation_function_mode;
     //==============================
+
+    
+    const int batch_size = 10;
+    int batch_nr = 0;//Used during play
+    vector<int> batch_state_rand_list;
+    int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed;// the first for frames will not have any state
+    int check_state_nr = 0;//Used during replay training 
+    for(int i=0;i<batch_size;i++)
+    {
+        for(int j=0;j<single_game_state_size;j++)
+        {
+            batch_state_rand_list.push_back(0);
+        }
+    }
+
 
     char answer;
     cout << "Do you want to load kernel weights from saved weight file = Y/N " << endl;
@@ -253,12 +265,11 @@ int main()
     const int max_nr_epochs = 1000000;
     for (int epoch = 0; epoch < max_nr_epochs; epoch++)
     {
-        batch_rand_list = fisher_yates_shuffle(batch_rand_list);
         for (int batch_cnt=0; batch_cnt < batch_size; batch_cnt++)
         {
-            batch_nr = batch_rand_list[batch_cnt];
+            batch_nr = batch_cnt;
             gameObj1.start_episode();
-            cout << "batch_rand_list[" << batch_cnt << "] = " << batch_rand_list[batch_cnt] << " = batch_nr = " << batch_nr << endl;
+            cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
             for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
             {
                 gameObj1.frame = frame_g;
@@ -335,11 +346,18 @@ int main()
                         {
                             //end_out_nodes = numbere of actions
                             double action_node = fc_nn_end_block.output_layer[i];
-                            cout << "action_node = " << action_node << " i = " << i << endl;
+                            if(action_node > max_decision)
+                            {
+                                max_decision = action_node;
+                                decided_action = i;
+                            }
+                          //  cout << "action_node = " << action_node << " i = " << i << endl;
                         }
+
                     }
-                    cout << "decided_action = " << decided_action << endl;
-                    cout << "exploring_dice = " << exploring_dice << endl;
+                  //  std::cout << std::fixed << std::setprecision(20);
+                  //  cout << "decided_action = " << decided_action << endl;
+                  //  cout << "exploring_dice = " << exploring_dice << endl;
 
                     gameObj1.move_up = decided_action;//Input Action from Agent. 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
                     replay_actions_buffert[frame_g][batch_nr] = decided_action;
@@ -375,6 +393,89 @@ int main()
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(10000);
+
+        //******************** Go through the batch of replay memory *******************
+        cout << "********************************************************************************" << endl;
+        cout << "********* Run the whole replay batch memeory and traing the DQN network ********" << endl;
+        cout << "********************************************************************************" << endl;
+        batch_state_rand_list = fisher_yates_shuffle(batch_state_rand_list);
+        for (int batch_state_cnt=0; batch_state_cnt < (single_game_state_size * batch_size); batch_state_cnt++)
+        {
+            check_state_nr = batch_state_rand_list[batch_state_cnt];
+            cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
+            batch_nr =  single_game_state_size % check_state_nr;
+            cout << "Run one training state sample at batch_nr = " << batch_nr << endl;
+            for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
+            {
+
+            }
+
+
+
+
+
+            ///---TODO remove below
+            cout << "TODO code not finnish" << endl;
+
+            for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
+            {
+
+                // Calculate the starting column index for the ROI in replay_grapics_buffert
+                int startCol = pixel_width * batch_nr;
+                // Create a Rect to define the ROI in replay_grapics_buffert
+                cv::Rect roi(startCol, pixel_height * frame_g, pixel_width, pixel_height);
+                // Copy the relevant region from resized_grapics to replay_grapics_buffert
+                resized_grapics(cv::Rect(0, 0, pixel_width, pixel_height)).copyTo(replay_grapics_buffert(roi));
+                if (frame_g >= nr_frames_strobed - 1) // Wait until all 4 images is up there in the game after start
+                {
+                    // Put in data from replay_grapics_buffert to L1_tensor_in_size
+                    for (int i = 0; i < L1_input_channels; i++)
+                    {
+                        for (int j = 0; j < L1_tensor_in_size; j++)
+                        {
+                            int row = j / pixel_width;
+                            int col = j % pixel_width;
+                            float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (frame_g - (nr_frames_strobed - 1) + i) + row, col + pixel_width * batch_nr);
+                            conv_frozen_L1_target_net.input_tensor[i][row][col] = pixelValue;
+                        }
+                    }
+
+                    //======================================================================
+                    //================== Forward Pass Frozen network NEXT state ============
+                    if (frame_g < gameObj1.nr_of_frames)
+                    {
+                        conv_frozen_L1_target_net.conv_forward1();
+                        conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
+                        conv_frozen_L2_target_net.conv_forward1();
+                        int L2_out_one_side = conv_L2.output_tensor[0].size();
+                        int L2_out_ch = conv_L2.output_tensor.size();
+
+                        for (int oc = 0; oc < L2_out_ch; oc++)
+                        {
+                            for (int yi = 0; yi < L2_out_one_side; yi++)
+                            {
+                                for (int xi = 0; xi < L2_out_one_side; xi++)
+                                {
+                                    fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
+                                }
+                            }
+                        }
+                        // Start Forward pass fully connected network
+                        fc_nn_frozen_target_net.forward_pass();// Forward pass though fully connected network
+                        
+                    }
+                    //================== Forward Pass Frozen network complete ==============
+                    //======================================================================
+                }
+            }
+        }
+        imshow("replay_grapics_buffert", replay_grapics_buffert);
+        waitKey(10000);
+
+        //******************** End of replay batch *************************************
+
+
+
     }
 
     //Save all weights
