@@ -198,7 +198,7 @@ int main()
     const int batch_size = 10;
     int batch_nr = 0;//Used during play
     vector<int> batch_state_rand_list;
-    int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed;// the first for frames will not have any state
+    int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1;// the first for frames will not have any state
     int check_state_nr = 0;//Used during replay training 
     for(int i=0;i<batch_size;i++)
     {
@@ -373,12 +373,12 @@ int main()
         cout << "********************************************************************************" << endl;
         cout << "********* Run the whole replay batch memeory and traing the DQN network ********" << endl;
         cout << "********************************************************************************" << endl;
+        cout << "single_game_state_size = " << single_game_state_size << endl;
         batch_state_rand_list = fisher_yates_shuffle(batch_state_rand_list);
         for (int batch_state_cnt=0; batch_state_cnt < (single_game_state_size * batch_size); batch_state_cnt++)
         {
             check_state_nr = batch_state_rand_list[batch_state_cnt];
             cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
-            cout << "single_game_state_size = " << single_game_state_size << endl;
             batch_nr =  check_state_nr / single_game_state_size;
             cout << "Run one training state sample at batch_nr = " << batch_nr << endl;
             int single_game_frame_state = check_state_nr % single_game_state_size;
@@ -387,7 +387,7 @@ int main()
             {
                 // Calculate the starting column index for the ROI in replay_grapics_buffert
                 int startCol = pixel_width * batch_nr;
-                int startRow = pixel_height * (single_game_frame_state + nr_frames_strobed);
+                int startRow = pixel_height * single_game_frame_state;
 
                 for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
                 {
@@ -447,10 +447,11 @@ int main()
                 int decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed-1][batch_nr]; 
 
                 //===================================
+
                 single_game_frame_state++;//Take NEXT state to peak into and get next state Q-value for a target value to train on 
                 // Calculate the starting column index for the ROI in replay_grapics_buffert
                 startCol = pixel_width * batch_nr;
-                startRow = pixel_height * single_game_frame_state + pixel_height * nr_frames_strobed;
+                startRow = pixel_height * single_game_frame_state;
                 for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
                 {
                     cv::Rect replay_roi(startCol, (startRow + pixel_height * frame_t), pixel_width, pixel_height);
