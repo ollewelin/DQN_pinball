@@ -21,7 +21,9 @@ private:
     vector<int> number_of_hidden_nodes;
     vector<vector<double>> hidden_layer;//2D [layer_nr][node_nr]
     vector<vector<double>> internal_delta;//2D [layer_nr][node_nr] nr_of_hidden_layers + 2 for i_layer_delta and o_layer_delta as well
+public:
     vector<vector<vector<double>>> all_weights;//3D [layer_nr][node_nr][weights_from_previous_layer]
+private:
     vector<vector<vector<double>>> change_weights;//3D [layer_nr][node_nr][weights_from_previous_layer]
     double activation_function(double, int);
     double delta_activation_func(double,double);

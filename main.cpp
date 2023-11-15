@@ -83,8 +83,8 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;//0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 0;// ReLU for all fully connected activation functions except output last layer
-    fc_nn_end_block.force_last_activation_function_to_sigmoid = 0;//1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
+    fc_nn_end_block.activation_function_mode = 2;// ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.force_last_activation_function_to_sigmoid = 1;//1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0; // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 0;
     fc_nn_end_block.dropout_proportion = 0.4;
@@ -187,6 +187,8 @@ int main()
     const double derating_epsilon = 0.01;//Derating speed per batch game
     double dqn_epsilon = start_epsilon;//Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.91f;
+    const int update_frozen_after_samples = 50;
+    int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
     //==== Set modes ===============
@@ -399,7 +401,10 @@ int main()
             cout << "Run one training state sample at batch_nr = " << batch_nr << endl;
             int single_game_frame_state = check_state_nr % single_game_state_size;
             cout << "single_game_frame_state = " << single_game_frame_state << endl;
-            double  max_Q_target_value = 0.0; 
+            double  max_Q_target_value = 0.0;
+            int L2_out_one_side = conv_L2.output_tensor[0].size();
+            int L2_out_ch = conv_L2.output_tensor.size();
+
             if (single_game_frame_state < single_game_state_size - 1)
             {
                 // Calculate the starting column index for the ROI in replay_grapics_buffert
@@ -443,8 +448,6 @@ int main()
                 conv_L1.conv_forward1();
                 conv_L2.input_tensor = conv_L1.output_tensor;
                 conv_L2.conv_forward1();
-                int L2_out_one_side = conv_L2.output_tensor[0].size();
-                int L2_out_ch = conv_L2.output_tensor.size();
                 for (int oc = 0; oc < L2_out_ch; oc++)
                 {
                     for (int yi = 0; yi < L2_out_one_side; yi++)
@@ -558,9 +561,34 @@ int main()
             }
             
             fc_nn_end_block.backpropagtion_and_update();
-            //TODO: backprop convolution layers
-
-            //TODO copy over to frozen fc and conv network 
+            //backprop convolution layers
+            for (int oc = 0; oc < L2_out_ch; oc++)
+            {
+                for (int yi = 0; yi < L2_out_one_side; yi++)
+                {
+                    for (int xi = 0; xi < L2_out_one_side; xi++)
+                    {
+                        conv_L2.o_tensor_delta[oc][yi][xi] = fc_nn_end_block.i_layer_delta[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi];
+                    }
+                }
+            }
+            conv_L2.conv_backprop();
+            conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
+            conv_L1.conv_backprop();
+            conv_L2.conv_update_weights();
+            conv_L1.conv_update_weights();
+            if(update_frz_cnt < update_frozen_after_samples)
+            {
+                update_frz_cnt++;
+            }
+            else
+            {
+                update_frz_cnt=0;
+                //copy over to frozen fc and conv network 
+                conv_frozen_L1_target_net.kernel_weights = conv_L1.kernel_weights;
+                conv_frozen_L2_target_net.kernel_weights = conv_L2.kernel_weights;
+                fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
+            }
             
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
