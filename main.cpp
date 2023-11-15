@@ -390,17 +390,17 @@ int main()
         cout << "********************************************************************************" << endl;
         cout << "********* Run the whole replay batch memeory and traing the DQN network ********" << endl;
         cout << "********************************************************************************" << endl;
-        cout << "single_game_state_size = " << single_game_state_size << endl;
+     //   cout << "single_game_state_size = " << single_game_state_size << endl;
         batch_state_rand_list = fisher_yates_shuffle(batch_state_rand_list);
         int replay_decided_action = 0;
         for (int batch_state_cnt=0; batch_state_cnt < (single_game_state_size * batch_size); batch_state_cnt++)
         {
             check_state_nr = batch_state_rand_list[batch_state_cnt];
-            cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
+       //     cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
             batch_nr =  check_state_nr / single_game_state_size;
-            cout << "Run one training state sample at batch_nr = " << batch_nr << endl;
+        //    cout << "Run one training state sample at batch_nr = " << batch_nr << endl;
             int single_game_frame_state = check_state_nr % single_game_state_size;
-            cout << "single_game_frame_state = " << single_game_frame_state << endl;
+        //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
             double  max_Q_target_value = 0.0;
             int L2_out_one_side = conv_L2.output_tensor[0].size();
             int L2_out_ch = conv_L2.output_tensor.size();
@@ -543,7 +543,7 @@ int main()
                 cout << "Replay END State at batch_nr = " << batch_nr << endl;
             }
             int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
-            cout << "rewards_idx_state = " << rewards_idx_state << endl;
+           // cout << "rewards_idx_state = " << rewards_idx_state << endl;
             double rewards_here = rewards_at_batch[rewards_idx_state][batch_nr];
             double target_value = rewards_here + gamma * max_Q_target_value;
             
