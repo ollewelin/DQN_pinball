@@ -52,8 +52,8 @@ int main()
 
     // Set up a OpenCV mat
 
-    const int pixel_height = 56; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 56;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 36; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 36;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -80,8 +80,8 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
-    fc_nn_end_block.force_last_activation_function_to_sigmoid = 1; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
+    fc_nn_end_block.activation_function_mode = 0;                  // ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 0;
     fc_nn_end_block.dropout_proportion = 0.4;
@@ -169,15 +169,15 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    const double learning_rate_end = 0.001;
+    const double learning_rate_end = 0.01;
     fc_nn_end_block.momentum = 0.9;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.001;
+    conv_L1.learning_rate = 0.01;
     conv_L1.momentum = 0.9;
-    conv_L2.learning_rate = 0.001;
+    conv_L2.learning_rate = 0.01;
     conv_L2.momentum = 0.9;
-    double init_random_weight_propotion = 0.2;
-    double init_random_weight_propotion_conv = 0.2;
+    double init_random_weight_propotion = 0.1;
+    double init_random_weight_propotion_conv = 0.1;
     const double start_epsilon = 0.5;
     const double stop_min_epsilon = 0.25;
     const double derating_epsilon = 0.01; // Derating speed per batch game
@@ -524,7 +524,7 @@ int main()
             }
         }
         cv::imshow("Kernel L1 ", visual_conv_kernel_L1_Mat);
-        waitKey(1);
+        waitKey(100);
         // visual_conv_kernel_L1_Mat
         kernel_output_channels = conv_L2.kernel_weights.size();
         kernel_input_channels = conv_L2.kernel_weights[0].size();
@@ -546,7 +546,7 @@ int main()
             }
         }
         cv::imshow("Kernel L2 ", visual_conv_kernel_L2_Mat);
-        waitKey(1);
+        waitKey(100);
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
         cout << "********* Run the whole replay batch memeory and traing the DQN network ********" << endl;
@@ -779,17 +779,19 @@ int main()
                         for (int xi = 0; xi < pixel_width; xi++)
                         {
                             double input_pixel_data = conv_L1.i_tensor_delta[ic][yi][xi];
-                            upsampl_conv_view.at<float>(ic * L1_kernel_size + yi, xi) = (float)input_pixel_data;
+                            upsampl_conv_view.at<float>(ic * pixel_height + yi, xi) = (float)input_pixel_data;
                             // cout << "input_pixel_data = " << input_pixel_data << endl;
                         }
                     }
                 }
                 // Display the cv::Mat in a window
                 cv::imshow("upsampl_conv_view", upsampl_conv_view);
+                waitKey(100);
                 Mat upsampl_conv_view_2;
                    upsampl_conv_view_2 = upsampl_conv_view + 0.5;
                    cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
-                    waitKey(1);
+                    waitKey(100);
+                    
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
