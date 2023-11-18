@@ -169,15 +169,15 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    const double learning_rate_end = 0.01;
+    const double learning_rate_end = 0.001;
     fc_nn_end_block.momentum = 0.9;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.01;
+    conv_L1.learning_rate = 0.001;
     conv_L1.momentum = 0.9;
-    conv_L2.learning_rate = 0.01;
+    conv_L2.learning_rate = 0.001;
     conv_L2.momentum = 0.9;
-    double init_random_weight_propotion = 0.2;
-    double init_random_weight_propotion_conv = 0.2;
+    double init_random_weight_propotion = 0.1;
+    double init_random_weight_propotion_conv = 0.1;
     const double start_epsilon = 0.5;
     const double stop_min_epsilon = 0.25;
     const double derating_epsilon = 0.01; // Derating speed per batch game
@@ -188,8 +188,8 @@ int main()
     //==== Hyper parameter settings End ===========================
 
     //==== Set modes ===============
-    conv_L1.activation_function_mode = 0;
-    conv_L2.activation_function_mode = 0;
+    conv_L1.activation_function_mode = 2;
+    conv_L2.activation_function_mode = 2;
     conv_frozen_L1_target_net.activation_function_mode = conv_L1.activation_function_mode;
     conv_frozen_L2_target_net.activation_function_mode = conv_L2.activation_function_mode;
     //==============================
@@ -331,7 +331,7 @@ int main()
                             }
                         }
                         imshow("input_frm", input_frm);
-                              waitKey(1);
+                        waitKey(1);
                         // end Debug
                     }
 
@@ -341,7 +341,7 @@ int main()
                     conv_L2.input_tensor = conv_L1.output_tensor;
                     conv_L2.conv_forward1();
 
-                    if (batch_cnt == batch_nr - 1)
+                    if (batch_cnt == 0)
                     {
 
                         // Visualization of L1 conv output
@@ -354,14 +354,14 @@ int main()
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L1.output_tensor[oc][yi][xi];
-                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
+                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
                                     //          cout <<"L1 out pixel = " << pixel_data << endl;
                                 }
                             }
                         }
 
                         cv::imshow("Convolution L1 output", Mat_L1_output_visualize);
-                          waitKey(1);
+                        waitKey(1);
                         // Visualization of L2 conv output
 
                         for (int oc = 0; oc < (int)conv_L2.output_tensor.size(); oc++)
@@ -373,14 +373,14 @@ int main()
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L2.output_tensor[oc][yi][xi];
-                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
+                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
                                     //        cout <<"L2 out pixel = " << pixel_data << endl;
                                 }
                             }
                         }
 
                         cv::imshow("Convolution L2 output", Mat_L2_output_visualize);
-                           waitKey(1);
+                        waitKey(1);
                     }
 
                     int L2_out_one_side = conv_L2.output_tensor[0].size();
@@ -437,7 +437,10 @@ int main()
                                 max_decision = action_node;
                                 decided_action = i;
                             }
-                            //          cout << "action_node = " << action_node << " i = " << i << endl;
+                            if (batch_cnt == 0)
+                            {
+                                cout << "action_node = " << action_node << " i = " << i << endl;
+                            }
                         }
                     }
                     //  std::cout << std::fixed << std::setprecision(20);
@@ -464,6 +467,7 @@ int main()
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
+        /*
         // Visualization of L1 conv output
         for (int oc = 0; oc < (int)conv_L1.output_tensor.size(); oc++)
         {
@@ -478,6 +482,7 @@ int main()
                 }
             }
         }
+
         cv::imshow("Convolution L1 output", Mat_L1_output_visualize);
 
         // Visualization of L2 conv output
@@ -497,7 +502,7 @@ int main()
         }
 
         cv::imshow("Convolution L2 output", Mat_L2_output_visualize);
-
+*/
         // visual_conv_kernel_L1_Mat
         int kernel_output_channels = conv_L1.kernel_weights.size();
         int kernel_input_channels = conv_L1.kernel_weights[0].size();
@@ -519,7 +524,7 @@ int main()
             }
         }
         cv::imshow("Kernel L1 ", visual_conv_kernel_L1_Mat);
-
+        waitKey(100);
         // visual_conv_kernel_L1_Mat
         kernel_output_channels = conv_L2.kernel_weights.size();
         kernel_input_channels = conv_L2.kernel_weights[0].size();
@@ -541,7 +546,7 @@ int main()
             }
         }
         cv::imshow("Kernel L2 ", visual_conv_kernel_L2_Mat);
-
+        waitKey(100);
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
         cout << "********* Run the whole replay batch memeory and traing the DQN network ********" << endl;
@@ -782,8 +787,9 @@ int main()
                 // Display the cv::Mat in a window
                 cv::imshow("upsampl_conv_view", upsampl_conv_view);
                 Mat upsampl_conv_view_2;
-                //   upsampl_conv_view_2 = upsampl_conv_view + 0.5;
-                //   cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
+                   upsampl_conv_view_2 = upsampl_conv_view + 0.5;
+                   cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
+                    waitKey(100);
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
