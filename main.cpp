@@ -52,8 +52,8 @@ int main()
 
     // Set up a OpenCV mat
 
-    const int pixel_height = 56; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 56;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 28; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 28;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -169,15 +169,15 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    const double learning_rate_end = 0.001;
+    const double learning_rate_end = 0.01;
     fc_nn_end_block.momentum = 0.9;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.001;
+    conv_L1.learning_rate = 0.01;
     conv_L1.momentum = 0.9;
-    conv_L2.learning_rate = 0.001;
+    conv_L2.learning_rate = 0.01;
     conv_L2.momentum = 0.9;
-    double init_random_weight_propotion = 0.1;
-    double init_random_weight_propotion_conv = 0.1;
+    double init_random_weight_propotion = 0.3;
+    double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.5;
     const double stop_min_epsilon = 0.25;
     const double derating_epsilon = 0.01; // Derating speed per batch game
@@ -188,8 +188,8 @@ int main()
     //==== Hyper parameter settings End ===========================
 
     //==== Set modes ===============
-    conv_L1.activation_function_mode = 2;
-    conv_L2.activation_function_mode = 2;
+    conv_L1.activation_function_mode = 0;
+    conv_L2.activation_function_mode = 0;
     conv_frozen_L1_target_net.activation_function_mode = conv_L1.activation_function_mode;
     conv_frozen_L2_target_net.activation_function_mode = conv_L2.activation_function_mode;
     //==============================
@@ -354,7 +354,7 @@ int main()
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L1.output_tensor[oc][yi][xi];
-                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
                                     //          cout <<"L1 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -373,7 +373,7 @@ int main()
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L2.output_tensor[oc][yi][xi];
-                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
                                     //        cout <<"L2 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -779,17 +779,19 @@ int main()
                         for (int xi = 0; xi < pixel_width; xi++)
                         {
                             double input_pixel_data = conv_L1.i_tensor_delta[ic][yi][xi];
-                            upsampl_conv_view.at<float>(ic * L1_kernel_size + yi, xi) = (float)input_pixel_data;
+                            upsampl_conv_view.at<float>(ic * pixel_height + yi, xi) = (float)input_pixel_data;
                             // cout << "input_pixel_data = " << input_pixel_data << endl;
                         }
                     }
                 }
                 // Display the cv::Mat in a window
                 cv::imshow("upsampl_conv_view", upsampl_conv_view);
+                waitKey(100);
                 Mat upsampl_conv_view_2;
                    upsampl_conv_view_2 = upsampl_conv_view + 0.5;
                    cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
                     waitKey(100);
+                    
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
