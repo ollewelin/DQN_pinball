@@ -331,7 +331,7 @@ int main()
                             }
                         }
                         imshow("input_frm", input_frm);
-                              waitKey(1);
+                        waitKey(1);
                         // end Debug
                     }
 
@@ -354,14 +354,14 @@ int main()
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L1.output_tensor[oc][yi][xi];
-                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
+                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
                                     //          cout <<"L1 out pixel = " << pixel_data << endl;
                                 }
                             }
                         }
 
                         cv::imshow("Convolution L1 output", Mat_L1_output_visualize);
-                          waitKey(1);
+                        waitKey(1);
                         // Visualization of L2 conv output
 
                         for (int oc = 0; oc < (int)conv_L2.output_tensor.size(); oc++)
@@ -373,14 +373,14 @@ int main()
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L2.output_tensor[oc][yi][xi];
-                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
+                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
                                     //        cout <<"L2 out pixel = " << pixel_data << endl;
                                 }
                             }
                         }
 
                         cv::imshow("Convolution L2 output", Mat_L2_output_visualize);
-                           waitKey(1);
+                        waitKey(1);
                     }
 
                     int L2_out_one_side = conv_L2.output_tensor[0].size();
@@ -437,7 +437,10 @@ int main()
                                 max_decision = action_node;
                                 decided_action = i;
                             }
-                            //          cout << "action_node = " << action_node << " i = " << i << endl;
+                            if (batch_cnt == 0)
+                            {
+                                cout << "action_node = " << action_node << " i = " << i << endl;
+                            }
                         }
                     }
                     //  std::cout << std::fixed << std::setprecision(20);
@@ -479,7 +482,7 @@ int main()
                 }
             }
         }
-        
+
         cv::imshow("Convolution L1 output", Mat_L1_output_visualize);
 
         // Visualization of L2 conv output
@@ -521,7 +524,7 @@ int main()
             }
         }
         cv::imshow("Kernel L1 ", visual_conv_kernel_L1_Mat);
-waitKey(1);
+        waitKey(1);
         // visual_conv_kernel_L1_Mat
         kernel_output_channels = conv_L2.kernel_weights.size();
         kernel_input_channels = conv_L2.kernel_weights[0].size();
@@ -543,7 +546,7 @@ waitKey(1);
             }
         }
         cv::imshow("Kernel L2 ", visual_conv_kernel_L2_Mat);
-
+        waitKey(1);
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
         cout << "********* Run the whole replay batch memeory and traing the DQN network ********" << endl;
@@ -784,8 +787,9 @@ waitKey(1);
                 // Display the cv::Mat in a window
                 cv::imshow("upsampl_conv_view", upsampl_conv_view);
                 Mat upsampl_conv_view_2;
-                //   upsampl_conv_view_2 = upsampl_conv_view + 0.5;
-                //   cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
+                   upsampl_conv_view_2 = upsampl_conv_view + 0.5;
+                   cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
+                    waitKey(1);
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
