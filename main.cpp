@@ -59,7 +59,8 @@ int main()
     const int pixel_height = 50;///The input data pixel height, note game_Width = 220
     const int pixel_width = 50;///The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
-    Mat input_frm,conv_out;
+    Mat input_frm;
+
     Size image_size_reduced(pixel_height,pixel_width);//the dst image size,e.g.50x50
 
     vector<vector<int>> replay_actions_buffert;
@@ -198,6 +199,13 @@ int main()
     conv_frozen_L1_target_net.activation_function_mode = conv_L1.activation_function_mode;
     conv_frozen_L2_target_net.activation_function_mode = conv_L2.activation_function_mode;
     //==============================
+    int grid_gap = 2;
+  //  conv_out.create(conv_L2.output_tensor[0].size(),conv_L2.output_tensor.size() * grid_gap + conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0][0].size(), CV_32FC1);
+    int one_plane_L1_out_conv_size = conv_L1.output_tensor[0][0].size();
+    cv::Mat Mat_L1_output_visualize(one_plane_L1_out_conv_size, conv_L1.output_tensor.size() * grid_gap + conv_L1.output_tensor.size() * one_plane_L1_out_conv_size , CV_32F);//Show a full pattern of L1 output convolution signals one rectangle for each output channel of L1 conv
+    //
+    int one_plane_L2_out_conv_size = conv_L2.output_tensor[0][0].size();
+    cv::Mat Mat_L2_output_visualize(one_plane_L2_out_conv_size, conv_L2.output_tensor.size() * grid_gap + conv_L2.output_tensor.size() * one_plane_L2_out_conv_size , CV_32F);//Show a full pattern of L2 output convolution signals one rectangle for each output channel of L2 conv
 
     
     const int batch_size = 10;
@@ -253,8 +261,7 @@ int main()
     replay_grapics_buffert.create(pixel_height * gameObj1.nr_of_frames , pixel_width * batch_size, CV_32FC1);
     upsampl_conv_view.create(pixel_height * nr_frames_strobed , pixel_width, CV_32FC1);
     input_frm.create(pixel_height * nr_frames_strobed , pixel_width, CV_32FC1);
-    int grid_gap = 2;
-    conv_out.create(conv_L2.output_tensor[0].size(),conv_L2.output_tensor.size() * grid_gap + conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0][0].size(), CV_32FC1);
+    
     cout << "replay_grapics_buffert rows = " << replay_grapics_buffert.rows << endl;
     cout << "replay_grapics_buffert cols = " << replay_grapics_buffert.cols << endl;
     cout << "resized_grapics rows = " << resized_grapics.rows << endl;
@@ -302,7 +309,7 @@ int main()
                 resized_grapics(cv::Rect(0, 0, pixel_width, pixel_height)).copyTo(replay_grapics_buffert(roi));
                 replay_grapics_buffert(roi).copyTo(debug);
                 imshow("debug", debug);
-                waitKey(1);
+              //  waitKey(1);
                 if (frame_g >= nr_frames_strobed - 1) // Wait until all 4 images is up there in the game after start
                 {
                     // Put in data from replay_grapics_buffert to L1_tensor_in_size
@@ -331,7 +338,7 @@ int main()
                         }
                     }
                             imshow("input_frm", input_frm);
-                            waitKey(1);
+                      //      waitKey(1);
 //end Debug
 
 
@@ -342,6 +349,45 @@ int main()
                     conv_L1.conv_forward1();
                     conv_L2.input_tensor = conv_L1.output_tensor;
                     conv_L2.conv_forward1();
+
+               //Visualization of L1 conv output
+                for(int oc = 0; oc < conv_L1.output_tensor.size(); oc++)
+                {
+                    for (int yi=0; yi < one_plane_L1_out_conv_size; yi++)
+                    {
+                        for (int xi=0; xi < one_plane_L1_out_conv_size; xi++)
+                        {
+                            int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
+                            int visual_row = yi;
+                            double pixel_data = conv_L1.output_tensor[oc][yi][xi];
+                            Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                        }
+                    }
+                }
+                cv::imshow("Convolution L1 output",  Mat_L1_output_visualize);
+
+                //Visualization of L2 conv output
+                
+                for(int oc = 0; oc < conv_L2.output_tensor.size(); oc++)
+                {
+                    for (int yi=0; yi < one_plane_L2_out_conv_size; yi++)
+                    {
+                        for (int xi=0; xi < one_plane_L2_out_conv_size; xi++)
+                        {
+                            int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
+                            int visual_row = yi;
+                            double pixel_data = conv_L2.output_tensor[oc][yi][xi];
+                            Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                        }
+                    }
+                }
+        
+                cv::imshow("Convolution L2 output",  Mat_L2_output_visualize);
+
+
+
+
+
                     int L2_out_one_side = conv_L2.output_tensor[0].size();
                     int L2_out_ch = conv_L2.output_tensor.size();
                     for (int oc = 0; oc < L2_out_ch; oc++)
@@ -388,7 +434,7 @@ int main()
                                 max_decision = action_node;
                                 decided_action = i;
                             }
-                          //  cout << "action_node = " << action_node << " i = " << i << endl;
+                            cout << "action_node = " << action_node << " i = " << i << endl;
                         }
 
                     }
