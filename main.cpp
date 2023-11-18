@@ -308,7 +308,7 @@ int main()
                     // Put in data from replay_grapics_buffert to L1_tensor_in_size
                     for (int i = 0; i < L1_input_channels; i++)
                     {
-                        for (int j = 0; j < pixel_height; j++)
+                        for (int j = 0; j < L1_tensor_in_size; j++)
                         {
                             int row = j / pixel_width;
                             int col = j % pixel_width;
@@ -325,13 +325,13 @@ int main()
                                                    for (int k = 0; k < pixel_width; k++)
                         {
                             float inp_frm = conv_L1.input_tensor[i][j][k];
-                            cout << "inp = " << inp_frm << endl;
+                        //    cout << "inp = " << inp_frm << endl;
                              input_frm.at<float>(pixel_height * i + j, k) = inp_frm ;
                         }
                         }
                     }
                             imshow("input_frm", input_frm);
-                            waitKey(1000);
+                            waitKey(1);
 //end Debug
 
 
@@ -419,7 +419,7 @@ int main()
 
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
-        waitKey(1000);
+        waitKey(1);
 
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
@@ -642,7 +642,7 @@ int main()
                         {
                             double input_pixel_data = conv_L1.i_tensor_delta[ic][yi][xi];
                             upsampl_conv_view.at<float>(ic * L1_kernel_size + yi, xi) = (float)input_pixel_data;
-                           cout << "input_pixel_data = " << input_pixel_data << endl;
+                          // cout << "input_pixel_data = " << input_pixel_data << endl;
                         }
                     }
                 }
