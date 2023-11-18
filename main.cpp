@@ -58,7 +58,8 @@ int main()
 
     const int pixel_height = 50;///The input data pixel height, note game_Width = 220
     const int pixel_width = 50;///The input data pixel width, note game_Height = 200
-    Mat resized_grapics, replay_grapics_buffert, game_video_full_size;
+    Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
+    Mat input_frm,conv_out;
     Size image_size_reduced(pixel_height,pixel_width);//the dst image size,e.g.50x50
 
     vector<vector<int>> replay_actions_buffert;
@@ -250,6 +251,10 @@ int main()
     resize(game_video_full_size, resized_grapics, image_size_reduced);
     imshow("resized_grapics", resized_grapics); ///  resize(src, dst, size);
     replay_grapics_buffert.create(pixel_height * gameObj1.nr_of_frames , pixel_width * batch_size, CV_32FC1);
+    upsampl_conv_view.create(pixel_height * nr_frames_strobed , pixel_width, CV_32FC1);
+    input_frm.create(pixel_height * nr_frames_strobed , pixel_width, CV_32FC1);
+    int grid_gap = 2;
+    conv_out.create(conv_L2.output_tensor[0].size(),conv_L2.output_tensor.size() * grid_gap + conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0][0].size(), CV_32FC1);
     cout << "replay_grapics_buffert rows = " << replay_grapics_buffert.rows << endl;
     cout << "replay_grapics_buffert cols = " << replay_grapics_buffert.cols << endl;
     cout << "resized_grapics rows = " << resized_grapics.rows << endl;
@@ -267,7 +272,7 @@ int main()
         replay_actions_buffert.push_back(dummy_1D_vect_int);//Create the size of replay_action_buffert memory how store replay action of all states and the whole batch
         rewards_at_batch.push_back(dummy_1D_vect_double);//
     }
-
+    Mat debug;
     const int max_nr_epochs = 1000000;
     for (int epoch = 0; epoch < max_nr_epochs; epoch++)
     {
@@ -276,6 +281,9 @@ int main()
             batch_nr = batch_cnt;
             gameObj1.start_episode();
             cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
+
+             cout << "Disclamer Not yet finnish Version under debugging !! = "  << endl;
+           
             for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
             {
                 gameObj1.frame = frame_g;
@@ -292,12 +300,15 @@ int main()
                 cv::Rect roi(startCol, pixel_height * frame_g, pixel_width, pixel_height);
                 // Copy the relevant region from resized_grapics to replay_grapics_buffert
                 resized_grapics(cv::Rect(0, 0, pixel_width, pixel_height)).copyTo(replay_grapics_buffert(roi));
+                replay_grapics_buffert(roi).copyTo(debug);
+                imshow("debug", debug);
+                waitKey(1);
                 if (frame_g >= nr_frames_strobed - 1) // Wait until all 4 images is up there in the game after start
                 {
                     // Put in data from replay_grapics_buffert to L1_tensor_in_size
                     for (int i = 0; i < L1_input_channels; i++)
                     {
-                        for (int j = 0; j < L1_tensor_in_size; j++)
+                        for (int j = 0; j < pixel_height; j++)
                         {
                             int row = j / pixel_width;
                             int col = j % pixel_width;
@@ -305,6 +316,27 @@ int main()
                             conv_L1.input_tensor[i][row][col] = pixelValue;
                         }
                     }
+
+//Debug
+                   for (int i = 0; i < L1_input_channels; i++)
+                    {
+                        for (int j = 0; j < pixel_height; j++)
+                        {
+                                                   for (int k = 0; k < pixel_width; k++)
+                        {
+                            float inp_frm = conv_L1.input_tensor[i][j][k];
+                            cout << "inp = " << inp_frm << endl;
+                             input_frm.at<float>(pixel_height * i + j, k) = inp_frm ;
+                        }
+                        }
+                    }
+                            imshow("input_frm", input_frm);
+                            waitKey(1000);
+//end Debug
+
+
+
+
                     //**********************************************************************
                     //****************** Forward Pass training network *********************
                     conv_L1.conv_forward1();
@@ -382,6 +414,9 @@ int main()
             }
             rewards_at_batch[gameObj1.nr_of_frames-1][batch_nr] = rewards;
 
+
+ 
+
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1000);
@@ -411,9 +446,7 @@ int main()
                 int startCol = pixel_width * batch_nr;
                 int startRow = pixel_height * single_game_frame_state;
 
-                for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
-                {
-                    cv::Rect replay_roi(startCol, (startRow + pixel_height * frame_t), pixel_width, pixel_height);
+                    cv::Rect replay_roi(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
                     for (int i = 0; i < L1_input_channels; i++)
                     {
                         for (int j = 0; j < L1_tensor_in_size; j++)
@@ -422,7 +455,7 @@ int main()
                             int col = j % pixel_width;
 
                             // Calculate the actual row and column indices in replay_roi
-                            int roi_row = row + replay_roi.y;
+                            int roi_row = row + replay_roi.y + i * pixel_height;
                             int roi_col = col + replay_roi.x;
 
                             // Ensure the indices are within bounds
@@ -441,8 +474,10 @@ int main()
                             }
                         }
                     }
-                }
+                for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
+                {
 
+                }               
                 //**********************************************************************
                 //****************** Forward Pass training network *********************
                 conv_L1.conv_forward1();
@@ -472,9 +507,7 @@ int main()
                 // Calculate the starting column index for the ROI in replay_grapics_buffert
                 startCol = pixel_width * batch_nr;
                 startRow = pixel_height * single_game_frame_state;
-                for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
-                {
-                    cv::Rect replay_roi(startCol, (startRow + pixel_height * frame_t), pixel_width, pixel_height);
+                    cv::Rect replay_roi_2(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
                     for (int i = 0; i < L1_input_channels; i++)
                     {
                         for (int j = 0; j < L1_tensor_in_size; j++)
@@ -483,11 +516,11 @@ int main()
                             int col = j % pixel_width;
 
                             // Calculate the actual row and column indices in replay_roi
-                            int roi_row = row + replay_roi.y;
-                            int roi_col = col + replay_roi.x;
+                            int roi_row = row + replay_roi_2.y + i * pixel_height;
+                            int roi_col = col + replay_roi_2.x;
 
                             // Ensure the indices are within bounds
-                            if (roi_row < replay_roi.y + replay_roi.height && roi_col < replay_roi.x + replay_roi.width)
+                            if (roi_row < replay_roi_2.y + replay_roi_2.height && roi_col < replay_roi_2.x + replay_roi_2.width)
                             {
                                 // Extract replay_roi data here to pixelValue
                                 float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
@@ -502,7 +535,6 @@ int main()
                             }
                         }
                     }
-                }
 
                 //======================================================================
                 //================== Forward Pass Frozen network NEXT state ============
@@ -542,6 +574,7 @@ int main()
                 max_Q_target_value = 0.5;//0.5 = Zero Q value at end state Only rewards will be used 
                 cout << "Replay END State at batch_nr = " << batch_nr << endl;
             }
+
             int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
            // cout << "rewards_idx_state = " << rewards_idx_state << endl;
             double rewards_here = rewards_at_batch[rewards_idx_state][batch_nr];
@@ -589,22 +622,50 @@ int main()
                 conv_frozen_L2_target_net.kernel_weights = conv_L2.kernel_weights;
                 fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
             }
+
+
+            if(batch_nr==0 && single_game_frame_state == single_game_state_size-1)
+            {
+                //Show upsampling
+                //Put in the output data from the convolution operation into the transpose upsampling operation 
+                conv_L2.o_tensor_delta = conv_L2.output_tensor;
+                conv_L2.conv_transpose_fwd();
+                conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
+                conv_L1.conv_transpose_fwd();
+
+                // Copy data from conv_L1.i_tensor_delta to cv::Mat
+                for (int ic = 0; ic < L1_input_channels ; ic++)
+                {
+                    for (int yi = 0; yi < pixel_height; yi++)
+                    {
+                        for (int xi = 0; xi < pixel_width; xi++)
+                        {
+                            double input_pixel_data = conv_L1.i_tensor_delta[ic][yi][xi];
+                            upsampl_conv_view.at<float>(ic * L1_kernel_size + yi, xi) = (float)input_pixel_data;
+                           cout << "input_pixel_data = " << input_pixel_data << endl;
+                        }
+                    }
+                }
+                // Display the cv::Mat in a window
+                cv::imshow("upsampl_conv_view", upsampl_conv_view);
+                Mat upsampl_conv_view_2;
+             //   upsampl_conv_view_2 = upsampl_conv_view + 0.5;
+             //   cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
+            }
+
             
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
-
-        //******************** End of replay batch *************************************
-
-
-
-    }
 
     //Save all weights
     fc_nn_end_block.save_weights(weight_filename_end);
     conv_L1.save_weights(L1_kernel_k_weight_filename, L1_kernel_b_weight_filename);
     conv_L2.save_weights(L2_kernel_k_weight_filename, L2_kernel_b_weight_filename);
     //End
+
+
+    }
 }
 
 vector<int> fisher_yates_shuffle(vector<int> table)
