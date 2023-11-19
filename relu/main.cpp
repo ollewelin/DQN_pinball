@@ -476,15 +476,12 @@ Mat upsampl_conv_view_2;
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
             //Calculate win probablilty
-            if(win_p_cnt>0)
+            now_win_probability = (double)win_counter / (double)(win_p_cnt + 1);
+            if (batch_nr == batch_size - 1)
             {
-                now_win_probability = (double)win_counter / (double)win_p_cnt;
-                if(batch_nr == batch_size-1)
-                {
-                    cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play couunt = " << win_p_cnt+1 << " Old win probablilty = " << last_win_probability *100.0 << "%" << endl; 
-                }
+                cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play couunt = " << win_p_cnt + 1 << " Old win probablilty = " << last_win_probability * 100.0 << "%" << endl;
             }
-            if(win_p_cnt<max_w_p_nr)
+            if (win_p_cnt < max_w_p_nr)
             {
                 win_p_cnt++;
             }
