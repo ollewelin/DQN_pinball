@@ -101,7 +101,7 @@ int main()
     const int nr_frames_strobed = 4;                                     // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels * nr_frames_strobed; // color channels * Images in serie
     const int L1_tensor_in_size = pixel_width * pixel_height;
-    const int L1_tensor_out_channels = 50;
+    const int L1_tensor_out_channels = 100;
     const int L1_kernel_size = 5;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
@@ -120,8 +120,8 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 50;
-    int L2_kernel_size = 5;
+    int L2_tensor_out_channels = 40;
+    int L2_kernel_size = 7;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
@@ -178,7 +178,7 @@ int main()
     conv_L2.learning_rate = 0.005;
     conv_L2.momentum = 0.81;
     double init_random_weight_propotion = 0.3;
-    double init_random_weight_propotion_conv = 0.1;
+    double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.5;
     const double stop_min_epsilon = 0.25;
     const double derating_epsilon = 0.01; // Derating speed per batch game
