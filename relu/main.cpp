@@ -191,7 +191,7 @@ int main()
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.75f;
-    const int update_frozen_after_samples = 50;
+    const int update_frozen_after_samples = 377;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
