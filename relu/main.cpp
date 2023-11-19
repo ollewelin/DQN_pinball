@@ -177,12 +177,12 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    const double learning_rate_end = 0.02;
-    fc_nn_end_block.momentum = 0.9;
+    const double learning_rate_end = 0.01;
+    fc_nn_end_block.momentum = 0.95;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.005;
+    conv_L1.learning_rate = 0.01;
     conv_L1.momentum = 0.81;
-    conv_L2.learning_rate = 0.005;
+    conv_L2.learning_rate = 0.01;
     conv_L2.momentum = 0.81;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
@@ -476,10 +476,17 @@ Mat upsampl_conv_view_2;
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
             //Calculate win probablilty
+                        if(win_p_cnt>10)
+            {
             now_win_probability = (double)win_counter / (double)(win_p_cnt + 1);
             if (batch_nr == batch_size - 1)
             {
                 cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play couunt = " << win_p_cnt + 1 << " Old win probablilty = " << last_win_probability * 100.0 << "%" << endl;
+            }
+            }
+            else
+            {
+                now_win_probability = 0.5;
             }
             if (win_p_cnt < max_w_p_nr)
             {
