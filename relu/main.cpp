@@ -50,8 +50,15 @@ int main()
     gameObj1.use_character = 0;
     gameObj1.enabel_3_state = 1; // Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
-    // Set up a OpenCV mat
+    //statistics report
+    const int max_w_p_nr = 1000;
+    int win_p_cnt = 0;
+    int win_counter = 0;
+    double last_win_probability = 0.5;
+    double now_win_probability = last_win_probability;
+    
 
+    // Set up a OpenCV mat
     const int pixel_height = 36; /// The input data pixel height, note game_Width = 220
     const int pixel_width = 36;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
@@ -279,6 +286,7 @@ Mat upsampl_conv_view_2;
     const int max_nr_epochs = 1000000;
     for (int epoch = 0; epoch < max_nr_epochs; epoch++)
     {
+        cout << "******** Epoch number = " << epoch << " **********" << endl;
         for (int batch_cnt = 0; batch_cnt < batch_size; batch_cnt++)
         {
             batch_nr = batch_cnt;
@@ -459,51 +467,38 @@ Mat upsampl_conv_view_2;
             if (gameObj1.win_this_game == 1)
             {
                 rewards = 0.5; // Win Rewards
+                win_counter++;
             }
             else
             {
                 rewards = -0.5; // Lose Penalty
             }
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
+
+            //Calculate win probablilty
+            if(win_p_cnt>0)
+            {
+                now_win_probability = (double)win_counter / (double)win_p_cnt;
+                if(batch_nr == batch_size-1)
+                {
+                    cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play couunt = " << win_p_cnt+1 << " Old win probablilty = " << last_win_probability *100.0 << "%" << endl; 
+                }
+            }
+            if(win_p_cnt<max_w_p_nr)
+            {
+                win_p_cnt++;
+            }
+            else
+            {
+                win_p_cnt=0;
+                win_counter=0;
+                //Store last 1000 win probablilty
+                last_win_probability = now_win_probability;
+            }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
-        /*
-        // Visualization of L1 conv output
-        for (int oc = 0; oc < (int)conv_L1.output_tensor.size(); oc++)
-        {
-            for (int yi = 0; yi < one_plane_L1_out_conv_size; yi++)
-            {
-                for (int xi = 0; xi < one_plane_L1_out_conv_size; xi++)
-                {
-                    int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
-                    int visual_row = yi;
-                    double pixel_data = conv_L1.output_tensor[oc][yi][xi];
-                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
-                }
-            }
-        }
 
-        cv::imshow("Convolution L1 output", Mat_L1_output_visualize);
-
-        // Visualization of L2 conv output
-
-        for (int oc = 0; oc < (int)conv_L2.output_tensor.size(); oc++)
-        {
-            for (int yi = 0; yi < one_plane_L2_out_conv_size; yi++)
-            {
-                for (int xi = 0; xi < one_plane_L2_out_conv_size; xi++)
-                {
-                    int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
-                    int visual_row = yi;
-                    double pixel_data = conv_L2.output_tensor[oc][yi][xi];
-                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
-                }
-            }
-        }
-
-        cv::imshow("Convolution L2 output", Mat_L2_output_visualize);
-*/
         // visual_conv_kernel_L1_Mat
         int kernel_output_channels = conv_L1.kernel_weights.size();
         int kernel_input_channels = conv_L1.kernel_weights[0].size();
@@ -550,7 +545,7 @@ Mat upsampl_conv_view_2;
         waitKey(100);
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
-        cout << "********* Run the whole replay batch memeory and traing the DQN network ********" << endl;
+        cout << "********* Run the whole replay batch memory and traing the DQN network *********" << endl;
         cout << "********************************************************************************" << endl;
         //   cout << "single_game_state_size = " << single_game_state_size << endl;
         batch_state_rand_list = fisher_yates_shuffle(batch_state_rand_list);
