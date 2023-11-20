@@ -364,7 +364,7 @@ Mat upsampl_conv_view_2;
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L1.output_tensor[oc][yi][xi];
-                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
                                     //          cout <<"L1 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -383,7 +383,7 @@ Mat upsampl_conv_view_2;
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L2.output_tensor[oc][yi][xi];
-                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
                                     //        cout <<"L2 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -519,7 +519,7 @@ Mat upsampl_conv_view_2;
                         int visual_col = xi + (oc * (kernel_side + grid_gap));
                         int visual_row = yi + ic * (kernel_side + grid_gap);
                         double pixel_data = conv_L1.kernel_weights[oc][ic][yi][xi]; // 4D [output_channel][input_channel][kernel_row][kernel_col]
-                        visual_conv_kernel_L1_Mat.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
+                        visual_conv_kernel_L1_Mat.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
                     }
                 }
             }
@@ -541,7 +541,7 @@ Mat upsampl_conv_view_2;
                         int visual_col = xi + (oc * (kernel_side + grid_gap));
                         int visual_row = yi + ic * (kernel_side + grid_gap);
                         double pixel_data = conv_L2.kernel_weights[oc][ic][yi][xi]; // 4D [output_channel][input_channel][kernel_row][kernel_col]
-                        visual_conv_kernel_L2_Mat.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
+                        visual_conv_kernel_L2_Mat.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
                     }
                 }
             }
