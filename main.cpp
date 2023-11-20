@@ -50,10 +50,17 @@ int main()
     gameObj1.use_character = 0;
     gameObj1.enabel_3_state = 1; // Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
-    // Set up a OpenCV mat
+    //statistics report
+    const int max_w_p_nr = 1000;
+    int win_p_cnt = 0;
+    int win_counter = 0;
+    double last_win_probability = 0.5;
+    double now_win_probability = last_win_probability;
+    
 
-    const int pixel_height = 28; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 28;  /// The input data pixel width, note game_Height = 200
+    // Set up a OpenCV mat
+    const int pixel_height = 36; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 36;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -66,7 +73,8 @@ int main()
     //=========== Neural Network size settings ==============
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
-
+    int save_cnt = 0;
+    const int save_after_nr = 5;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
     string L1_kernel_k_weight_filename;
@@ -100,7 +108,7 @@ int main()
     const int nr_frames_strobed = 4;                                     // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels * nr_frames_strobed; // color channels * Images in serie
     const int L1_tensor_in_size = pixel_width * pixel_height;
-    const int L1_tensor_out_channels = 50;
+    const int L1_tensor_out_channels = 100;
     const int L1_kernel_size = 5;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
@@ -119,8 +127,8 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 50;
-    int L2_kernel_size = 5;
+    int L2_tensor_out_channels = 40;
+    int L2_kernel_size = 3;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
@@ -140,8 +148,8 @@ int main()
     int end_inp_nodes = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size()) * conv_L2.output_tensor.size();
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 2;
-    const int end_hid_nodes_L1 = 200;
-    const int end_hid_nodes_L2 = 100;
+    const int end_hid_nodes_L1 = 500;
+    const int end_hid_nodes_L2 = 200;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -169,21 +177,22 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    const double learning_rate_end = 0.01;
-    fc_nn_end_block.momentum = 0.9;
+    double target_off_level = 0.05;//OFF action target 
+    const double learning_rate_end = 0.001;
+    fc_nn_end_block.momentum = 0.2;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.01;
-    conv_L1.momentum = 0.9;
+    conv_L1.momentum = 0.1;
     conv_L2.learning_rate = 0.01;
-    conv_L2.momentum = 0.9;
+    conv_L2.momentum = 0.1;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.5;
     const double stop_min_epsilon = 0.25;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.91f;
-    const int update_frozen_after_samples = 50;
+    double gamma = 0.75f;
+    const int update_frozen_after_samples = 377;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
@@ -204,7 +213,7 @@ int main()
 
     cv::Mat visual_conv_kernel_L1_Mat((conv_L1.kernel_weights[0][0].size() + grid_gap) * conv_L1.kernel_weights[0].size(), (conv_L1.kernel_weights[0][0][0].size() + grid_gap) * conv_L1.output_tensor.size(), CV_32F);
     cv::Mat visual_conv_kernel_L2_Mat((conv_L2.kernel_weights[0][0].size() + grid_gap) * conv_L2.kernel_weights[0].size(), (conv_L2.kernel_weights[0][0][0].size() + grid_gap) * conv_L2.output_tensor.size(), CV_32F);
-
+Mat upsampl_conv_view_2;
     const int batch_size = 10;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
@@ -278,6 +287,7 @@ int main()
     const int max_nr_epochs = 1000000;
     for (int epoch = 0; epoch < max_nr_epochs; epoch++)
     {
+        cout << "******** Epoch number = " << epoch << " **********" << endl;
         for (int batch_cnt = 0; batch_cnt < batch_size; batch_cnt++)
         {
             batch_nr = batch_cnt;
@@ -354,7 +364,7 @@ int main()
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L1.output_tensor[oc][yi][xi];
-                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
+                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
                                     //          cout <<"L1 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -373,7 +383,7 @@ int main()
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L2.output_tensor[oc][yi][xi];
-                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
+                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
                                     //        cout <<"L2 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -458,51 +468,42 @@ int main()
             if (gameObj1.win_this_game == 1)
             {
                 rewards = 0.5; // Win Rewards
+                win_counter++;
             }
             else
             {
                 rewards = -0.5; // Lose Penalty
             }
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
+
+            //Calculate win probablilty
+                        if(win_p_cnt>10)
+            {
+            now_win_probability = (double)win_counter / (double)(win_p_cnt + 1);
+            if (batch_nr == batch_size - 1)
+            {
+                cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play couunt = " << win_p_cnt + 1 << " Old win probablilty = " << last_win_probability * 100.0 << "%" << endl;
+            }
+            }
+            else
+            {
+                now_win_probability = 0.5;
+            }
+            if (win_p_cnt < max_w_p_nr)
+            {
+                win_p_cnt++;
+            }
+            else
+            {
+                win_p_cnt=0;
+                win_counter=0;
+                //Store last 1000 win probablilty
+                last_win_probability = now_win_probability;
+            }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
-        /*
-        // Visualization of L1 conv output
-        for (int oc = 0; oc < (int)conv_L1.output_tensor.size(); oc++)
-        {
-            for (int yi = 0; yi < one_plane_L1_out_conv_size; yi++)
-            {
-                for (int xi = 0; xi < one_plane_L1_out_conv_size; xi++)
-                {
-                    int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
-                    int visual_row = yi;
-                    double pixel_data = conv_L1.output_tensor[oc][yi][xi];
-                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
-                }
-            }
-        }
 
-        cv::imshow("Convolution L1 output", Mat_L1_output_visualize);
-
-        // Visualization of L2 conv output
-
-        for (int oc = 0; oc < (int)conv_L2.output_tensor.size(); oc++)
-        {
-            for (int yi = 0; yi < one_plane_L2_out_conv_size; yi++)
-            {
-                for (int xi = 0; xi < one_plane_L2_out_conv_size; xi++)
-                {
-                    int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
-                    int visual_row = yi;
-                    double pixel_data = conv_L2.output_tensor[oc][yi][xi];
-                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
-                }
-            }
-        }
-
-        cv::imshow("Convolution L2 output", Mat_L2_output_visualize);
-*/
         // visual_conv_kernel_L1_Mat
         int kernel_output_channels = conv_L1.kernel_weights.size();
         int kernel_input_channels = conv_L1.kernel_weights[0].size();
@@ -518,7 +519,7 @@ int main()
                         int visual_col = xi + (oc * (kernel_side + grid_gap));
                         int visual_row = yi + ic * (kernel_side + grid_gap);
                         double pixel_data = conv_L1.kernel_weights[oc][ic][yi][xi]; // 4D [output_channel][input_channel][kernel_row][kernel_col]
-                        visual_conv_kernel_L1_Mat.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                        visual_conv_kernel_L1_Mat.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
                     }
                 }
             }
@@ -540,7 +541,7 @@ int main()
                         int visual_col = xi + (oc * (kernel_side + grid_gap));
                         int visual_row = yi + ic * (kernel_side + grid_gap);
                         double pixel_data = conv_L2.kernel_weights[oc][ic][yi][xi]; // 4D [output_channel][input_channel][kernel_row][kernel_col]
-                        visual_conv_kernel_L2_Mat.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                        visual_conv_kernel_L2_Mat.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
                     }
                 }
             }
@@ -549,7 +550,7 @@ int main()
         waitKey(100);
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
-        cout << "********* Run the whole replay batch memeory and traing the DQN network ********" << endl;
+        cout << "********* Run the whole replay batch memory and traing the DQN network *********" << endl;
         cout << "********************************************************************************" << endl;
         //   cout << "single_game_state_size = " << single_game_state_size << endl;
         batch_state_rand_list = fisher_yates_shuffle(batch_state_rand_list);
@@ -710,7 +711,7 @@ int main()
             else
             {
                 // End game state
-                max_Q_target_value = 0.5; // 0.5 = Zero Q value at end state Only rewards will be used
+                max_Q_target_value = target_off_level; // Zero Q value at end state Only rewards will be used
                 cout << "Replay END State at batch_nr = " << batch_nr << endl;
             }
 
@@ -728,7 +729,7 @@ int main()
                 }
                 else
                 {
-                    fc_nn_end_block.target_layer[i] = 0.5;
+                    fc_nn_end_block.target_layer[i] = target_off_level;
                 }
             }
 
@@ -766,6 +767,7 @@ int main()
             {
                 // Show upsampling
                 // Put in the output data from the convolution operation into the transpose upsampling operation
+            
                 conv_L2.o_tensor_delta = conv_L2.output_tensor;
                 conv_L2.conv_transpose_fwd();
                 conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
@@ -784,23 +786,28 @@ int main()
                         }
                     }
                 }
-                // Display the cv::Mat in a window
                 cv::imshow("upsampl_conv_view", upsampl_conv_view);
                 waitKey(100);
-                Mat upsampl_conv_view_2;
-                   upsampl_conv_view_2 = upsampl_conv_view + 0.5;
-                   cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
-                    waitKey(100);
-                    
+                upsampl_conv_view_2 = upsampl_conv_view + 0.5;
+                cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
+                waitKey(100);
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
 
         // Save all weights
-        fc_nn_end_block.save_weights(weight_filename_end);
-        conv_L1.save_weights(L1_kernel_k_weight_filename, L1_kernel_b_weight_filename);
-        conv_L2.save_weights(L2_kernel_k_weight_filename, L2_kernel_b_weight_filename);
+        if(save_cnt < save_after_nr)
+        {
+            save_cnt++;
+        }
+        else
+        {
+            save_cnt=0;
+            fc_nn_end_block.save_weights(weight_filename_end);
+            conv_L1.save_weights(L1_kernel_k_weight_filename, L1_kernel_b_weight_filename);
+            conv_L2.save_weights(L2_kernel_k_weight_filename, L2_kernel_b_weight_filename);
+        }
         // End
     }
 }
