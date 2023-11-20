@@ -177,12 +177,13 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    const double learning_rate_end = 0.01;
+    double target_off_level = 0.05;//OFF action target 
+    const double learning_rate_end = 0.001;
     fc_nn_end_block.momentum = 0.95;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.01;
+    conv_L1.learning_rate = 0.05;
     conv_L1.momentum = 0.81;
-    conv_L2.learning_rate = 0.01;
+    conv_L2.learning_rate = 0.05;
     conv_L2.momentum = 0.81;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
@@ -710,7 +711,7 @@ Mat upsampl_conv_view_2;
             else
             {
                 // End game state
-                max_Q_target_value = 0.5; // 0.5 = Zero Q value at end state Only rewards will be used
+                max_Q_target_value = target_off_level; // Zero Q value at end state Only rewards will be used
                 cout << "Replay END State at batch_nr = " << batch_nr << endl;
             }
 
@@ -728,7 +729,7 @@ Mat upsampl_conv_view_2;
                 }
                 else
                 {
-                    fc_nn_end_block.target_layer[i] = 0.5;
+                    fc_nn_end_block.target_layer[i] = target_off_level;
                 }
             }
 
