@@ -108,7 +108,7 @@ int main()
     const int nr_frames_strobed = 4;                                     // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels * nr_frames_strobed; // color channels * Images in serie
     const int L1_tensor_in_size = pixel_width * pixel_height;
-    const int L1_tensor_out_channels = 100;
+    const int L1_tensor_out_channels = 50;
     const int L1_kernel_size = 5;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
@@ -128,7 +128,7 @@ int main()
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
     int L2_tensor_out_channels = 40;
-    int L2_kernel_size = 3;
+    int L2_kernel_size = 5;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
@@ -179,14 +179,14 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.05;//OFF action target 
     const double learning_rate_end = 0.001;
-    fc_nn_end_block.momentum = 0.2;
+    fc_nn_end_block.momentum = 0.08;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.01;
-    conv_L1.momentum = 0.1;
+    conv_L1.momentum = 0.08;
     conv_L2.learning_rate = 0.01;
-    conv_L2.momentum = 0.1;
-    double init_random_weight_propotion = 0.3;
-    double init_random_weight_propotion_conv = 0.3;
+    conv_L2.momentum = 0.08;
+    double init_random_weight_propotion = 0.5;
+    double init_random_weight_propotion_conv = 0.8;
     const double start_epsilon = 0.5;
     const double stop_min_epsilon = 0.25;
     const double derating_epsilon = 0.01; // Derating speed per batch game
@@ -467,12 +467,12 @@ Mat upsampl_conv_view_2;
             double rewards = 0.0;
             if (gameObj1.win_this_game == 1)
             {
-                rewards = 0.5; // Win Rewards
+                rewards = 1.0; // Win Rewards
                 win_counter++;
             }
             else
             {
-                rewards = -0.5; // Lose Penalty
+                rewards = -1.0; // Lose Penalty
             }
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
