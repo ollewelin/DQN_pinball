@@ -728,7 +728,7 @@ Mat upsampl_conv_view_2;
             {
                 if (i == replay_decided_action)
                 {
-                    fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * rewards_here + gamma * (max_Q_target_value - fc_nn_end_block.target_layer[i]);
+                    fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_here + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
                 }
                 else
                 {
