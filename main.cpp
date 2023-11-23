@@ -88,8 +88,8 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 0;                  // ReLU for all fully connected activation functions except output last layer
-    fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
+    fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.force_last_activation_function_to_sigmoid = 1; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 0;
     fc_nn_end_block.dropout_proportion = 0.4;
@@ -127,7 +127,7 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 40;
+    int L2_tensor_out_channels = 80;
     int L2_kernel_size = 5;
     int L2_stride = 2;
 
@@ -177,28 +177,28 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.05;//OFF action target 
+    double target_off_level = 0.5;//OFF action target 
     const double learning_rate_end = 0.001;
-    fc_nn_end_block.momentum = 0.08;
+    fc_nn_end_block.momentum = 0.9;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.01;
-    conv_L1.momentum = 0.08;
+    conv_L1.momentum = 0.9;
     conv_L2.learning_rate = 0.01;
-    conv_L2.momentum = 0.08;
-    double init_random_weight_propotion = 0.5;
-    double init_random_weight_propotion_conv = 0.8;
-    const double start_epsilon = 0.5;
-    const double stop_min_epsilon = 0.25;
+    conv_L2.momentum = 0.9;
+    double init_random_weight_propotion = 0.1;
+    double init_random_weight_propotion_conv = 0.3;
+    const double start_epsilon = 0.25;
+    const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.75f;
-    const int update_frozen_after_samples = 377;
+    const int update_frozen_after_samples = 200;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
     //==== Set modes ===============
-    conv_L1.activation_function_mode = 0;
-    conv_L2.activation_function_mode = 0;
+    conv_L1.activation_function_mode = 2;
+    conv_L2.activation_function_mode = 2;
     conv_frozen_L1_target_net.activation_function_mode = conv_L1.activation_function_mode;
     conv_frozen_L2_target_net.activation_function_mode = conv_L2.activation_function_mode;
     //==============================
@@ -214,7 +214,7 @@ int main()
     cv::Mat visual_conv_kernel_L1_Mat((conv_L1.kernel_weights[0][0].size() + grid_gap) * conv_L1.kernel_weights[0].size(), (conv_L1.kernel_weights[0][0][0].size() + grid_gap) * conv_L1.output_tensor.size(), CV_32F);
     cv::Mat visual_conv_kernel_L2_Mat((conv_L2.kernel_weights[0][0].size() + grid_gap) * conv_L2.kernel_weights[0].size(), (conv_L2.kernel_weights[0][0][0].size() + grid_gap) * conv_L2.output_tensor.size(), CV_32F);
 Mat upsampl_conv_view_2;
-    const int batch_size = 10;
+    const int batch_size = 100;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
