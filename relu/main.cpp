@@ -88,8 +88,8 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 0;                  // ReLU for all fully connected activation functions except output last layer
-    fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
+    fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.force_last_activation_function_to_sigmoid = 1; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 0;
     fc_nn_end_block.dropout_proportion = 0.4;
@@ -108,7 +108,7 @@ int main()
     const int nr_frames_strobed = 4;                                     // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels * nr_frames_strobed; // color channels * Images in serie
     const int L1_tensor_in_size = pixel_width * pixel_height;
-    const int L1_tensor_out_channels = 100;
+    const int L1_tensor_out_channels = 50;
     const int L1_kernel_size = 5;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
@@ -127,8 +127,8 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 40;
-    int L2_kernel_size = 3;
+    int L2_tensor_out_channels = 80;
+    int L2_kernel_size = 5;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
@@ -148,8 +148,8 @@ int main()
     int end_inp_nodes = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size()) * conv_L2.output_tensor.size();
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 2;
-    const int end_hid_nodes_L1 = 200;
-    const int end_hid_nodes_L2 = 100;
+    const int end_hid_nodes_L1 = 500;
+    const int end_hid_nodes_L2 = 200;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -177,22 +177,23 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.05;//OFF action target 
-    const double learning_rate_end = 0.001;
-    fc_nn_end_block.momentum = 0.95;
+    double target_off_level = 0.5;//OFF action target 
+    const double learning_rate_end = 0.1;
+    fc_nn_end_block.momentum = 0.01;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.05;
-    conv_L1.momentum = 0.81;
-    conv_L2.learning_rate = 0.05;
-    conv_L2.momentum = 0.81;
-    double init_random_weight_propotion = 0.3;
+    conv_L1.learning_rate = 0.1;
+    conv_L1.momentum = 0.01;
+    conv_L2.learning_rate = 0.1;
+    conv_L2.momentum = 0.01;
+    double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.5;
-    const double stop_min_epsilon = 0.25;
+    const double start_epsilon = 0.35;
+    const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.75f;
-    const int update_frozen_after_samples = 377;
+    double alpha = 0.1;
+    const int update_frozen_after_samples = 200;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
@@ -364,7 +365,7 @@ Mat upsampl_conv_view_2;
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L1.output_tensor[oc][yi][xi];
-                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
                                     //          cout <<"L1 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -383,7 +384,7 @@ Mat upsampl_conv_view_2;
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L2.output_tensor[oc][yi][xi];
-                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
                                     //        cout <<"L2 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -467,12 +468,12 @@ Mat upsampl_conv_view_2;
             double rewards = 0.0;
             if (gameObj1.win_this_game == 1)
             {
-                rewards = 0.5; // Win Rewards
+                rewards = 1.0; // Win Rewards
                 win_counter++;
             }
             else
             {
-                rewards = -0.5; // Lose Penalty
+                rewards = -1.0; // Lose Penalty
             }
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
@@ -718,18 +719,21 @@ Mat upsampl_conv_view_2;
             int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
             // cout << "rewards_idx_state = " << rewards_idx_state << endl;
             double rewards_here = rewards_at_batch[rewards_idx_state][batch_nr];
-            double target_value = rewards_here + gamma * max_Q_target_value;
-
+       //     double target_value = rewards_here + gamma * max_Q_target_value;
+//        #Q table UPDATE
+//        Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
+         //   double target_value = rewards_here + gamma * (max_Q_target_value - );
             // decided_action
             for (int i = 0; i < end_out_nodes; i++)
             {
                 if (i == replay_decided_action)
                 {
-                    fc_nn_end_block.target_layer[i] = target_value;
+                    fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_here + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
                 }
                 else
                 {
                     fc_nn_end_block.target_layer[i] = target_off_level;
+                 //   fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i];// No change
                 }
             }
 
