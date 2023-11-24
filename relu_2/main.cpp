@@ -177,16 +177,16 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
-    const double learning_rate_end = 0.01;
+    const double learning_rate_end = 0.001;
     fc_nn_end_block.momentum = 0.5;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.01;
+    conv_L1.learning_rate = 0.001;
     conv_L1.momentum = 0.5;
-    conv_L2.learning_rate = 0.01;
+    conv_L2.learning_rate = 0.001;
     conv_L2.momentum = 0.5;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.45;
+    const double start_epsilon = 0.35;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
@@ -219,7 +219,7 @@ int main()
     cv::Mat visual_conv_kernel_L1_Mat((conv_L1.kernel_weights[0][0].size() + grid_gap) * conv_L1.kernel_weights[0].size(), (conv_L1.kernel_weights[0][0][0].size() + grid_gap) * conv_L1.output_tensor.size(), CV_32F);
     cv::Mat visual_conv_kernel_L2_Mat((conv_L2.kernel_weights[0][0].size() + grid_gap) * conv_L2.kernel_weights[0].size(), (conv_L2.kernel_weights[0][0][0].size() + grid_gap) * conv_L2.output_tensor.size(), CV_32F);
     Mat upsampl_conv_view_2;
-    const int batch_size = 3;
+    const int batch_size = 50;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
@@ -570,8 +570,8 @@ int main()
             {
                 check_batch_nr = batch_state_rand_list[batch_state_cnt];
                 batch_nr = check_batch_nr;
-                //int single_game_frame_state = frame_state;
-                int single_game_frame_state = frame_state_rand_list[frame_state];
+                int single_game_frame_state = frame_state;
+                //int single_game_frame_state = frame_state_rand_list[frame_state];
                 double max_Q_target_value = 0.0;
                 int L2_out_one_side = conv_L2.output_tensor[0].size();
                 int L2_out_ch = conv_L2.output_tensor.size();
