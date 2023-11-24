@@ -50,17 +50,16 @@ int main()
     gameObj1.use_character = 0;
     gameObj1.enabel_3_state = 1; // Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
-    //statistics report
+    // statistics report
     const int max_w_p_nr = 1000;
     int win_p_cnt = 0;
     int win_counter = 0;
     double last_win_probability = 0.5;
     double now_win_probability = last_win_probability;
-    
 
     // Set up a OpenCV mat
-    const int pixel_height = 36; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 36;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 35; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 35;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -88,7 +87,7 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 0;                  // ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 0;
@@ -108,8 +107,8 @@ int main()
     const int nr_frames_strobed = 4;                                     // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels * nr_frames_strobed; // color channels * Images in serie
     const int L1_tensor_in_size = pixel_width * pixel_height;
-    const int L1_tensor_out_channels = 40;
-    const int L1_kernel_size = 5;
+    const int L1_tensor_out_channels = 50;
+    const int L1_kernel_size = 3;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
     conv_L1.set_stride(L1_stride);
@@ -127,8 +126,8 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 100;
-    int L2_kernel_size = 7;
+    int L2_tensor_out_channels = 80;
+    int L2_kernel_size = 3;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
@@ -148,8 +147,8 @@ int main()
     int end_inp_nodes = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size()) * conv_L2.output_tensor.size();
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 2;
-    const int end_hid_nodes_L1 = 200;
-    const int end_hid_nodes_L2 = 100;
+    const int end_hid_nodes_L1 = 500;
+    const int end_hid_nodes_L2 = 200;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -177,22 +176,23 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.05;//OFF action target 
-    const double learning_rate_end = 0.01;
-    fc_nn_end_block.momentum = 0.95;
+    double target_off_level = 0.01; // OFF action target
+    const double learning_rate_end = 0.001;
+    fc_nn_end_block.momentum = 0.5;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.01;
-    conv_L1.momentum = 0.81;
-    conv_L2.learning_rate = 0.01;
-    conv_L2.momentum = 0.81;
-    double init_random_weight_propotion = 0.3;
+    conv_L1.learning_rate = 0.001;
+    conv_L1.momentum = 0.5;
+    conv_L2.learning_rate = 0.001;
+    conv_L2.momentum = 0.5;
+    double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.5;
-    const double stop_min_epsilon = 0.25;
+    const double start_epsilon = 0.45;
+    const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.75f;
-    const int update_frozen_after_samples = 377;
+    double alpha = 0.9;
+    const int update_frozen_after_samples = 10;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
@@ -213,18 +213,20 @@ int main()
 
     cv::Mat visual_conv_kernel_L1_Mat((conv_L1.kernel_weights[0][0].size() + grid_gap) * conv_L1.kernel_weights[0].size(), (conv_L1.kernel_weights[0][0][0].size() + grid_gap) * conv_L1.output_tensor.size(), CV_32F);
     cv::Mat visual_conv_kernel_L2_Mat((conv_L2.kernel_weights[0][0].size() + grid_gap) * conv_L2.kernel_weights[0].size(), (conv_L2.kernel_weights[0][0][0].size() + grid_gap) * conv_L2.output_tensor.size(), CV_32F);
-Mat upsampl_conv_view_2;
-    const int batch_size = 10;
+    Mat upsampl_conv_view_2;
+    const int batch_size = 60;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
-    int check_state_nr = 0;                                                     // Used during replay training
+    int check_batch_nr = 0;                                                     // Used during replay training
     for (int i = 0; i < batch_size; i++)
     {
-        for (int j = 0; j < single_game_state_size; j++)
-        {
-            batch_state_rand_list.push_back(0);
-        }
+        batch_state_rand_list.push_back(0);
+    }
+    vector<int> frame_state_rand_list;
+    for (int i = 0; i < single_game_state_size; i++)
+    {
+        frame_state_rand_list.push_back(0);
     }
 
     char answer;
@@ -364,7 +366,7 @@ Mat upsampl_conv_view_2;
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L1.output_tensor[oc][yi][xi];
-                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
                                     //          cout <<"L1 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -383,7 +385,7 @@ Mat upsampl_conv_view_2;
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L2.output_tensor[oc][yi][xi];
-                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.5;
+                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
                                     //        cout <<"L2 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -467,23 +469,23 @@ Mat upsampl_conv_view_2;
             double rewards = 0.0;
             if (gameObj1.win_this_game == 1)
             {
-                rewards = 0.5; // Win Rewards
+                rewards = 1.0; // Win Rewards
                 win_counter++;
             }
             else
             {
-                rewards = -0.5; // Lose Penalty
+                rewards = 0.0; // Lose Penalty
             }
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
-            //Calculate win probablilty
-                        if(win_p_cnt>10)
+            // Calculate win probablilty
+            if (win_p_cnt > 10)
             {
-            now_win_probability = (double)win_counter / (double)(win_p_cnt + 1);
-            if (batch_nr == batch_size - 1)
-            {
-                cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play couunt = " << win_p_cnt + 1 << " Old win probablilty = " << last_win_probability * 100.0 << "%" << endl;
-            }
+                now_win_probability = (double)win_counter / (double)(win_p_cnt + 1);
+                if (batch_nr == batch_size - 1)
+                {
+                    cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play couunt = " << win_p_cnt + 1 << " Old win probablilty = " << last_win_probability * 100.0 << "%" << endl;
+                }
             }
             else
             {
@@ -495,9 +497,9 @@ Mat upsampl_conv_view_2;
             }
             else
             {
-                win_p_cnt=0;
-                win_counter=0;
-                //Store last 1000 win probablilty
+                win_p_cnt = 0;
+                win_counter = 0;
+                // Store last 1000 win probablilty
                 last_win_probability = now_win_probability;
             }
         }
@@ -554,256 +556,262 @@ Mat upsampl_conv_view_2;
         cout << "********************************************************************************" << endl;
         //   cout << "single_game_state_size = " << single_game_state_size << endl;
         batch_state_rand_list = fisher_yates_shuffle(batch_state_rand_list);
+        frame_state_rand_list = fisher_yates_shuffle(frame_state_rand_list);
         int replay_decided_action = 0;
-        for (int batch_state_cnt = 0; batch_state_cnt < (single_game_state_size * batch_size); batch_state_cnt++)
+        for (int frame_state = single_game_state_size - 1; frame_state > 0; frame_state--)
         {
-            check_state_nr = batch_state_rand_list[batch_state_cnt];
-            //     cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
-            batch_nr = check_state_nr / single_game_state_size;
-            //    cout << "Run one training state sample at batch_nr = " << batch_nr << endl;
-            int single_game_frame_state = check_state_nr % single_game_state_size;
-            //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
-            double max_Q_target_value = 0.0;
-            int L2_out_one_side = conv_L2.output_tensor[0].size();
-            int L2_out_ch = conv_L2.output_tensor.size();
-
-            if (single_game_frame_state < single_game_state_size - 1)
+            
+            for (int batch_state_cnt = 0; batch_state_cnt < batch_size; batch_state_cnt++)
             {
-                // Calculate the starting column index for the ROI in replay_grapics_buffert
-                int startCol = pixel_width * batch_nr;
-                int startRow = pixel_height * single_game_frame_state;
+                check_batch_nr = batch_state_rand_list[batch_state_cnt];
+                batch_nr = check_batch_nr;
+                //int single_game_frame_state = frame_state;
+                int single_game_frame_state = frame_state_rand_list[frame_state];
+                double max_Q_target_value = 0.0;
+                int L2_out_one_side = conv_L2.output_tensor[0].size();
+                int L2_out_ch = conv_L2.output_tensor.size();
 
-                cv::Rect replay_roi(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
-                for (int i = 0; i < L1_input_channels; i++)
+                if (single_game_frame_state < single_game_state_size - 1)
                 {
-                    for (int j = 0; j < L1_tensor_in_size; j++)
+                    // Calculate the starting column index for the ROI in replay_grapics_buffert
+                    int startCol = pixel_width * batch_nr;
+                    int startRow = pixel_height * single_game_frame_state;
+
+                    cv::Rect replay_roi(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
+                    for (int i = 0; i < L1_input_channels; i++)
                     {
-                        int row = j / pixel_width;
-                        int col = j % pixel_width;
-
-                        // Calculate the actual row and column indices in replay_roi
-                        int roi_row = row + replay_roi.y + i * pixel_height;
-                        int roi_col = col + replay_roi.x;
-
-                        // Ensure the indices are within bounds
-                        if (roi_row < replay_roi.y + replay_roi.height && roi_col < replay_roi.x + replay_roi.width)
+                        for (int j = 0; j < L1_tensor_in_size; j++)
                         {
-                            // Extract replay_roi data here to pixelValue
-                            float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
-                            conv_L1.input_tensor[i][row][col] = pixelValue;
-                        }
-                        else
-                        {
-                            // Handle the case where the indices are out of bounds
-                            // You might want to set a default value or handle it differently based on your requirements.
-                            cout << "error case where the indices are out of bounds" << endl;
-                            conv_L1.input_tensor[i][row][col] = 0.0; // Set a default value to 0.0 for example
+                            int row = j / pixel_width;
+                            int col = j % pixel_width;
+
+                            // Calculate the actual row and column indices in replay_roi
+                            int roi_row = row + replay_roi.y + i * pixel_height;
+                            int roi_col = col + replay_roi.x;
+
+                            // Ensure the indices are within bounds
+                            if (roi_row < replay_roi.y + replay_roi.height && roi_col < replay_roi.x + replay_roi.width)
+                            {
+                                // Extract replay_roi data here to pixelValue
+                                float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
+                                conv_L1.input_tensor[i][row][col] = pixelValue;
+                            }
+                            else
+                            {
+                                // Handle the case where the indices are out of bounds
+                                // You might want to set a default value or handle it differently based on your requirements.
+                                cout << "error case where the indices are out of bounds" << endl;
+                                conv_L1.input_tensor[i][row][col] = 0.0; // Set a default value to 0.0 for example
+                            }
                         }
                     }
-                }
-                for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
-                {
-                }
-                //**********************************************************************
-                //****************** Forward Pass training network *********************
-                conv_L1.conv_forward1();
-                conv_L2.input_tensor = conv_L1.output_tensor;
-                conv_L2.conv_forward1();
-                for (int oc = 0; oc < L2_out_ch; oc++)
-                {
-                    for (int yi = 0; yi < L2_out_one_side; yi++)
+                    for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
                     {
-                        for (int xi = 0; xi < L2_out_one_side; xi++)
+                    }
+                    //**********************************************************************
+                    //****************** Forward Pass training network *********************
+                    conv_L1.conv_forward1();
+                    conv_L2.input_tensor = conv_L1.output_tensor;
+                    conv_L2.conv_forward1();
+                    for (int oc = 0; oc < L2_out_ch; oc++)
+                    {
+                        for (int yi = 0; yi < L2_out_one_side; yi++)
                         {
+                            for (int xi = 0; xi < L2_out_one_side; xi++)
+                            {
 
-                            //                             double out_conv = conv_L2.output_tensor[oc][yi][xi];
-                            //         if(yi== L2_out_one_side-1)
-                            //    {
-                            //       out_conv = 0.1;
-                            //  }
-                            // fc_nn_end_block.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] =out_conv ;
+                                //                             double out_conv = conv_L2.output_tensor[oc][yi][xi];
+                                //         if(yi== L2_out_one_side-1)
+                                //    {
+                                //       out_conv = 0.1;
+                                //  }
+                                // fc_nn_end_block.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] =out_conv ;
 
-                            fc_nn_end_block.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_L2.output_tensor[oc][yi][xi];
+                                fc_nn_end_block.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_L2.output_tensor[oc][yi][xi];
+                            }
                         }
                     }
-                }
-                // Start Forward pass fully connected network
-                fc_nn_end_block.forward_pass(); // Forward pass though fully connected network
+                    // Start Forward pass fully connected network
+                    fc_nn_end_block.forward_pass(); // Forward pass though fully connected network
 
-                //****************** Forward Pass training network complete ************
-                //**********************************************************************
-                replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][batch_nr];
+                    //****************** Forward Pass training network complete ************
+                    //**********************************************************************
+                    replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][batch_nr];
 
-                //===================================
+                    //===================================
 
-                single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
-                // Calculate the starting column index for the ROI in replay_grapics_buffert
-                startCol = pixel_width * batch_nr;
-                startRow = pixel_height * single_game_frame_state;
-                cv::Rect replay_roi_2(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
-                for (int i = 0; i < L1_input_channels; i++)
-                {
-                    for (int j = 0; j < L1_tensor_in_size; j++)
+                    single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
+                    // Calculate the starting column index for the ROI in replay_grapics_buffert
+                    startCol = pixel_width * batch_nr;
+                    startRow = pixel_height * single_game_frame_state;
+                    cv::Rect replay_roi_2(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
+                    for (int i = 0; i < L1_input_channels; i++)
                     {
-                        int row = j / pixel_width;
-                        int col = j % pixel_width;
-
-                        // Calculate the actual row and column indices in replay_roi
-                        int roi_row = row + replay_roi_2.y + i * pixel_height;
-                        int roi_col = col + replay_roi_2.x;
-
-                        // Ensure the indices are within bounds
-                        if (roi_row < replay_roi_2.y + replay_roi_2.height && roi_col < replay_roi_2.x + replay_roi_2.width)
+                        for (int j = 0; j < L1_tensor_in_size; j++)
                         {
-                            // Extract replay_roi data here to pixelValue
-                            float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
-                            conv_frozen_L1_target_net.input_tensor[i][row][col] = pixelValue;
-                        }
-                        else
-                        {
-                            // Handle the case where the indices are out of bounds
-                            // You might want to set a default value or handle it differently based on your requirements.
-                            cout << "error case where the indices are out of bounds" << endl;
-                            conv_frozen_L1_target_net.input_tensor[i][row][col] = 0.0; // Set a default value to 0.0 for example
-                        }
-                    }
-                }
+                            int row = j / pixel_width;
+                            int col = j % pixel_width;
 
-                //======================================================================
-                //================== Forward Pass Frozen network NEXT state ============
-                conv_frozen_L1_target_net.conv_forward1();
-                conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
-                conv_frozen_L2_target_net.conv_forward1();
+                            // Calculate the actual row and column indices in replay_roi
+                            int roi_row = row + replay_roi_2.y + i * pixel_height;
+                            int roi_col = col + replay_roi_2.x;
 
-                for (int oc = 0; oc < L2_out_ch; oc++)
-                {
-                    for (int yi = 0; yi < L2_out_one_side; yi++)
-                    {
-                        for (int xi = 0; xi < L2_out_one_side; xi++)
-                        {
-                            //                                          double out_conv = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
-                            //                if(yi== L2_out_one_side-1)
-                            //             {
-                            //                 out_conv = 0.1;
-                            //             }
-                            //    fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] =out_conv ;
-
-                            fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
+                            // Ensure the indices are within bounds
+                            if (roi_row < replay_roi_2.y + replay_roi_2.height && roi_col < replay_roi_2.x + replay_roi_2.width)
+                            {
+                                // Extract replay_roi data here to pixelValue
+                                float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
+                                conv_frozen_L1_target_net.input_tensor[i][row][col] = pixelValue;
+                            }
+                            else
+                            {
+                                // Handle the case where the indices are out of bounds
+                                // You might want to set a default value or handle it differently based on your requirements.
+                                cout << "error case where the indices are out of bounds" << endl;
+                                conv_frozen_L1_target_net.input_tensor[i][row][col] = 0.0; // Set a default value to 0.0 for example
+                            }
                         }
                     }
-                }
-                // Start Forward pass fully connected network
-                fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
-                //================== Forward Pass Frozen network complete ==============
-                //======================================================================
 
-                // Search for max Q-value
-                max_Q_target_value = 0.0;
-                for (int i = 0; i < end_out_nodes; i++)
-                {
-                    double action_node = fc_nn_frozen_target_net.output_layer[i];
-                    if (action_node > max_Q_target_value)
+                    //======================================================================
+                    //================== Forward Pass Frozen network NEXT state ============
+                    conv_frozen_L1_target_net.conv_forward1();
+                    conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
+                    conv_frozen_L2_target_net.conv_forward1();
+
+                    for (int oc = 0; oc < L2_out_ch; oc++)
                     {
-                        max_Q_target_value = action_node;
+                        for (int yi = 0; yi < L2_out_one_side; yi++)
+                        {
+                            for (int xi = 0; xi < L2_out_one_side; xi++)
+                            {
+                                //                                          double out_conv = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
+                                //                if(yi== L2_out_one_side-1)
+                                //             {
+                                //                 out_conv = 0.1;
+                                //             }
+                                //    fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] =out_conv ;
+
+                                fc_nn_frozen_target_net.input_layer[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi] = conv_frozen_L2_target_net.output_tensor[oc][yi][xi];
+                            }
+                        }
                     }
-                }
-            }
-            else
-            {
-                // End game state
-                max_Q_target_value = target_off_level; // 0.5 = Zero Q value at end state Only rewards will be used
-                cout << "Replay END State at batch_nr = " << batch_nr << endl;
-            }
+                    // Start Forward pass fully connected network
+                    fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
+                    //================== Forward Pass Frozen network complete ==============
+                    //======================================================================
 
-            int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
-            // cout << "rewards_idx_state = " << rewards_idx_state << endl;
-            double rewards_here = rewards_at_batch[rewards_idx_state][batch_nr];
-            double target_value = rewards_here + gamma * max_Q_target_value;
-
-            // decided_action
-            for (int i = 0; i < end_out_nodes; i++)
-            {
-                if (i == replay_decided_action)
-                {
-                    fc_nn_end_block.target_layer[i] = target_value;
+                    // Search for max Q-value
+                    max_Q_target_value = 0.0;
+                    for (int i = 0; i < end_out_nodes; i++)
+                    {
+                        double action_node = fc_nn_frozen_target_net.output_layer[i];
+                        if (action_node > max_Q_target_value)
+                        {
+                            max_Q_target_value = action_node;
+                        }
+                    }
                 }
                 else
                 {
-                    fc_nn_end_block.target_layer[i] = target_off_level;
+                    // End game state
+                    max_Q_target_value = target_off_level; // Zero Q value at end state Only rewards will be used
+                    cout << "Replay END State at batch_nr = " << batch_nr << endl;
                 }
-            }
 
-            fc_nn_end_block.backpropagtion_and_update();
-            // backprop convolution layers
-            for (int oc = 0; oc < L2_out_ch; oc++)
-            {
-                for (int yi = 0; yi < L2_out_one_side; yi++)
+                int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
+                // cout << "rewards_idx_state = " << rewards_idx_state << endl;
+                double rewards_here = rewards_at_batch[rewards_idx_state][batch_nr];
+                //     double target_value = rewards_here + gamma * max_Q_target_value;
+                //        #Q table UPDATE
+                //        Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
+                //   double target_value = rewards_here + gamma * (max_Q_target_value - );
+                // decided_action
+                for (int i = 0; i < end_out_nodes; i++)
                 {
-                    for (int xi = 0; xi < L2_out_one_side; xi++)
+                    if (i == replay_decided_action)
                     {
-                        conv_L2.o_tensor_delta[oc][yi][xi] = fc_nn_end_block.i_layer_delta[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi];
+                        fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_here + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
+                    }
+                    else
+                    {
+                        //   fc_nn_end_block.target_layer[i] = target_off_level;
+                        fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                     }
                 }
-            }
-            conv_L2.conv_backprop();
-            conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
-            conv_L1.conv_backprop();
-            conv_L2.conv_update_weights();
-            conv_L1.conv_update_weights();
-            if (update_frz_cnt < update_frozen_after_samples)
-            {
-                update_frz_cnt++;
-            }
-            else
-            {
-                update_frz_cnt = 0;
-                // copy over to frozen fc and conv network
-                conv_frozen_L1_target_net.kernel_weights = conv_L1.kernel_weights;
-                conv_frozen_L2_target_net.kernel_weights = conv_L2.kernel_weights;
-                fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
-            }
 
-            if (batch_nr == 0 && single_game_frame_state == single_game_state_size - 1)
-            {
-                // Show upsampling
-                // Put in the output data from the convolution operation into the transpose upsampling operation
-            
-                conv_L2.o_tensor_delta = conv_L2.output_tensor;
-                conv_L2.conv_transpose_fwd();
-                conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
-                conv_L1.conv_transpose_fwd();
-
-                // Copy data from conv_L1.i_tensor_delta to cv::Mat
-                for (int ic = 0; ic < L1_input_channels; ic++)
+                fc_nn_end_block.backpropagtion_and_update();
+                // backprop convolution layers
+                for (int oc = 0; oc < L2_out_ch; oc++)
                 {
-                    for (int yi = 0; yi < pixel_height; yi++)
+                    for (int yi = 0; yi < L2_out_one_side; yi++)
                     {
-                        for (int xi = 0; xi < pixel_width; xi++)
+                        for (int xi = 0; xi < L2_out_one_side; xi++)
                         {
-                            double input_pixel_data = conv_L1.i_tensor_delta[ic][yi][xi];
-                            upsampl_conv_view.at<float>(ic * pixel_height + yi, xi) = (float)input_pixel_data;
-                            // cout << "input_pixel_data = " << input_pixel_data << endl;
+                            conv_L2.o_tensor_delta[oc][yi][xi] = fc_nn_end_block.i_layer_delta[oc * L2_out_one_side * L2_out_one_side + yi * L2_out_one_side + xi];
                         }
                     }
                 }
-                cv::imshow("upsampl_conv_view", upsampl_conv_view);
-                waitKey(100);
-                upsampl_conv_view_2 = upsampl_conv_view + 0.5;
-                cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
-                waitKey(100);
+                conv_L2.conv_backprop();
+                conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
+                conv_L1.conv_backprop();
+                conv_L2.conv_update_weights();
+                conv_L1.conv_update_weights();
+                if (update_frz_cnt < update_frozen_after_samples)
+                {
+                    update_frz_cnt++;
+                }
+                else
+                {
+                    update_frz_cnt = 0;
+                    // copy over to frozen fc and conv network
+                    conv_frozen_L1_target_net.kernel_weights = conv_L1.kernel_weights;
+                    conv_frozen_L2_target_net.kernel_weights = conv_L2.kernel_weights;
+                    fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
+                }
+
+                if (batch_nr == 0 && single_game_frame_state == single_game_state_size - 1)
+                {
+                    // Show upsampling
+                    // Put in the output data from the convolution operation into the transpose upsampling operation
+
+                    conv_L2.o_tensor_delta = conv_L2.output_tensor;
+                    conv_L2.conv_transpose_fwd();
+                    conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
+                    conv_L1.conv_transpose_fwd();
+
+                    // Copy data from conv_L1.i_tensor_delta to cv::Mat
+                    for (int ic = 0; ic < L1_input_channels; ic++)
+                    {
+                        for (int yi = 0; yi < pixel_height; yi++)
+                        {
+                            for (int xi = 0; xi < pixel_width; xi++)
+                            {
+                                double input_pixel_data = conv_L1.i_tensor_delta[ic][yi][xi];
+                                upsampl_conv_view.at<float>(ic * pixel_height + yi, xi) = (float)input_pixel_data;
+                                // cout << "input_pixel_data = " << input_pixel_data << endl;
+                            }
+                        }
+                    }
+                    cv::imshow("upsampl_conv_view", upsampl_conv_view);
+                    waitKey(100);
+                    upsampl_conv_view_2 = upsampl_conv_view + 0.5;
+                    cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
+                    waitKey(100);
+                }
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
 
         // Save all weights
-        if(save_cnt < save_after_nr)
+        if (save_cnt < save_after_nr)
         {
             save_cnt++;
         }
         else
         {
-            save_cnt=0;
+            save_cnt = 0;
             fc_nn_end_block.save_weights(weight_filename_end);
             conv_L1.save_weights(L1_kernel_k_weight_filename, L1_kernel_b_weight_filename);
             conv_L2.save_weights(L2_kernel_k_weight_filename, L2_kernel_b_weight_filename);
