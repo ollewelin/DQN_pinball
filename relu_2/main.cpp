@@ -58,8 +58,8 @@ int main()
     double now_win_probability = last_win_probability;
 
     // Set up a OpenCV mat
-    const int pixel_height = 35; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 35;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 39; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 39;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -127,7 +127,7 @@ int main()
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
     int L2_tensor_out_channels = 80;
-    int L2_kernel_size = 3;
+    int L2_kernel_size = 5;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
