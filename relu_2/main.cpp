@@ -199,6 +199,11 @@ int main()
     //==== Set modes ===============
     conv_L1.activation_function_mode = 2;
     conv_L2.activation_function_mode = 2;
+    double visual_offset_conv = 0.5;
+    if(conv_L2.activation_function_mode == 0)
+    {
+        visual_offset_conv = 0.0;
+    }
     conv_frozen_L1_target_net.activation_function_mode = conv_L1.activation_function_mode;
     conv_frozen_L2_target_net.activation_function_mode = conv_L2.activation_function_mode;
     //==============================
@@ -366,7 +371,7 @@ int main()
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L1_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L1.output_tensor[oc][yi][xi];
-                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
+                                    Mat_L1_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + visual_offset_conv;
                                     //          cout <<"L1 out pixel = " << pixel_data << endl;
                                 }
                             }
@@ -385,7 +390,7 @@ int main()
                                     int visual_col = xi + (oc * grid_gap + oc * one_plane_L2_out_conv_size);
                                     int visual_row = yi;
                                     double pixel_data = conv_L2.output_tensor[oc][yi][xi];
-                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + 0.0;
+                                    Mat_L2_output_visualize.at<float>(visual_row, visual_col) = (float)pixel_data + visual_offset_conv;
                                     //        cout <<"L2 out pixel = " << pixel_data << endl;
                                 }
                             }
