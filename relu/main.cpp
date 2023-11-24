@@ -59,8 +59,8 @@ int main()
     
 
     // Set up a OpenCV mat
-    const int pixel_height = 36; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 36;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 35; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 35;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -109,7 +109,7 @@ int main()
     const int L1_input_channels = nr_color_channels * nr_frames_strobed; // color channels * Images in serie
     const int L1_tensor_in_size = pixel_width * pixel_height;
     const int L1_tensor_out_channels = 50;
-    const int L1_kernel_size = 5;
+    const int L1_kernel_size = 3;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
     conv_L1.set_stride(L1_stride);
@@ -128,7 +128,7 @@ int main()
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
     int L2_tensor_out_channels = 80;
-    int L2_kernel_size = 5;
+    int L2_kernel_size = 3;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
@@ -192,7 +192,7 @@ int main()
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.75f;
-    double alpha = 0.4;
+    double alpha = 0.9;
     const int update_frozen_after_samples = 200;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
