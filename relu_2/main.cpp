@@ -177,12 +177,12 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
-    const double learning_rate_end = 0.001;
+    const double learning_rate_end = 0.01;
     fc_nn_end_block.momentum = 0.5;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.001;
+    conv_L1.learning_rate = 0.01;
     conv_L1.momentum = 0.5;
-    conv_L2.learning_rate = 0.001;
+    conv_L2.learning_rate = 0.01;
     conv_L2.momentum = 0.5;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
@@ -192,7 +192,7 @@ int main()
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.75f;
     double alpha = 0.9;
-    const int update_frozen_after_samples = 10;
+    const int update_frozen_after_samples = 300;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
@@ -219,7 +219,7 @@ int main()
     cv::Mat visual_conv_kernel_L1_Mat((conv_L1.kernel_weights[0][0].size() + grid_gap) * conv_L1.kernel_weights[0].size(), (conv_L1.kernel_weights[0][0][0].size() + grid_gap) * conv_L1.output_tensor.size(), CV_32F);
     cv::Mat visual_conv_kernel_L2_Mat((conv_L2.kernel_weights[0][0].size() + grid_gap) * conv_L2.kernel_weights[0].size(), (conv_L2.kernel_weights[0][0][0].size() + grid_gap) * conv_L2.output_tensor.size(), CV_32F);
     Mat upsampl_conv_view_2;
-    const int batch_size = 60;
+    const int batch_size = 3;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
