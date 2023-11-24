@@ -104,7 +104,7 @@ int main()
     //==== Set up convolution layers ===========
     cout << "conv_L1 setup:" << endl;
     const int nr_color_channels = 1;                                     //=== 1 channel gray scale ====
-    const int nr_frames_strobed = 4;                                     // 4 Images in serie to make neural network to see movments
+    const int nr_frames_strobed = 6;                                     // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels * nr_frames_strobed; // color channels * Images in serie
     const int L1_tensor_in_size = pixel_width * pixel_height;
     const int L1_tensor_out_channels = 50;
