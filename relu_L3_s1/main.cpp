@@ -546,13 +546,37 @@ int main()
             double rewards = 0.0;
             if (gameObj1.win_this_game == 1)
             {
-                rewards = 10.0; // Win Rewards
+                if(gameObj1.square == 1)
+                {
+                    rewards = 10.0; // Win Rewards avoid square
+                }
+                else
+                {
+                    rewards = 30.0; // Win Rewards catch ball
+                }
+                
                 win_counter++;
             }
             else
             {
-                rewards = -10.0; // Lose Penalty
+                if(gameObj1.square == 1)
+                {
+                    rewards = -10.0; // Lose Penalty
+                }
+                else
+                {
+                    rewards = -5.0; // Lose Penalty
+                }
             }
+            if(gameObj1.square == 1)
+            {
+                cout << "Game through a rectangle " << endl;
+            }
+            else
+            {
+                cout << "Game through a ball " << endl;
+            }
+             cout << "Rewards = " << rewards << endl;
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
             // Calculate win probablilty
@@ -923,13 +947,12 @@ int main()
                     cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
                     waitKey(100);
                 }
-                cout << "                                                                                                       " << endl;
-                std::cout << "\033[F";
-                cout << "replay batch_state_cnt = " << batch_state_cnt << " frame state countdown = " << frame_state << endl;
-                // Move the cursor up one line (ANSI escape code)
-                std::cout << "\033[F";
-
             }
+            cout << "                                                                                                       " << endl;
+            std::cout << "\033[F";
+            cout <<"frame state countdown = " << frame_state << endl;
+            // Move the cursor up one line (ANSI escape code)
+            std::cout << "\033[F";
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
