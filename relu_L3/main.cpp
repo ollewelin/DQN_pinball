@@ -219,7 +219,7 @@ int main()
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.15f;
+    double gamma = 0.5f;
     double alpha = 0.9;
     const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
@@ -535,12 +535,12 @@ int main()
             double rewards = 0.0;
             if (gameObj1.win_this_game == 1)
             {
-                rewards = 1.0; // Win Rewards
+                rewards = 10.0; // Win Rewards
                 win_counter++;
             }
             else
             {
-                rewards = -1.0; // Lose Penalty
+                rewards = -10.0; // Lose Penalty
             }
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
