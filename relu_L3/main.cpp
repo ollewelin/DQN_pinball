@@ -60,8 +60,8 @@ int main()
     double now_win_probability = last_win_probability;
 
     // Set up a OpenCV mat
-    const int pixel_height = 38; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 38;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 36; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 36;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -114,8 +114,8 @@ int main()
     const int nr_frames_strobed = 6;                                     // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels * nr_frames_strobed; // color channels * Images in serie
     const int L1_tensor_in_size = pixel_width * pixel_height;
-    const int L1_tensor_out_channels = 50;
-    const int L1_kernel_size = 3;
+    const int L1_tensor_out_channels = 20;
+    const int L1_kernel_size = 5;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
     conv_L1.set_stride(L1_stride);
@@ -133,8 +133,8 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 50;
-    int L2_kernel_size = 3;
+    int L2_tensor_out_channels = 25;
+    int L2_kernel_size = 5;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
@@ -153,7 +153,7 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 100;
+    int L3_tensor_out_channels = 25;
     int L3_kernel_size = 5;
     int L3_stride = 2;
 
@@ -175,7 +175,7 @@ int main()
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 2;
     const int end_hid_nodes_L1 = 200;
-    const int end_hid_nodes_L2 = 50;
+    const int end_hid_nodes_L2 = 200;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -204,24 +204,24 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
-    const double learning_rate_end = 0.001;
-    fc_nn_end_block.momentum = 0.0;
+    const double learning_rate_end = 0.01;
+    fc_nn_end_block.momentum = 0.1;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.001;
-    conv_L1.momentum = 0.0;
-    conv_L2.learning_rate = 0.001;
-    conv_L2.momentum = 0.0;
-    conv_L3.learning_rate = 0.001;
-    conv_L3.momentum = 0.0;
-    double init_random_weight_propotion = 0.01;
-    double init_random_weight_propotion_conv = 0.01;
+    conv_L1.learning_rate = 0.01;
+    conv_L1.momentum = 0.1;
+    conv_L2.learning_rate = 0.01;
+    conv_L2.momentum = 0.1;
+    conv_L3.learning_rate = 0.01;
+    conv_L3.momentum = 0.1;
+    double init_random_weight_propotion = 0.1;
+    double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.35;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.75f;
     double alpha = 0.9;
-    const int update_frozen_after_samples = 300;
+    const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
@@ -827,26 +827,12 @@ int main()
                     }
                     else
                     {
-                        //   fc_nn_end_block.target_layer[i] = target_off_level;
-                        fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                        fc_nn_end_block.target_layer[i] = target_off_level;
+                        //fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                     }
                 }
 
-                if(batch_state_cnt == 0 && frame_state == (single_game_state_size - 1))
-                {
-                    fc_nn_end_block.accumulat_delta = 0;
-                    conv_L1.clear_delta = 1;
-                    conv_L2.clear_delta = 1;
-                    conv_L3.clear_delta = 1;
-                }
-                else
-                {
-                    fc_nn_end_block.accumulat_delta = 1;
-                    conv_L1.clear_delta = 0;
-                    conv_L2.clear_delta = 0;
-                    conv_L3.clear_delta = 0;
-                }
-                fc_nn_end_block.backpropagtion();
+                fc_nn_end_block.backpropagtion_and_update();
                 // backprop convolution layers
                 for (int oc = 0; oc < L3_out_ch; oc++)
                 {
@@ -863,16 +849,9 @@ int main()
                 conv_L2.conv_backprop();
                 conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
                 conv_L1.conv_backprop();
-/*
-                if(batch_state_cnt == batch_size-1)
-                {
-                    fc_nn_end_block.accumulat_delta = 0;
-                    fc_nn_end_block.update_weights();
-                    conv_L3.conv_update_weights();
-                    conv_L2.conv_update_weights();
-                    conv_L1.conv_update_weights();
-                }
-*/
+                conv_L3.conv_update_weights();
+                conv_L2.conv_update_weights();
+                conv_L1.conv_update_weights();
                 if (update_frz_cnt < update_frozen_after_samples)
                 {
                     update_frz_cnt++;
@@ -887,7 +866,7 @@ int main()
                     fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
                 }
 
-                if (batch_nr == batch_size-1 && single_game_frame_state == single_game_state_size - 1)
+                if (batch_nr == 0 && single_game_frame_state == single_game_state_size - 1)
                 {
                     // Show upsampling
                     // Put in the output data from the convolution operation into the transpose upsampling operation
@@ -920,12 +899,6 @@ int main()
                 }
             }
         }
-        fc_nn_end_block.accumulat_delta = 0;
-        fc_nn_end_block.update_weights();
-        conv_L3.conv_update_weights();
-        conv_L2.conv_update_weights();
-        conv_L1.conv_update_weights();
-
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
 
