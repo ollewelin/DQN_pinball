@@ -221,7 +221,7 @@ int main()
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.5f;
     double alpha = 0.9;
-    const int update_frozen_after_samples = 100;
+    const int update_frozen_after_samples = 400;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
@@ -256,7 +256,7 @@ int main()
     cv::Mat visual_conv_kernel_L3_Mat((conv_L3.kernel_weights[0][0].size() + grid_gap) * conv_L3.kernel_weights[0].size(), (conv_L3.kernel_weights[0][0][0].size() + grid_gap) * conv_L3.output_tensor.size(), CV_32F);
 
     Mat upsampl_conv_view_2;
-    const int batch_size = 50;
+    const int batch_size = 500;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
