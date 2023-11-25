@@ -570,8 +570,8 @@ int main()
             {
                 check_batch_nr = batch_state_rand_list[batch_state_cnt];
                 batch_nr = check_batch_nr;
-                int single_game_frame_state = frame_state;
-                //int single_game_frame_state = frame_state_rand_list[frame_state];
+                //int single_game_frame_state = frame_state;
+                int single_game_frame_state = frame_state_rand_list[frame_state];
                 double max_Q_target_value = 0.0;
                 int L2_out_one_side = conv_L2.output_tensor[0].size();
                 int L2_out_ch = conv_L2.output_tensor.size();
