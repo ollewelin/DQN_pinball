@@ -336,9 +336,13 @@ int main()
         cout << "******** Epoch number = " << epoch << " **********" << endl;
         for (int batch_cnt = 0; batch_cnt < batch_size; batch_cnt++)
         {
+            cout << "Play batch_cnt = " << batch_cnt << endl;
+            // Move the cursor up one line (ANSI escape code)
+            std::cout << "\033[F";
+
             batch_nr = batch_cnt;
             gameObj1.start_episode();
-            cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
+        //    cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
             for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
             {
                 gameObj1.frame = frame_g;
@@ -808,7 +812,7 @@ int main()
                 {
                     // End game state
                     max_Q_target_value = target_off_level; // Zero Q value at end state Only rewards will be used
-                    cout << "Replay END State at batch_nr = " << batch_nr << endl;
+                //    cout << "Replay END State at batch_nr = " << batch_nr << endl;
                 }
 
                 int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
@@ -897,11 +901,14 @@ int main()
                     cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
                     waitKey(100);
                 }
+                cout << "replay batch_state_cnt = " << batch_state_cnt << endl;
+                // Move the cursor up one line (ANSI escape code)
+                std::cout << "\033[F";
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
-
+        cout << "Replay END" << endl;
         // Save all weights
         if (save_cnt < save_after_nr)
         {
