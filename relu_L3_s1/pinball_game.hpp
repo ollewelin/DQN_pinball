@@ -518,11 +518,11 @@ void pinball_game::run_episode(void)
             ///Miss
             if(square == 1){
             win_this_game = 1;
-            printf("Win \n");
+       //     printf("Win \n");
             }
             else{
                win_this_game = 0;
-                printf("Lose \n");
+         //       printf("Lose \n");
             }
         }
         else
@@ -530,12 +530,12 @@ void pinball_game::run_episode(void)
             ///Catch
             if(square == 1){
                win_this_game = 0;
-                printf("Lose \n");
+           //     printf("Lose \n");
              }
              else
              {
                 win_this_game = 1;
-                printf("Win \n");
+             //   printf("Win \n");
             }
         }
 
