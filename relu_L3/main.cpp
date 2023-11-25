@@ -205,14 +205,14 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
     const double learning_rate_end = 0.001;
-    fc_nn_end_block.momentum = 0.5;
+    fc_nn_end_block.momentum = 0.0;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.001;
-    conv_L1.momentum = 0.5;
+    conv_L1.momentum = 0.0;
     conv_L2.learning_rate = 0.001;
-    conv_L2.momentum = 0.5;
+    conv_L2.momentum = 0.0;
     conv_L3.learning_rate = 0.001;
-    conv_L3.momentum = 0.5;
+    conv_L3.momentum = 0.0;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.35;
@@ -832,7 +832,7 @@ int main()
                     }
                 }
 
-                if(batch_state_cnt == 0)
+                if(batch_state_cnt == 0 && frame_state == (single_game_state_size - 1))
                 {
                     fc_nn_end_block.accumulat_delta = 0;
                     conv_L1.clear_delta = 1;
@@ -863,7 +863,7 @@ int main()
                 conv_L2.conv_backprop();
                 conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
                 conv_L1.conv_backprop();
-
+/*
                 if(batch_state_cnt == batch_size-1)
                 {
                     fc_nn_end_block.accumulat_delta = 0;
@@ -872,7 +872,7 @@ int main()
                     conv_L2.conv_update_weights();
                     conv_L1.conv_update_weights();
                 }
-
+*/
                 if (update_frz_cnt < update_frozen_after_samples)
                 {
                     update_frz_cnt++;
@@ -920,6 +920,12 @@ int main()
                 }
             }
         }
+        fc_nn_end_block.accumulat_delta = 0;
+        fc_nn_end_block.update_weights();
+        conv_L3.conv_update_weights();
+        conv_L2.conv_update_weights();
+        conv_L1.conv_update_weights();
+
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
 
