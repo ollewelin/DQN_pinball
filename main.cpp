@@ -60,8 +60,8 @@ int main()
     double now_win_probability = last_win_probability;
 
     // Set up a OpenCV mat
-    const int pixel_height = 38; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 38;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 36; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 36;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -97,14 +97,15 @@ int main()
     fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
-    fc_nn_end_block.use_dropouts = 0;
-    fc_nn_end_block.dropout_proportion = 0.4;
+    fc_nn_end_block.use_dropouts = 1;
+    fc_nn_end_block.dropout_proportion = 0.65;
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
     fc_nn_frozen_target_net.force_last_activation_function_to_sigmoid = fc_nn_end_block.force_last_activation_function_to_sigmoid;
     fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
-    fc_nn_frozen_target_net.use_dropouts = 0;
+    fc_nn_frozen_target_net.use_dropouts = 1;
+    fc_nn_frozen_target_net.dropout_proportion = 0.25;
 
     conv_L1.get_version();
 
@@ -114,8 +115,8 @@ int main()
     const int nr_frames_strobed = 6;                                     // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels * nr_frames_strobed; // color channels * Images in serie
     const int L1_tensor_in_size = pixel_width * pixel_height;
-    const int L1_tensor_out_channels = 50;
-    const int L1_kernel_size = 3;
+    const int L1_tensor_out_channels = 20;
+    const int L1_kernel_size = 5;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
     conv_L1.set_stride(L1_stride);
@@ -133,8 +134,8 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 50;
-    int L2_kernel_size = 3;
+    int L2_tensor_out_channels = 25;
+    int L2_kernel_size = 5;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
@@ -153,7 +154,7 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 100;
+    int L3_tensor_out_channels = 25;
     int L3_kernel_size = 5;
     int L3_stride = 2;
 
@@ -175,7 +176,7 @@ int main()
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 2;
     const int end_hid_nodes_L1 = 200;
-    const int end_hid_nodes_L2 = 50;
+    const int end_hid_nodes_L2 = 200;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -204,24 +205,31 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
-    const double learning_rate_end = 0.001;
-    fc_nn_end_block.momentum = 0.5;
+    const double learning_rate_end = 0.01;
+    fc_nn_end_block.momentum = 0.2;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.001;
-    conv_L1.momentum = 0.5;
-    conv_L2.learning_rate = 0.001;
-    conv_L2.momentum = 0.5;
-    conv_L3.learning_rate = 0.001;
-    conv_L3.momentum = 0.5;
+    conv_L1.learning_rate = 0.01;
+    conv_L1.momentum = 0.2;
+    conv_L1.use_dropouts = 1;
+    conv_L1.dropout_proportion = 0.5;
+    conv_L2.learning_rate = 0.01;
+    conv_L2.momentum = 0.2;
+    conv_L2.use_dropouts = 1;
+    conv_L2.dropout_proportion = 0.5;
+    conv_L3.learning_rate = 0.01;
+    conv_L3.momentum = 0.2;
+    conv_L3.use_dropouts = 1;
+    conv_L3.dropout_proportion = 0.5;
+
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.35;
+    const double start_epsilon = 0.4;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.75f;
+    double gamma = 0.5f;
     double alpha = 0.9;
-    const int update_frozen_after_samples = 300;
+    const int update_frozen_after_samples = 400;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
@@ -256,7 +264,7 @@ int main()
     cv::Mat visual_conv_kernel_L3_Mat((conv_L3.kernel_weights[0][0].size() + grid_gap) * conv_L3.kernel_weights[0].size(), (conv_L3.kernel_weights[0][0][0].size() + grid_gap) * conv_L3.output_tensor.size(), CV_32F);
 
     Mat upsampl_conv_view_2;
-    const int batch_size = 50;
+    const int batch_size = 100;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
@@ -336,9 +344,15 @@ int main()
         cout << "******** Epoch number = " << epoch << " **********" << endl;
         for (int batch_cnt = 0; batch_cnt < batch_size; batch_cnt++)
         {
+            cout << "                                                                                                       " << endl;
+            std::cout << "\033[F";
+            cout << "Play batch_cnt = " << batch_cnt << endl;
+            // Move the cursor up one line (ANSI escape code)
+            std::cout << "\033[F";
+
             batch_nr = batch_cnt;
             gameObj1.start_episode();
-            cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
+        //    cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
             for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
             {
                 gameObj1.frame = frame_g;
@@ -535,12 +549,12 @@ int main()
             double rewards = 0.0;
             if (gameObj1.win_this_game == 1)
             {
-                rewards = 1.0; // Win Rewards
+                rewards = 10.0; // Win Rewards
                 win_counter++;
             }
             else
             {
-                rewards = 0.0; // Lose Penalty
+                rewards = -10.0; // Lose Penalty
             }
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
@@ -808,7 +822,7 @@ int main()
                 {
                     // End game state
                     max_Q_target_value = target_off_level; // Zero Q value at end state Only rewards will be used
-                    cout << "Replay END State at batch_nr = " << batch_nr << endl;
+                //    cout << "Replay END State at batch_nr = " << batch_nr << endl;
                 }
 
                 int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
@@ -827,8 +841,8 @@ int main()
                     }
                     else
                     {
-                        //   fc_nn_end_block.target_layer[i] = target_off_level;
-                        fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                        fc_nn_end_block.target_layer[i] = target_off_level;
+                        //fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                     }
                 }
 
@@ -897,11 +911,16 @@ int main()
                     cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
                     waitKey(100);
                 }
+                cout << "                                                                                                       " << endl;
+                std::cout << "\033[F";
+                cout << "replay batch_state_cnt = " << batch_state_cnt << " frame state countdown = " << frame_state << endl;
+                // Move the cursor up one line (ANSI escape code)
+                std::cout << "\033[F";
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
-
+        cout << "Replay END" << endl;
         // Save all weights
         if (save_cnt < save_after_nr)
         {
