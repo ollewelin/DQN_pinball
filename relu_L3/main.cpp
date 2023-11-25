@@ -204,14 +204,14 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
-    const double learning_rate_end = 0.01;
+    const double learning_rate_end = 0.001;
     fc_nn_end_block.momentum = 0.5;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.01;
+    conv_L1.learning_rate = 0.001;
     conv_L1.momentum = 0.5;
-    conv_L2.learning_rate = 0.01;
+    conv_L2.learning_rate = 0.001;
     conv_L2.momentum = 0.5;
-    conv_L3.learning_rate = 0.01;
+    conv_L3.learning_rate = 0.001;
     conv_L3.momentum = 0.5;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
