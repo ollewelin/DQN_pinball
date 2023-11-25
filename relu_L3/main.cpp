@@ -98,7 +98,7 @@ int main()
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
-    fc_nn_end_block.dropout_proportion = 0.75;
+    fc_nn_end_block.dropout_proportion = 0.65;
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
@@ -210,11 +210,18 @@ int main()
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.01;
     conv_L1.momentum = 0.2;
+    conv_L1.use_dropouts = 1;
+    conv_L1.dropout_proportion = 0.5;
     conv_L2.learning_rate = 0.01;
     conv_L2.momentum = 0.2;
+    conv_L2.use_dropouts = 1;
+    conv_L2.dropout_proportion = 0.5;
     conv_L3.learning_rate = 0.01;
     conv_L3.momentum = 0.2;
-    double init_random_weight_propotion = 0.1;
+    conv_L3.use_dropouts = 1;
+    conv_L3.dropout_proportion = 0.5;
+
+    double init_random_weight_propotion = 1.5;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.4;
     const double stop_min_epsilon = 0.55;
@@ -337,6 +344,8 @@ int main()
         cout << "******** Epoch number = " << epoch << " **********" << endl;
         for (int batch_cnt = 0; batch_cnt < batch_size; batch_cnt++)
         {
+            cout << "                                                                                                       " << endl;
+            std::cout << "\033[F";
             cout << "Play batch_cnt = " << batch_cnt << endl;
             // Move the cursor up one line (ANSI escape code)
             std::cout << "\033[F";
@@ -902,6 +911,8 @@ int main()
                     cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
                     waitKey(100);
                 }
+                cout << "                                                                                                       " << endl;
+                std::cout << "\033[F";
                 cout << "replay batch_state_cnt = " << batch_state_cnt << " frame state countdown = " << frame_state << endl;
                 // Move the cursor up one line (ANSI escape code)
                 std::cout << "\033[F";
