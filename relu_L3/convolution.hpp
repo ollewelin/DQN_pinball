@@ -18,8 +18,6 @@ private:
     int input_side_size;
     int output_side_size;
 
-
-    int setup_state;
     //Setup functions below must be called in this order to make setup working.
     //0 = start up state, nothing done yet. 
     //1 = set_kernel_size() is set up
@@ -27,6 +25,10 @@ private:
     //3 = set_in_tensor() done
     //4 = set_out_tensor_channels() is done
     //5 = randomize_weights() or load_weights() is done
+    int setup_state;
+
+    //clear_delta must be set to 1 to start clear accumulated delta. If batch learning used then set this to 0 until the whole batch run through before update
+    int clear_delta;
 public:
     vector<vector<vector<vector<double>>>> kernel_weights;//4D [output_channel][input_channel][kernel_row][kernel_col]
 private:
@@ -61,11 +63,10 @@ public:
     void conv_update_weights(void);
     void conv_transpose_fwd(void);//Same algorithm as conv_backprop but go forward from output_tensor to input_tensor. Used for show patches or as forward conv autoencodes
     void conv_transpose_bkp(void);//Same algorithm as conv_forward but backprop from input_tensor to output_tensor. Used for training conv autoencodes
-
-    int activation_function_mode;
     //0 = sigmoid activation function
     //1 = Relu simple activation function
     //2 = Relu fix leaky activation function
+    int activation_function_mode;
     double fix_leaky_proportion;
     double learning_rate;
     double momentum;
@@ -74,14 +75,10 @@ public:
     //0 = No dropout
     //1 = Use dropout
     double dropout_proportion;
-
-
     void get_version(void);
     int ver_major;
     int ver_mid;
     int ver_minor;
-
-
     convolution();
     ~convolution();
 };

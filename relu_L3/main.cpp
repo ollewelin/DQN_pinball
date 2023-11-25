@@ -832,7 +832,7 @@ int main()
                     }
                 }
 
-                fc_nn_end_block.backpropagtion_and_update();
+                fc_nn_end_block.backpropagtion();
                 // backprop convolution layers
                 for (int oc = 0; oc < L3_out_ch; oc++)
                 {
@@ -849,6 +849,8 @@ int main()
                 conv_L2.conv_backprop();
                 conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
                 conv_L1.conv_backprop();
+
+                fc_nn_end_block.update_weights();
                 conv_L3.conv_update_weights();
                 conv_L2.conv_update_weights();
                 conv_L1.conv_update_weights();
