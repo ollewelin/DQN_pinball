@@ -832,6 +832,20 @@ int main()
                     }
                 }
 
+                if(batch_state_cnt == 0)
+                {
+                    fc_nn_end_block.accumulat_delta = 0;
+                    conv_L1.clear_delta = 1;
+                    conv_L2.clear_delta = 1;
+                    conv_L3.clear_delta = 1;
+                }
+                else
+                {
+                    fc_nn_end_block.accumulat_delta = 1;
+                    conv_L1.clear_delta = 0;
+                    conv_L2.clear_delta = 0;
+                    conv_L3.clear_delta = 0;
+                }
                 fc_nn_end_block.backpropagtion();
                 // backprop convolution layers
                 for (int oc = 0; oc < L3_out_ch; oc++)
@@ -850,10 +864,15 @@ int main()
                 conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
                 conv_L1.conv_backprop();
 
-                fc_nn_end_block.update_weights();
-                conv_L3.conv_update_weights();
-                conv_L2.conv_update_weights();
-                conv_L1.conv_update_weights();
+                if(batch_state_cnt == batch_size-1)
+                {
+                    fc_nn_end_block.accumulat_delta = 0;
+                    fc_nn_end_block.update_weights();
+                    conv_L3.conv_update_weights();
+                    conv_L2.conv_update_weights();
+                    conv_L1.conv_update_weights();
+                }
+
                 if (update_frz_cnt < update_frozen_after_samples)
                 {
                     update_frz_cnt++;
