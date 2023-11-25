@@ -215,12 +215,12 @@ int main()
     conv_L3.momentum = 0.09;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.25;
+    const double start_epsilon = 0.35;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.75f;
-    double alpha = 0.5;
+    double gamma = 0.9f;
+    double alpha = 0.7;
     const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
@@ -339,11 +339,6 @@ int main()
             batch_nr = batch_cnt;
             gameObj1.start_episode();
       //      cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
-            cout << "                                                                                                       " << endl;
-            std::cout << "\033[F";
-            cout << "Play batch_cnt = " << batch_cnt << endl;
-            // Move the cursor up one line (ANSI escape code)
-            std::cout << "\033[F";
 
             for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
             {
@@ -562,7 +557,7 @@ int main()
                 if(gameObj1.square == 1)
                 {
                     
-                    rewards = 8.0; // Win Rewards avoid square
+                    rewards = 9.0; // Win Rewards avoid square
              //       rewards /= abs_diff;
                 }
                 else
@@ -576,7 +571,7 @@ int main()
             {
                 if(gameObj1.square == 1)
                 {
-                    rewards = -20.0; // Lose Penalty
+                    rewards = -10.0; // Lose Penalty
                     //rewards /= abs_diff;
                 }
                 else
@@ -595,7 +590,15 @@ int main()
                 cout << "Game through a ball " << endl;
             }
             */
-             cout << " Rewards = " << rewards;
+            // cout << " Rewards = " << rewards;
+
+
+            cout << "                                                                                                       " << endl;
+            std::cout << "\033[F";
+            cout << "Play batch_cnt = " << batch_cnt << " Rewards = " << rewards << endl;
+            // Move the cursor up one line (ANSI escape code)
+            std::cout << "\033[F";
+
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
             // Calculate win probablilty
