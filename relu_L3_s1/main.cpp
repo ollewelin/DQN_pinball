@@ -548,7 +548,7 @@ int main()
             {
                 if(gameObj1.square == 1)
                 {
-                    rewards = 10.0; // Win Rewards avoid square
+                    rewards = 5.0; // Win Rewards avoid square
                 }
                 else
                 {
@@ -561,7 +561,7 @@ int main()
             {
                 if(gameObj1.square == 1)
                 {
-                    rewards = -10.0; // Lose Penalty
+                    rewards = -20.0; // Lose Penalty
                 }
                 else
                 {
