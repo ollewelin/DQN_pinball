@@ -205,21 +205,21 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
     const double learning_rate_end = 0.01;
-    fc_nn_end_block.momentum = 0.1;
+    fc_nn_end_block.momentum = 0.2;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.01;
-    conv_L1.momentum = 0.1;
+    conv_L1.momentum = 0.2;
     conv_L2.learning_rate = 0.01;
-    conv_L2.momentum = 0.1;
+    conv_L2.momentum = 0.2;
     conv_L3.learning_rate = 0.01;
-    conv_L3.momentum = 0.1;
+    conv_L3.momentum = 0.2;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.35;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.75f;
+    double gamma = 0.15f;
     double alpha = 0.9;
     const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
