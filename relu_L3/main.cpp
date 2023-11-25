@@ -206,22 +206,22 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
     const double learning_rate_end = 0.01;
-    fc_nn_end_block.momentum = 0.2;
+    fc_nn_end_block.momentum = 0.0;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.01;
-    conv_L1.momentum = 0.2;
-    conv_L1.use_dropouts = 1;
-    conv_L1.dropout_proportion = 0.1;
+    conv_L1.momentum = 0.0;
+    conv_L1.use_dropouts = 0;
+    //conv_L1.dropout_proportion = 0.1;
     conv_L2.learning_rate = 0.01;
-    conv_L2.momentum = 0.2;
-    conv_L2.use_dropouts = 1;
-    conv_L2.dropout_proportion = 0.1;
+    conv_L2.momentum = 0.0;
+    conv_L2.use_dropouts = 0;
+    //conv_L2.dropout_proportion = 0.1;
     conv_L3.learning_rate = 0.01;
-    conv_L3.momentum = 0.2;
-    conv_L3.use_dropouts = 1;
-    conv_L3.dropout_proportion = 0.1;
+    conv_L3.momentum = 0.0;
+    conv_L3.use_dropouts = 0;
+    //conv_L3.dropout_proportion = 0.1;
 
-    double init_random_weight_propotion = 1.5;
+    double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.4;
     const double stop_min_epsilon = 0.55;
@@ -264,7 +264,7 @@ int main()
     cv::Mat visual_conv_kernel_L3_Mat((conv_L3.kernel_weights[0][0].size() + grid_gap) * conv_L3.kernel_weights[0].size(), (conv_L3.kernel_weights[0][0][0].size() + grid_gap) * conv_L3.output_tensor.size(), CV_32F);
 
     Mat upsampl_conv_view_2;
-    const int batch_size = 100;
+    const int batch_size = 10;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
