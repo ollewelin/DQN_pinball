@@ -211,15 +211,15 @@ int main()
     conv_L1.learning_rate = 0.01;
     conv_L1.momentum = 0.2;
     conv_L1.use_dropouts = 1;
-    conv_L1.dropout_proportion = 0.5;
+    conv_L1.dropout_proportion = 0.1;
     conv_L2.learning_rate = 0.01;
     conv_L2.momentum = 0.2;
     conv_L2.use_dropouts = 1;
-    conv_L2.dropout_proportion = 0.5;
+    conv_L2.dropout_proportion = 0.1;
     conv_L3.learning_rate = 0.01;
     conv_L3.momentum = 0.2;
     conv_L3.use_dropouts = 1;
-    conv_L3.dropout_proportion = 0.5;
+    conv_L3.dropout_proportion = 0.1;
 
     double init_random_weight_propotion = 1.5;
     double init_random_weight_propotion_conv = 0.3;
