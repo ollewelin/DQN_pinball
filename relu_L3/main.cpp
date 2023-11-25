@@ -97,14 +97,15 @@ int main()
     fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
-    fc_nn_end_block.use_dropouts = 0;
-    fc_nn_end_block.dropout_proportion = 0.4;
+    fc_nn_end_block.use_dropouts = 1;
+    fc_nn_end_block.dropout_proportion = 0.75;
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
     fc_nn_frozen_target_net.force_last_activation_function_to_sigmoid = fc_nn_end_block.force_last_activation_function_to_sigmoid;
     fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
-    fc_nn_frozen_target_net.use_dropouts = 0;
+    fc_nn_frozen_target_net.use_dropouts = 1;
+    fc_nn_frozen_target_net.dropout_proportion = 0.25;
 
     conv_L1.get_version();
 
@@ -215,7 +216,7 @@ int main()
     conv_L3.momentum = 0.2;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.35;
+    const double start_epsilon = 0.4;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
@@ -256,7 +257,7 @@ int main()
     cv::Mat visual_conv_kernel_L3_Mat((conv_L3.kernel_weights[0][0].size() + grid_gap) * conv_L3.kernel_weights[0].size(), (conv_L3.kernel_weights[0][0][0].size() + grid_gap) * conv_L3.output_tensor.size(), CV_32F);
 
     Mat upsampl_conv_view_2;
-    const int batch_size = 500;
+    const int batch_size = 100;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
@@ -901,7 +902,7 @@ int main()
                     cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
                     waitKey(100);
                 }
-                cout << "replay batch_state_cnt = " << batch_state_cnt << endl;
+                cout << "replay batch_state_cnt = " << batch_state_cnt << " frame state countdown = " << frame_state << endl;
                 // Move the cursor up one line (ANSI escape code)
                 std::cout << "\033[F";
             }
