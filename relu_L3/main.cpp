@@ -205,17 +205,17 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
     const double learning_rate_end = 0.001;
-    fc_nn_end_block.momentum = 0.99;
+    fc_nn_end_block.momentum = 0.0;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.001;
-    conv_L1.momentum = 0.99;
+    conv_L1.momentum = 0.0;
     conv_L2.learning_rate = 0.001;
-    conv_L2.momentum = 0.99;
+    conv_L2.momentum = 0.0;
     conv_L3.learning_rate = 0.001;
-    conv_L3.momentum = 0.99;
-    double init_random_weight_propotion = 0.1;
-    double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.5;
+    conv_L3.momentum = 0.0;
+    double init_random_weight_propotion = 0.01;
+    double init_random_weight_propotion_conv = 0.01;
+    const double start_epsilon = 0.35;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
@@ -827,12 +827,26 @@ int main()
                     }
                     else
                     {
-                        fc_nn_end_block.target_layer[i] = target_off_level;
-                        //fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                        //   fc_nn_end_block.target_layer[i] = target_off_level;
+                        fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                     }
                 }
 
-                fc_nn_end_block.backpropagtion_and_update();
+                if(batch_state_cnt == 0 && frame_state == (single_game_state_size - 1))
+                {
+                    fc_nn_end_block.accumulat_delta = 0;
+                    conv_L1.clear_delta = 1;
+                    conv_L2.clear_delta = 1;
+                    conv_L3.clear_delta = 1;
+                }
+                else
+                {
+                    fc_nn_end_block.accumulat_delta = 1;
+                    conv_L1.clear_delta = 0;
+                    conv_L2.clear_delta = 0;
+                    conv_L3.clear_delta = 0;
+                }
+                fc_nn_end_block.backpropagtion();
                 // backprop convolution layers
                 for (int oc = 0; oc < L3_out_ch; oc++)
                 {
@@ -849,9 +863,16 @@ int main()
                 conv_L2.conv_backprop();
                 conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
                 conv_L1.conv_backprop();
-                conv_L3.conv_update_weights();
-                conv_L2.conv_update_weights();
-                conv_L1.conv_update_weights();
+/*
+                if(batch_state_cnt == batch_size-1)
+                {
+                    fc_nn_end_block.accumulat_delta = 0;
+                    fc_nn_end_block.update_weights();
+                    conv_L3.conv_update_weights();
+                    conv_L2.conv_update_weights();
+                    conv_L1.conv_update_weights();
+                }
+*/
                 if (update_frz_cnt < update_frozen_after_samples)
                 {
                     update_frz_cnt++;
@@ -866,7 +887,7 @@ int main()
                     fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
                 }
 
-                if (batch_nr == 0 && single_game_frame_state == single_game_state_size - 1)
+                if (batch_nr == batch_size-1 && single_game_frame_state == single_game_state_size - 1)
                 {
                     // Show upsampling
                     // Put in the output data from the convolution operation into the transpose upsampling operation
@@ -899,6 +920,12 @@ int main()
                 }
             }
         }
+        fc_nn_end_block.accumulat_delta = 0;
+        fc_nn_end_block.update_weights();
+        conv_L3.conv_update_weights();
+        conv_L2.conv_update_weights();
+        conv_L1.conv_update_weights();
+
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
 
