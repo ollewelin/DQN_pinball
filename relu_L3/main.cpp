@@ -153,8 +153,8 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 50;
-    int L3_kernel_size = 3;
+    int L3_tensor_out_channels = 100;
+    int L3_kernel_size = 5;
     int L3_stride = 2;
 
     cout << "conv_L3 setup:" << endl;
@@ -174,8 +174,8 @@ int main()
     int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size();
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 2;
-    const int end_hid_nodes_L1 = 500;
-    const int end_hid_nodes_L2 = 200;
+    const int end_hid_nodes_L1 = 200;
+    const int end_hid_nodes_L2 = 50;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -214,7 +214,7 @@ int main()
     conv_L3.learning_rate = 0.001;
     conv_L3.momentum = 0.5;
     double init_random_weight_propotion = 0.1;
-    double init_random_weight_propotion_conv = 0.1;
+    double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.35;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
