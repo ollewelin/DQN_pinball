@@ -97,8 +97,8 @@ int main()
     fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
-    fc_nn_end_block.use_dropouts = 0;
-    fc_nn_end_block.dropout_proportion = 0.4;
+    fc_nn_end_block.use_dropouts = 1;
+    fc_nn_end_block.dropout_proportion = 0.65;
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
@@ -205,16 +205,16 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
     const double learning_rate_end = 0.01;
-    fc_nn_end_block.momentum = 0.5;
+    fc_nn_end_block.momentum = 0.0;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.01;
-    conv_L1.momentum = 0.5;
+    conv_L1.momentum = 0.0;
     conv_L2.learning_rate = 0.01;
-    conv_L2.momentum = 0.5;
+    conv_L2.momentum = 0.0;
     conv_L3.learning_rate = 0.01;
-    conv_L3.momentum = 0.5;
-    double init_random_weight_propotion = 0.1;
-    double init_random_weight_propotion_conv = 0.5;
+    conv_L3.momentum = 0.0;
+    double init_random_weight_propotion = 0.3;
+    double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.35;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
@@ -256,7 +256,7 @@ int main()
     cv::Mat visual_conv_kernel_L3_Mat((conv_L3.kernel_weights[0][0].size() + grid_gap) * conv_L3.kernel_weights[0].size(), (conv_L3.kernel_weights[0][0][0].size() + grid_gap) * conv_L3.output_tensor.size(), CV_32F);
 
     Mat upsampl_conv_view_2;
-    const int batch_size = 50;
+    const int batch_size = 10;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
@@ -338,7 +338,13 @@ int main()
         {
             batch_nr = batch_cnt;
             gameObj1.start_episode();
-            cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
+      //      cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
+            cout << "                                                                                                       " << endl;
+            std::cout << "\033[F";
+            cout << "Play batch_cnt = " << batch_cnt << endl;
+            // Move the cursor up one line (ANSI escape code)
+            std::cout << "\033[F";
+
             for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
             {
                 gameObj1.frame = frame_g;
@@ -540,12 +546,12 @@ int main()
             double rewards = 0.0;
             if (gameObj1.win_this_game == 1)
             {
-                rewards = 1.0; // Win Rewards
+                rewards = 10.0; // Win Rewards
                 win_counter++;
             }
             else
             {
-                rewards = -1.0; // Lose Penalty
+                rewards = -10.0; // Lose Penalty
             }
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
@@ -819,7 +825,7 @@ int main()
                 {
                     // End game state
                     max_Q_target_value = target_off_level; // Zero Q value at end state Only rewards will be used
-                    cout << "Replay END State at batch_nr = " << batch_nr << endl;
+              //      cout << "Replay END State at batch_nr = " << batch_nr << endl;
                 }
 
                 int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
@@ -917,6 +923,12 @@ int main()
                     cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
                     waitKey(100);
                 }
+                cout << "                                                                                                       " << endl;
+                std::cout << "\033[F";
+                cout << "replay batch_state_cnt = " << batch_state_cnt << " frame state countdown = " << frame_state << endl;
+                // Move the cursor up one line (ANSI escape code)
+                std::cout << "\033[F";
+
             }
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
