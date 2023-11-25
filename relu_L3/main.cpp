@@ -540,7 +540,7 @@ int main()
             }
             else
             {
-                rewards = 0.0; // Lose Penalty
+                rewards = -1.0; // Lose Penalty
             }
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
