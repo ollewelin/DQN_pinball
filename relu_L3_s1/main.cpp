@@ -153,7 +153,7 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 50;
+    int L3_tensor_out_channels = 60;
     int L3_kernel_size = 5;
     int L3_stride = 2;
 
@@ -220,7 +220,7 @@ int main()
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.75f;
-    double alpha = 0.9;
+    double alpha = 0.5;
     const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
@@ -545,7 +545,7 @@ int main()
             }
             else
             {
-                rewards = 0.0; // Lose Penalty
+                rewards = -1.0; // Lose Penalty
             }
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
