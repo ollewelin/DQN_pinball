@@ -8,8 +8,8 @@ using namespace std;
 convolution::convolution()
 {
     version_major = 0;
-    version_mid = 4;
-    version_minor = 0;
+    version_mid = 3;
+    version_minor = 6;
     // 0.0.0 Not finnish at all
     // 0.2.0 Added void convolution::conv_transpose_fwd() function not yet tested
     // 0.0.3 remove conv_forward2(void) function 
@@ -17,11 +17,10 @@ convolution::convolution()
     // 0.3.4 Fix bug in conv_transpose_fwd() set the activation output to 1.0 instead of last forwar value
     // 0.3.5 Make kernel_weights public so it's possible for open CV to show kernels in main
     // 0.3.6 Fix bug in conv_transpose_fwd() when using Sigmoid function now add a pseudo_activation_output_value = 0.5 when sigmoid used. 1.0 when Relu used
-    // 0.4.0 Add int clear_delta, must be set to 1 to start clear accumulated delta. If batch learning used then set this to 0 until the whole batch run through before update
+
 
     setup_state = 0;
     kernel_size = 3;
-    clear_delta = 1;//Always 1 when SGD used. Set to 0 if want to accumulate delta value through a whole batch.
     stride = 1;
     dropout_proportion = 0.0;
     activation_function_mode = 0;
@@ -621,10 +620,7 @@ void convolution::conv_backprop()
 if(top_conv != 1)
 {
     //Clear i_tensor_delta first
-    if(clear_delta == 1)
-    {
-        clear_i_tens_delta();
-    }
+    clear_i_tens_delta();
 
     // Update delta for input tensor. Flipped 180 deg kernel_weight
     for (int out_ch_cnt = 0; out_ch_cnt < output_tensor_channels; out_ch_cnt++)

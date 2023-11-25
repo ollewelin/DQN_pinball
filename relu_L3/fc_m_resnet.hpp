@@ -70,8 +70,10 @@ public:
     //2....n = uniform in/out skip connection switch after this number of samples
      int shift_ununiform_skip_connection_after_samp_n;
     
-    //accumulat_delta must be set to 1 to start clear accumulated delta. If batch learning used then set this to 0 until the whole batch run through before update
-    int accumulat_delta;
+    //0 = SGD Stocastic Gradient Decent
+    //1 = Batch Gradient Decent, not yet implemented
+    int training_mode;
+    int batch_size; //Only used if trainging_mode 1
     
     //0 = No dropout
     //1 = Use dropout
@@ -89,7 +91,6 @@ public:
     vector<double> i_layer_delta;//Delta for all input nodes this should be backprop connect to previous multiple resenet block if there is any. Always used, block type 0,1,2
     vector<double> o_layer_delta;//Detla from m_resnet block after this block. Always used, block type 0,1,2
 
-
     //========== Functions ==================
    
     void set_nr_of_hidden_layers(int);//First you need to set this number of hidden layers
@@ -99,9 +100,7 @@ public:
     void save_weights(string);//save weights with file name argument 
     void forward_pass(void);
     void only_loss_calculation(void);
-    void backpropagtion(void);//
-    void update_weights(void);//
-
+    void backpropagtion_and_update(void);//If batchmode update only when batch end
     void print_weights(void);
 
     //================= Functions only for debugging/verify the backpropagation gradient functions ============

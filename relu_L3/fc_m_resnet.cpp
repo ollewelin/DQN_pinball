@@ -10,8 +10,8 @@ using namespace std;
 fc_m_resnet::fc_m_resnet(/* args */)
 {
     version_major = 0;
-    version_mid = 2;
-    version_minor = 0;
+    version_mid = 1;
+    version_minor = 2;
     // 0.0.4 fix softmax bugs
     // 0.0.5 fix bug when block type < 2 remove loss calclulation in backprop if not end block
     // 0.0.6 fix bug at  if (block_type < 2){} add else{ .... for end block } at  void fc_m_resnet::set_nr_of_hidden_nodes_on_layer_nr(int nodes)
@@ -21,49 +21,49 @@ fc_m_resnet::fc_m_resnet(/* args */)
     // 0.1.0 "shift_ununiform_skip_connection_after_samp_n" are introduced when ununifor skip connections is the case.
     // 0.1.1 loss_A and loss_B
     // 0.1.2 Add force_last_activation_function_to_sigmoid = 0;// 1 = Last activation layer will set to sigmoid regardless activation_function_mode set
-    // 0.2.0 Add int accumulat_delta, must be set to 0 at SGD delta. If batch learning set thsi to 0 fisrt batch nr. Then batch_nr>0 set this to 1 until the whole batch run through before update
-
-    accumulat_delta = 0;//Always 0 when SGD used. Set to 1 if want to accumulate delta value through a whole batch.
-
     shift_ununiform_skip_connection_after_samp_n = 0;
     shift_ununiform_skip_connection_sample_counter = 0;
     switch_skip_con_selector = 0;
 
     setup_state = 0;
     nr_of_hidden_layers = 0;
+    setup_inc_layer_cnt = 0;
     // 0 = start up state, nothing done yet
     // 1 = set_nr_of_hidden_layers() is set up
     // 2 = set_nr_of_hid_nodeson_layer() is done
     // 3 = init_weights or load weights is done
-    setup_inc_layer_cnt = 0;
+    block_type = 0; // 0..2
     // 0 = start block means no i_layer_delta i produced
     // 1 = middle block means both i_layer_delta is produced (backpropagate) and o_layer_delta is needed
     // 2 = end block. target_nodes is used but o_layer_delta not used only loss and i_layer_delta i calculated.
-    block_type = 0; // 0..2
+    use_softmax = 0; //
     // 0 = No softmax
     // 1 = Use softmax at end. Only possible to enable if block_type = 2 end block
-    use_softmax = 0; //
+    activation_function_mode = 0;
     // 0 = sigmoid activation function
     // 1 = Relu simple activation function
     // 2 = Relu fix leaky activation function
     // 3 = Relu random variable leaky activation function
-    activation_function_mode = 0;
+    force_last_activation_function_to_sigmoid = 0;
     //0 = All activation functions same
     //1 = Last activation layer will set to sigmoid regardless activation_function_mode above
-    force_last_activation_function_to_sigmoid = 0;
     fix_leaky_proportion = 0.05;
+    use_skip_connect_mode = 0;
     // 0 = turn OFF skip connections, ordinary fully connected nn block only
     // 1 = turn ON skip connectons
-    use_skip_connect_mode = 0;
-    // 0 = same input/output
-    // 1 = input > output
-    // 2 = output > input
     skip_conn_rest_part = 0;
     skip_conn_multiple_part = 0;
     skip_conn_in_out_relation = 0;
+    // 0 = same input/output
+    // 1 = input > output
+    // 2 = output > input
+    training_mode = 0;
+    // 0 = SGD Stocastic Gradient Decent
+    // 1 = Batch Gradient Decent, not yet implemented
+    use_dropouts = 0;
     // 0 = No dropout
     // 1 = Use dropout
-    use_dropouts = 0;
+    batch_size = 0; // Only used if trainging_mode 1
     loss_A = 0.0;
     loss_B = 0.0;
     learning_rate = 0.0;
@@ -751,7 +751,7 @@ void fc_m_resnet::only_loss_calculation(void)
         loss_B += 0.5 * (target_layer[i] - output_layer[i]) * (target_layer[i] - output_layer[i]); // Squared error * 0.5
     }
 }
-void fc_m_resnet::backpropagtion(void)
+void fc_m_resnet::backpropagtion_and_update(void)
 {
 
     int output_nodes = output_layer.size();
@@ -777,7 +777,7 @@ void fc_m_resnet::backpropagtion(void)
     //============ Calculated and Backpropagate output delta and neural network loss ============
     int nr_out_nodes = output_layer.size();
     int last_delta_layer_nr = internal_delta.size() - 1;
-    double local_internal_delta = 0.0;
+
     for (int i = 0; i < nr_out_nodes; i++)
     {
         if (block_type == 2)
@@ -786,30 +786,22 @@ void fc_m_resnet::backpropagtion(void)
             {
                 if(force_last_activation_function_to_sigmoid == 0)
                 {
-                    local_internal_delta = delta_activation_func((target_layer[i] - output_layer[i]), output_layer[i]);
+                    internal_delta[last_delta_layer_nr][i] = delta_activation_func((target_layer[i] - output_layer[i]), output_layer[i]);
                 }
                 else
                 {
                     //Forced last layer to sigmoid regardless common activation mode settings
-                    local_internal_delta = delta_only_sigmoid_func((target_layer[i] - output_layer[i]), output_layer[i]);
+                    internal_delta[last_delta_layer_nr][i] = delta_only_sigmoid_func((target_layer[i] - output_layer[i]), output_layer[i]);
                 }
             }
             else
             {
-                local_internal_delta = (target_layer[i] - output_layer[i]);
+                internal_delta[last_delta_layer_nr][i] = (target_layer[i] - output_layer[i]);
             }
         }
         else
         {
-            local_internal_delta = delta_activation_func(o_layer_delta[i], output_layer[i]);
-        }
-        if(accumulat_delta == 0)
-        {
-            internal_delta[last_delta_layer_nr][i] = local_internal_delta;
-        }
-        else
-        {
-            internal_delta[last_delta_layer_nr][i] += local_internal_delta;
+            internal_delta[last_delta_layer_nr][i] = delta_activation_func(o_layer_delta[i], output_layer[i]);
         }
     }
     //============================================================================================
@@ -826,16 +818,7 @@ void fc_m_resnet::backpropagtion(void)
             {
                 accumulated_backprop += all_weights[i + 1][src_n_cnt][dst_n_cnt] * internal_delta[i + 1][src_n_cnt];
             }
-            //internal_delta[i][dst_n_cnt] = delta_activation_func(accumulated_backprop, hidden_layer[i][dst_n_cnt]);
-            local_internal_delta = delta_activation_func(accumulated_backprop, hidden_layer[i][dst_n_cnt]);
-            if (accumulat_delta == 0)
-            {
-                internal_delta[i][dst_n_cnt] = local_internal_delta;
-            }
-            else
-            {
-                internal_delta[i][dst_n_cnt] += local_internal_delta;
-            }
+            internal_delta[i][dst_n_cnt] = delta_activation_func(accumulated_backprop, hidden_layer[i][dst_n_cnt]);
         }
     }
 
@@ -851,14 +834,7 @@ void fc_m_resnet::backpropagtion(void)
             {
                 accumulated_backprop += all_weights[0][src_n_cnt][dst_n_cnt] * internal_delta[0][src_n_cnt];
             }
-            if (accumulat_delta == 0)
-            {
-                i_layer_delta[dst_n_cnt] = accumulated_backprop;
-            }
-            else
-            {
-                i_layer_delta[dst_n_cnt] += accumulated_backprop;
-            }
+            i_layer_delta[dst_n_cnt] = accumulated_backprop;
         }
         if (use_skip_connect_mode == 1 && use_softmax == 0)
         {
@@ -915,13 +891,12 @@ void fc_m_resnet::backpropagtion(void)
     }
 
     //============ Backpropagate finish =================================
-}
-void fc_m_resnet::update_weights(void)
-{
+
     // ======== Update weights ========================
     int weight_size_1D = all_weights.size();
     for (int i = 0; i < weight_size_1D; i++)
     {
+
         int weight_size_2D = all_weights[i].size();
         if (i == 0)
         {
