@@ -60,8 +60,8 @@ int main()
     double now_win_probability = last_win_probability;
 
     // Set up a OpenCV mat
-    const int pixel_height = 50; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 50;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 38; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 38;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -214,7 +214,7 @@ int main()
     conv_L3.learning_rate = 0.001;
     conv_L3.momentum = 0.5;
     double init_random_weight_propotion = 0.1;
-    double init_random_weight_propotion_conv = 0.01;
+    double init_random_weight_propotion_conv = 0.1;
     const double start_epsilon = 0.35;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
