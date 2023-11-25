@@ -215,7 +215,7 @@ int main()
     conv_L3.momentum = 0.09;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.4;
+    const double start_epsilon = 0.25;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
@@ -512,6 +512,11 @@ int main()
                                 max_decision = (float)action_dice;
                                 decided_action = i;
                             }
+                            if (batch_cnt == 0)
+                            {
+               //                 cout << "Dice max_decision = " << max_decision << " i = " << i << endl;
+                            }
+
                         }
                     }
                     else
@@ -543,18 +548,28 @@ int main()
                     //**********************************************************************
                 }
             }
+            double abs_diff = abs(gameObj1.pad_ball_diff);
+            
+           // cout << "pad_ball_diff = " << abs_diff << endl;
             double rewards = 0.0;
+            if(abs_diff< 1.0)
+            {
+                abs_diff = 1.0;
+            }
+
             if (gameObj1.win_this_game == 1)
             {
                 if(gameObj1.square == 1)
                 {
-                    rewards = 5.0; // Win Rewards avoid square
+                    
+                    rewards = 8.0; // Win Rewards avoid square
+             //       rewards /= abs_diff;
                 }
                 else
                 {
                     rewards = 30.0; // Win Rewards catch ball
+             //       rewards /= abs_diff;
                 }
-                
                 win_counter++;
             }
             else
@@ -562,12 +577,15 @@ int main()
                 if(gameObj1.square == 1)
                 {
                     rewards = -20.0; // Lose Penalty
+                    //rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = -5.0; // Lose Penalty
+                    rewards = -5; // Lose Penalty
+                    //rewards *= abs_diff;
                 }
             }
+            /*
             if(gameObj1.square == 1)
             {
                 cout << "Game through a rectangle " << endl;
@@ -576,7 +594,8 @@ int main()
             {
                 cout << "Game through a ball " << endl;
             }
-             cout << "Rewards = " << rewards << endl;
+            */
+             cout << " Rewards = " << rewards;
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
             // Calculate win probablilty
