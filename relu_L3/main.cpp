@@ -887,7 +887,7 @@ int main()
                     fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
                 }
 
-                if (batch_nr == 0 && single_game_frame_state == single_game_state_size - 1)
+                if (batch_nr == batch_size-1 && single_game_frame_state == single_game_state_size - 1)
                 {
                     // Show upsampling
                     // Put in the output data from the convolution operation into the transpose upsampling operation
