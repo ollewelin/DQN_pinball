@@ -121,14 +121,14 @@ int main()
     conv_L1.set_stride(L1_stride);
     conv_L1.set_in_tensor(L1_tensor_in_size, L1_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L1.set_out_tensor(L1_tensor_out_channels);              // output channels
-    conv_L1.top_conv = 1;
+    conv_L1.top_conv = 0;
+
     // copy to a frozen copy network for target network
     conv_frozen_L1_target_net.set_kernel_size(L1_kernel_size);
     conv_frozen_L1_target_net.set_stride(L1_stride);
     conv_frozen_L1_target_net.set_in_tensor(L1_tensor_in_size, L1_input_channels);
     conv_frozen_L1_target_net.set_out_tensor(L1_tensor_out_channels);
     conv_frozen_L1_target_net.top_conv = conv_L1.top_conv;
-    //========= L1 convolution (vectors) all tensor size for convolution object is finnish =============
 
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
@@ -170,6 +170,26 @@ int main()
     conv_frozen_L3_target_net.set_out_tensor(L3_tensor_out_channels);
     conv_frozen_L3_target_net.top_conv = conv_L3.top_conv;
 
+    //========= L1,2,3 convolution (vectors) all tensor size for convolution object is finnish =============
+
+    //============ Make vectors for convoution learning several numbers of frames ============
+    vector<vector<vector<vector<double>>>> L1_strobe_frame_in_tens;//4D [frame_strobed][input_channel][row][col].     The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    vector<vector<vector<vector<double>>>> L1_strobe_frame_i_tens_delta;//4D [frame_strobed][input_channel][row][col].   The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    vector<vector<vector<vector<double>>>> L2_strobe_frame_in_tens;//4D [frame_strobed][input_channel][row][col].     The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    vector<vector<vector<vector<double>>>> L2_strobe_frame_i_tens_delta;//4D [frame_strobed][input_channel][row][col].   The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    vector<vector<vector<vector<double>>>> L3_strobe_frame_in_tens;//4D [frame_strobed][input_channel][row][col].     The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    vector<vector<vector<vector<double>>>> L3_strobe_frame_i_tens_delta;//4D [frame_strobed][input_channel][row][col].   The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    for(int i=0;i<nr_frames_strobed;i++)
+    {
+        L1_strobe_frame_in_tens.push_back(conv_L1.input_tensor);
+        L1_strobe_frame_i_tens_delta.push_back(conv_L1.i_tensor_delta);
+        L2_strobe_frame_in_tens.push_back(conv_L2.input_tensor);
+        L2_strobe_frame_i_tens_delta.push_back(conv_L2.i_tensor_delta);
+        L3_strobe_frame_in_tens.push_back(conv_L3.input_tensor);
+        L3_strobe_frame_i_tens_delta.push_back(conv_L3.i_tensor_delta);
+    }
+    //=============== End setup for convoution learning several numbers of frames ============
+
     // output channels
     int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size() * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
@@ -204,15 +224,15 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.01; // OFF action target
-    const double learning_rate_end = 0.01;
-    fc_nn_end_block.momentum = 0.09;
+    const double learning_rate_end = 0.001;
+    fc_nn_end_block.momentum = 0.05;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.001;
-    conv_L1.momentum = 0.09;
-    conv_L2.learning_rate = 0.001;
-    conv_L2.momentum = 0.09;
-    conv_L3.learning_rate = 0.001;
-    conv_L3.momentum = 0.09;
+    conv_L1.learning_rate = 0.0001;
+    conv_L1.momentum = 0.05;
+    conv_L2.learning_rate = 0.0001;
+    conv_L2.momentum = 0.05;
+    conv_L3.learning_rate = 0.0001;
+    conv_L3.momentum = 0.05;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.35;
@@ -557,12 +577,12 @@ int main()
                 if(gameObj1.square == 1)
                 {
                     
-                    rewards = 9.0; // Win Rewards avoid square
+                    rewards = 1.0; // Win Rewards avoid square
              //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 30.0; // Win Rewards catch ball
+                    rewards = 3.0; // Win Rewards catch ball
              //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -571,12 +591,12 @@ int main()
             {
                 if(gameObj1.square == 1)
                 {
-                    rewards = -10.0; // Lose Penalty
+                    rewards = -0.8; // Lose Penalty
                     //rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = -5; // Lose Penalty
+                    rewards = -1.0; // Lose Penalty
                     //rewards *= abs_diff;
                 }
             }
@@ -761,6 +781,11 @@ int main()
                         conv_L2.conv_forward1();
                         conv_L3.input_tensor = conv_L2.output_tensor;
                         conv_L3.conv_forward1();
+                        //==== Store for training conv all frame stromes =======
+                        L1_strobe_frame_in_tens[f] = conv_L1.input_tensor;
+                        L2_strobe_frame_in_tens[f] = conv_L2.input_tensor;
+                        L3_strobe_frame_in_tens[f] = conv_L3.input_tensor;
+                        //======================================================
                         for (int oc = 0; oc < L3_out_ch; oc++)
                         {
                             for (int yi = 0; yi < L3_out_one_side; yi++)
@@ -898,31 +923,40 @@ int main()
                 fc_nn_end_block.backpropagtion_and_update();
                 // backprop convolution layers
 
-
-                for (int oc = 0; oc < L3_out_ch; oc++)
+                for (int f = 0; f < nr_frames_strobed; f++)
                 {
-                    for (int yi = 0; yi < L3_out_one_side; yi++)
+                    for (int oc = 0; oc < L3_out_ch; oc++)
                     {
-                        for (int xi = 0; xi < L3_out_one_side; xi++)
+                        for (int yi = 0; yi < L3_out_one_side; yi++)
                         {
-                            double sum_up_conv_outp_expander = 0.0;
-                            for (int f = 0; f < nr_frames_strobed; f++)
+                            for (int xi = 0; xi < L3_out_one_side; xi++)
                             {
-                                sum_up_conv_outp_expander += fc_nn_end_block.i_layer_delta[f * oc * L3_out_one_side * L3_out_one_side + oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi];
+                                conv_L3.o_tensor_delta[oc][yi][xi] = fc_nn_end_block.i_layer_delta[f * oc * L3_out_one_side * L3_out_one_side + oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi];
                             }
-                            conv_L3.o_tensor_delta[oc][yi][xi] = sum_up_conv_outp_expander;
                         }
                     }
-                }
-                conv_L3.conv_backprop();
-                conv_L2.o_tensor_delta = conv_L3.i_tensor_delta;
-                conv_L2.conv_backprop();
-                conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
-                conv_L1.conv_backprop();
-                conv_L3.conv_update_weights();
-                conv_L2.conv_update_weights();
-                conv_L1.conv_update_weights();
+                    conv_L3.conv_backprop();
+                    conv_L2.o_tensor_delta = conv_L3.i_tensor_delta;
+                    conv_L2.conv_backprop();
+                    conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
+                    conv_L1.conv_backprop();
 
+                    L3_strobe_frame_i_tens_delta[f] = conv_L3.i_tensor_delta;
+                    L2_strobe_frame_i_tens_delta[f] = conv_L2.i_tensor_delta;
+                    L1_strobe_frame_i_tens_delta[f] = conv_L1.i_tensor_delta;
+                }
+                for (int f = 0; f < nr_frames_strobed; f++)
+                {
+                    conv_L3.i_tensor_delta = L3_strobe_frame_i_tens_delta[f];
+                    conv_L2.i_tensor_delta = L2_strobe_frame_i_tens_delta[f];
+                    conv_L1.i_tensor_delta = L1_strobe_frame_i_tens_delta[f];
+                    conv_L3.input_tensor = L3_strobe_frame_in_tens[f];
+                    conv_L2.input_tensor = L2_strobe_frame_in_tens[f];
+                    conv_L1.input_tensor = L1_strobe_frame_in_tens[f];
+                    conv_L3.conv_update_weights();
+                    conv_L2.conv_update_weights();
+                    conv_L1.conv_update_weights();
+                }
                     
                 if (update_frz_cnt < update_frozen_after_samples)
                 {
