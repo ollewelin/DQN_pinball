@@ -226,7 +226,7 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.5; // OFF action target
-    const double learning_rate_end = 0.1;
+    const double learning_rate_end = 0.01;
     fc_nn_end_block.momentum = 0.8;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.0001;
@@ -241,7 +241,7 @@ int main()
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.9f;
+    double gamma = 0.85f;
     double alpha = 0.7;
     const int batch_size = 80;
     const int update_frozen_after_samples = 10 * batch_size;
@@ -580,12 +580,12 @@ int main()
                 if(gameObj1.square == 1)
                 {
                     
-                    rewards = 1.0; // Win Rewards avoid square
+                    rewards = 0.75; // Win Rewards avoid square
              //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 5.0; // Win Rewards catch ball
+                    rewards = 0.95; // Win Rewards catch ball
              //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -594,12 +594,12 @@ int main()
             {
                 if(gameObj1.square == 1)
                 {
-                    rewards = -0.8; // Lose Penalty
+                    rewards = -0.35; // Lose Penalty
                     //rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = -1.0; // Lose Penalty
+                    rewards = -0.95; // Lose Penalty
                     //rewards *= abs_diff;
                 }
             }
