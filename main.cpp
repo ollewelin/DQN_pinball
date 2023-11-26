@@ -96,17 +96,20 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 0;                  // ReLU for all fully connected activation functions except output last layer
-    fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
+    fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.force_last_activation_function_to_sigmoid = 1; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
     fc_nn_end_block.dropout_proportion = 0.65;
+    fc_nn_end_block.clip_deriv = 1;
+
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
     fc_nn_frozen_target_net.force_last_activation_function_to_sigmoid = fc_nn_end_block.force_last_activation_function_to_sigmoid;
     fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
     fc_nn_frozen_target_net.use_dropouts = 0;
+    fc_nn_frozen_target_net.clip_deriv = 1;
 
     conv_L1.get_version();
 
@@ -124,6 +127,7 @@ int main()
     conv_L1.set_in_tensor(L1_tensor_in_size, L1_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L1.set_out_tensor(L1_tensor_out_channels);              // output channels
     conv_L1.top_conv = 0;
+    conv_L1.clip_deriv = 1;
 
     // copy to a frozen copy network for target network
     conv_frozen_L1_target_net.set_kernel_size(L1_kernel_size);
@@ -131,6 +135,7 @@ int main()
     conv_frozen_L1_target_net.set_in_tensor(L1_tensor_in_size, L1_input_channels);
     conv_frozen_L1_target_net.set_out_tensor(L1_tensor_out_channels);
     conv_frozen_L1_target_net.top_conv = conv_L1.top_conv;
+    conv_frozen_L1_target_net.clip_deriv = conv_L1.clip_deriv;
 
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
@@ -145,12 +150,14 @@ int main()
     conv_L2.set_in_tensor(L2_tensor_in_size, L2_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L2.set_out_tensor(L2_tensor_out_channels);
     conv_L2.top_conv = 0;
+    conv_L2.clip_deriv = 1;
     // copy to a frozen copy network for target network
     conv_frozen_L2_target_net.set_kernel_size(L2_kernel_size);
     conv_frozen_L2_target_net.set_stride(L2_stride);
     conv_frozen_L2_target_net.set_in_tensor(L2_tensor_in_size, L2_input_channels);
     conv_frozen_L2_target_net.set_out_tensor(L2_tensor_out_channels);
     conv_frozen_L2_target_net.top_conv = conv_L2.top_conv;
+    conv_frozen_L2_target_net.clip_deriv = conv_L2.clip_deriv;
 
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
@@ -165,13 +172,14 @@ int main()
     conv_L3.set_in_tensor(L3_tensor_in_size, L3_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L3.set_out_tensor(L3_tensor_out_channels);
     conv_L3.top_conv = 0;
+    conv_L3.clip_deriv = 1;
     // copy to a frozen copy network for target network
     conv_frozen_L3_target_net.set_kernel_size(L3_kernel_size);
     conv_frozen_L3_target_net.set_stride(L3_stride);
     conv_frozen_L3_target_net.set_in_tensor(L3_tensor_in_size, L3_input_channels);
     conv_frozen_L3_target_net.set_out_tensor(L3_tensor_out_channels);
     conv_frozen_L3_target_net.top_conv = conv_L3.top_conv;
-
+    conv_frozen_L3_target_net.clip_deriv = conv_L3.clip_deriv;
     //========= L1,2,3 convolution (vectors) all tensor size for convolution object is finnish =============
 
     //============ Make vectors for convoution learning several numbers of frames ============
@@ -197,8 +205,8 @@ int main()
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 3;
     const int end_hid_nodes_L1 = 200;
-    const int end_hid_nodes_L2 = 200;
-    const int end_hid_nodes_L3 = 200;
+    const int end_hid_nodes_L2 = 100;
+    const int end_hid_nodes_L3 = 100;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -229,14 +237,14 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.5; // OFF action target
     const double learning_rate_end = 0.01;
-    fc_nn_end_block.momentum = 0.8;
+    fc_nn_end_block.momentum = 0.1;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.0001;
-    conv_L1.momentum = 0.8;
-    conv_L2.learning_rate = 0.0001;
-    conv_L2.momentum = 0.8;
-    conv_L3.learning_rate = 0.0001;
-    conv_L3.momentum = 0.8;
+    conv_L1.learning_rate = 0.001;
+    conv_L1.momentum = 0.1;
+    conv_L2.learning_rate = 0.001;
+    conv_L2.momentum = 0.1;
+    conv_L3.learning_rate = 0.001;
+    conv_L3.momentum = 0.1;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.4;
