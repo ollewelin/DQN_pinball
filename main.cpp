@@ -75,7 +75,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 5;
+    const int save_after_nr = 1;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
     string L1_kernel_k_weight_filename;
@@ -226,15 +226,15 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.5; // OFF action target
-    const double learning_rate_end = 0.01;
+    const double learning_rate_end = 0.1;
     fc_nn_end_block.momentum = 0.8;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.001;
-    conv_L1.momentum = 0.05;
-    conv_L2.learning_rate = 0.001;
-    conv_L2.momentum = 0.05;
-    conv_L3.learning_rate = 0.001;
-    conv_L3.momentum = 0.05;
+    conv_L1.learning_rate = 0.0001;
+    conv_L1.momentum = 0.8;
+    conv_L2.learning_rate = 0.0001;
+    conv_L2.momentum = 0.8;
+    conv_L3.learning_rate = 0.0001;
+    conv_L3.momentum = 0.8;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.5;
@@ -243,7 +243,8 @@ int main()
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.9f;
     double alpha = 0.7;
-    const int update_frozen_after_samples = 100;
+    const int batch_size = 80;
+    const int update_frozen_after_samples = 10 * batch_size;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
@@ -278,7 +279,7 @@ int main()
     cv::Mat visual_conv_kernel_L3_Mat((conv_L3.kernel_weights[0][0].size() + grid_gap) * conv_L3.kernel_weights[0].size(), (conv_L3.kernel_weights[0][0][0].size() + grid_gap) * conv_L3.output_tensor.size(), CV_32F);
 
     Mat upsampl_conv_view_2;
-    const int batch_size = 10;
+    
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
@@ -584,7 +585,7 @@ int main()
                 }
                 else
                 {
-                    rewards = 3.0; // Win Rewards catch ball
+                    rewards = 5.0; // Win Rewards catch ball
              //       rewards /= abs_diff;
                 }
                 win_counter++;
