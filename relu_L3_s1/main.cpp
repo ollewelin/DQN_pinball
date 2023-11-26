@@ -21,6 +21,8 @@ using namespace std;
 #define MOVE_UP 1
 #define MOVE_STOP 2
 
+#define Q_ALGORITHM_MODE_A
+
 vector<int> fisher_yates_shuffle(vector<int> table);
 
 int main()
@@ -75,7 +77,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 5;
+    const int save_after_nr = 1;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
     string L1_kernel_k_weight_filename;
@@ -94,17 +96,20 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.activation_function_mode = 0;                  // ReLU for all fully connected activation functions except output last layer
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
     fc_nn_end_block.dropout_proportion = 0.65;
+    fc_nn_end_block.clip_deriv = 1;
+
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
     fc_nn_frozen_target_net.force_last_activation_function_to_sigmoid = fc_nn_end_block.force_last_activation_function_to_sigmoid;
     fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
     fc_nn_frozen_target_net.use_dropouts = 0;
+    fc_nn_frozen_target_net.clip_deriv = 1;
 
     conv_L1.get_version();
 
@@ -122,6 +127,7 @@ int main()
     conv_L1.set_in_tensor(L1_tensor_in_size, L1_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L1.set_out_tensor(L1_tensor_out_channels);              // output channels
     conv_L1.top_conv = 0;
+    conv_L1.clip_deriv = 1;
 
     // copy to a frozen copy network for target network
     conv_frozen_L1_target_net.set_kernel_size(L1_kernel_size);
@@ -129,6 +135,7 @@ int main()
     conv_frozen_L1_target_net.set_in_tensor(L1_tensor_in_size, L1_input_channels);
     conv_frozen_L1_target_net.set_out_tensor(L1_tensor_out_channels);
     conv_frozen_L1_target_net.top_conv = conv_L1.top_conv;
+    conv_frozen_L1_target_net.clip_deriv = conv_L1.clip_deriv;
 
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
@@ -143,12 +150,14 @@ int main()
     conv_L2.set_in_tensor(L2_tensor_in_size, L2_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L2.set_out_tensor(L2_tensor_out_channels);
     conv_L2.top_conv = 0;
+    conv_L2.clip_deriv = 1;
     // copy to a frozen copy network for target network
     conv_frozen_L2_target_net.set_kernel_size(L2_kernel_size);
     conv_frozen_L2_target_net.set_stride(L2_stride);
     conv_frozen_L2_target_net.set_in_tensor(L2_tensor_in_size, L2_input_channels);
     conv_frozen_L2_target_net.set_out_tensor(L2_tensor_out_channels);
     conv_frozen_L2_target_net.top_conv = conv_L2.top_conv;
+    conv_frozen_L2_target_net.clip_deriv = conv_L2.clip_deriv;
 
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
@@ -163,13 +172,14 @@ int main()
     conv_L3.set_in_tensor(L3_tensor_in_size, L3_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L3.set_out_tensor(L3_tensor_out_channels);
     conv_L3.top_conv = 0;
+    conv_L3.clip_deriv = 1;
     // copy to a frozen copy network for target network
     conv_frozen_L3_target_net.set_kernel_size(L3_kernel_size);
     conv_frozen_L3_target_net.set_stride(L3_stride);
     conv_frozen_L3_target_net.set_in_tensor(L3_tensor_in_size, L3_input_channels);
     conv_frozen_L3_target_net.set_out_tensor(L3_tensor_out_channels);
     conv_frozen_L3_target_net.top_conv = conv_L3.top_conv;
-
+    conv_frozen_L3_target_net.clip_deriv = conv_L3.clip_deriv;
     //========= L1,2,3 convolution (vectors) all tensor size for convolution object is finnish =============
 
     //============ Make vectors for convoution learning several numbers of frames ============
@@ -193,9 +203,10 @@ int main()
     // output channels
     int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size() * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
-    const int end_hid_layers = 2;
+    const int end_hid_layers = 3;
     const int end_hid_nodes_L1 = 200;
     const int end_hid_nodes_L2 = 200;
+    const int end_hid_nodes_L3 = 200;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -215,32 +226,35 @@ int main()
     fc_nn_end_block.set_nr_of_hidden_layers(end_hid_layers);
     fc_nn_end_block.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L1);
     fc_nn_end_block.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L2);
+    fc_nn_end_block.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L3);
     fc_nn_frozen_target_net.set_nr_of_hidden_layers(end_hid_layers);
     fc_nn_frozen_target_net.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L1);
     fc_nn_frozen_target_net.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L2);
-
+    fc_nn_frozen_target_net.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L3);
     //  Note that set_nr_of_hidden_nodes_on_layer_nr() cal must be exactly same number as the set_nr_of_hidden_layers(end_hid_layers)
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.01; // OFF action target
-    const double learning_rate_end = 0.001;
-    fc_nn_end_block.momentum = 0.05;
+    double target_off_level = 0.5; // OFF action target
+    const double learning_rate_end = 0.01;
+    fc_nn_end_block.momentum = 0.8;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = 0.0001;
-    conv_L1.momentum = 0.05;
+    conv_L1.momentum = 0.8;
     conv_L2.learning_rate = 0.0001;
-    conv_L2.momentum = 0.05;
+    conv_L2.momentum = 0.8;
     conv_L3.learning_rate = 0.0001;
-    conv_L3.momentum = 0.05;
+    conv_L3.momentum = 0.8;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.35;
+    const double start_epsilon = 0.4;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.9f;
+    double gamma = 0.85f;
     double alpha = 0.7;
+    const int batch_size = 80;
+  //  const int update_frozen_after_samples = 10 * batch_size;
     const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
@@ -276,7 +290,7 @@ int main()
     cv::Mat visual_conv_kernel_L3_Mat((conv_L3.kernel_weights[0][0].size() + grid_gap) * conv_L3.kernel_weights[0].size(), (conv_L3.kernel_weights[0][0][0].size() + grid_gap) * conv_L3.output_tensor.size(), CV_32F);
 
     Mat upsampl_conv_view_2;
-    const int batch_size = 10;
+    
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
@@ -577,12 +591,12 @@ int main()
                 if(gameObj1.square == 1)
                 {
                     
-                    rewards = 1.0; // Win Rewards avoid square
+                    rewards = 0.75; // Win Rewards avoid square
              //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 3.0; // Win Rewards catch ball
+                    rewards = 0.95; // Win Rewards catch ball
              //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -591,12 +605,12 @@ int main()
             {
                 if(gameObj1.square == 1)
                 {
-                    rewards = -0.8; // Lose Penalty
+                    rewards = -0.35; // Lose Penalty
                     //rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = -1.0; // Lose Penalty
+                    rewards = -0.95; // Lose Penalty
                     //rewards *= abs_diff;
                 }
             }
@@ -911,7 +925,13 @@ int main()
                 {
                     if (i == replay_decided_action)
                     {
+#ifdef Q_ALGORITHM_MODE_A
+                        // target_value = rewards_here + gamma * (max_Q_target_value - );
+                        fc_nn_end_block.target_layer[i] = rewards_here + gamma * max_Q_target_value;
+#else
+                        // Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
                         fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_here + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
+#endif
                     }
                     else
                     {

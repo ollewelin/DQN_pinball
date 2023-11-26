@@ -11,7 +11,7 @@ fc_m_resnet::fc_m_resnet(/* args */)
 {
     version_major = 0;
     version_mid = 1;
-    version_minor = 2;
+    version_minor = 3;
     // 0.0.4 fix softmax bugs
     // 0.0.5 fix bug when block type < 2 remove loss calclulation in backprop if not end block
     // 0.0.6 fix bug at  if (block_type < 2){} add else{ .... for end block } at  void fc_m_resnet::set_nr_of_hidden_nodes_on_layer_nr(int nodes)
@@ -21,10 +21,11 @@ fc_m_resnet::fc_m_resnet(/* args */)
     // 0.1.0 "shift_ununiform_skip_connection_after_samp_n" are introduced when ununifor skip connections is the case.
     // 0.1.1 loss_A and loss_B
     // 0.1.2 Add force_last_activation_function_to_sigmoid = 0;// 1 = Last activation layer will set to sigmoid regardless activation_function_mode set
+    // 0.1.3 Add clipping derivative mode +/- 1.0
     shift_ununiform_skip_connection_after_samp_n = 0;
     shift_ununiform_skip_connection_sample_counter = 0;
     switch_skip_con_selector = 0;
-
+    clip_deriv = 0;
     setup_state = 0;
     nr_of_hidden_layers = 0;
     setup_inc_layer_cnt = 0;
@@ -534,6 +535,20 @@ double fc_m_resnet::delta_only_sigmoid_func(double delta_outside_function, doubl
     double delta_inside_func = 0.0;
     // 0 = sigmoid activation function
     delta_inside_func = delta_outside_function * value_from_node_outputs * (1.0 - value_from_node_outputs); // Sigmoid function and put it into
+    if(clip_deriv==1)
+    {
+        if(delta_inside_func > 1.0)
+        {
+            delta_inside_func = 1.0;
+        }
+        else
+        {
+            if (delta_inside_func < -1.0)
+            {
+                delta_inside_func = -1.0;
+            }
+        }
+    }
     return delta_inside_func;
 }
 
@@ -576,7 +591,20 @@ double fc_m_resnet::delta_activation_func(double delta_outside_function, double 
     {
         delta_inside_func = 0.0; // Dropout may have ocure
     }
-
+    if(clip_deriv==1)
+    {
+        if(delta_inside_func > 1.0)
+        {
+            delta_inside_func = 1.0;
+        }
+        else
+        {
+            if (delta_inside_func < -1.0)
+            {
+                delta_inside_func = -1.0;
+            }
+        }
+    }
     return delta_inside_func;
 }
 void fc_m_resnet::forward_pass(void)
