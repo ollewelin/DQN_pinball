@@ -98,7 +98,7 @@ int main()
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
-    fc_nn_end_block.dropout_proportion = 0.25;
+    fc_nn_end_block.dropout_proportion = 0.65;
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
@@ -237,7 +237,7 @@ int main()
     conv_L3.momentum = 0.8;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.5;
+    const double start_epsilon = 0.4;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
