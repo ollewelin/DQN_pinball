@@ -77,7 +77,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 1;
+    const int save_after_nr = 5;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
     string L1_kernel_k_weight_filename;
@@ -239,11 +239,11 @@ int main()
     const double learning_rate_end = 0.01;
     fc_nn_end_block.momentum = 0.8;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.0001;
+    conv_L1.learning_rate = 0.01;
     conv_L1.momentum = 0.8;
-    conv_L2.learning_rate = 0.0001;
+    conv_L2.learning_rate = 0.01;
     conv_L2.momentum = 0.8;
-    conv_L3.learning_rate = 0.0001;
+    conv_L3.learning_rate = 0.01;
     conv_L3.momentum = 0.8;
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
@@ -253,7 +253,7 @@ int main()
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.85f;
     double alpha = 0.7;
-    const int batch_size = 80;
+    const int batch_size = 10;
   //  const int update_frozen_after_samples = 10 * batch_size;
     const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
