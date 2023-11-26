@@ -42,6 +42,11 @@ public:
     fc_m_resnet(/* args */);
     ~fc_m_resnet();
     
+    //Clipping diratives mode
+    //0 = Normal mode
+    //1 = clipping irivatives +/-1.0
+    int clip_deriv;
+
     //0 = start block 
     //1 = middle block means both i_layer_delta is produced (backpropagate) and o_layer_delta is needed
     //2 = end block. target_nodes is used but o_layer_delta not used only loss and i_layer_delta i calculated. 

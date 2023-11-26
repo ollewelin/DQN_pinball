@@ -75,6 +75,11 @@ public:
     //1 = Use dropout
     double dropout_proportion;
 
+    //Clipping diratives mode
+    //0 = Normal mode
+    //1 = clipping irivatives +/-1.0
+    int clip_deriv;
+
 
     void get_version(void);
     int ver_major;

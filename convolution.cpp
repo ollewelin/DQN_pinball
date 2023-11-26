@@ -9,7 +9,7 @@ convolution::convolution()
 {
     version_major = 0;
     version_mid = 3;
-    version_minor = 6;
+    version_minor = 7;
     // 0.0.0 Not finnish at all
     // 0.2.0 Added void convolution::conv_transpose_fwd() function not yet tested
     // 0.0.3 remove conv_forward2(void) function 
@@ -17,8 +17,9 @@ convolution::convolution()
     // 0.3.4 Fix bug in conv_transpose_fwd() set the activation output to 1.0 instead of last forwar value
     // 0.3.5 Make kernel_weights public so it's possible for open CV to show kernels in main
     // 0.3.6 Fix bug in conv_transpose_fwd() when using Sigmoid function now add a pseudo_activation_output_value = 0.5 when sigmoid used. 1.0 when Relu used
-
-
+    // 0.3.7 Add clipping derivative mode +/- 1.0
+    
+    clip_deriv = 0;
     setup_state = 0;
     kernel_size = 3;
     stride = 1;
@@ -493,6 +494,20 @@ double convolution::delta_activation_func(double delta_outside_function, double 
     if (value_from_node_outputs == 0.0)
     {
         delta_inside_func = 0.0; // Dropout may have ocure
+    }
+    if(clip_deriv==1)
+    {
+        if(delta_inside_func > 1.0)
+        {
+            delta_inside_func = 1.0;
+        }
+        else
+        {
+            if (delta_inside_func < -1.0)
+            {
+                delta_inside_func = -1.0;
+            }
+        }
     }
     return delta_inside_func;
 }
