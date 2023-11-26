@@ -21,6 +21,8 @@ using namespace std;
 #define MOVE_UP 1
 #define MOVE_STOP 2
 
+#define Q_ALGORITHM_MODE_A
+
 vector<int> fisher_yates_shuffle(vector<int> table);
 
 int main()
@@ -244,7 +246,8 @@ int main()
     double gamma = 0.85f;
     double alpha = 0.7;
     const int batch_size = 80;
-    const int update_frozen_after_samples = 10 * batch_size;
+  //  const int update_frozen_after_samples = 10 * batch_size;
+    const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
@@ -914,7 +917,13 @@ int main()
                 {
                     if (i == replay_decided_action)
                     {
+#ifdef Q_ALGORITHM_MODE_A
+                        // target_value = rewards_here + gamma * (max_Q_target_value - );
+                        fc_nn_end_block.target_layer[i] = rewards_here + gamma * max_Q_target_value;
+#else
+                        // Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
                         fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_here + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
+#endif
                     }
                     else
                     {
