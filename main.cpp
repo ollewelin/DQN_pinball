@@ -94,7 +94,7 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.activation_function_mode = 0;                  // ReLU for all fully connected activation functions except output last layer
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
@@ -104,37 +104,36 @@ int main()
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
     fc_nn_frozen_target_net.force_last_activation_function_to_sigmoid = fc_nn_end_block.force_last_activation_function_to_sigmoid;
     fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
-    fc_nn_frozen_target_net.use_dropouts = 1;
-    fc_nn_frozen_target_net.dropout_proportion = 0.25;
+    fc_nn_frozen_target_net.use_dropouts = 0;
 
     conv_L1.get_version();
 
     //==== Set up convolution layers ===========
     cout << "conv_L1 setup:" << endl;
-    const int nr_color_channels = 1;                                     //=== 1 channel gray scale ====
-    const int nr_frames_strobed = 6;                                     // 4 Images in serie to make neural network to see movments
-    const int L1_input_channels = nr_color_channels * nr_frames_strobed; // color channels * Images in serie
+    const int nr_color_channels = 1;                 //=== 1 channel gray scale ====
+    const int nr_frames_strobed = 6;                 // 4 Images in serie to make neural network to see movments
+    const int L1_input_channels = nr_color_channels; // color channels
     const int L1_tensor_in_size = pixel_width * pixel_height;
-    const int L1_tensor_out_channels = 20;
+    const int L1_tensor_out_channels = 25;
     const int L1_kernel_size = 5;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
     conv_L1.set_stride(L1_stride);
     conv_L1.set_in_tensor(L1_tensor_in_size, L1_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L1.set_out_tensor(L1_tensor_out_channels);              // output channels
-    conv_L1.top_conv = 1;
+    conv_L1.top_conv = 0;
+
     // copy to a frozen copy network for target network
     conv_frozen_L1_target_net.set_kernel_size(L1_kernel_size);
     conv_frozen_L1_target_net.set_stride(L1_stride);
     conv_frozen_L1_target_net.set_in_tensor(L1_tensor_in_size, L1_input_channels);
     conv_frozen_L1_target_net.set_out_tensor(L1_tensor_out_channels);
     conv_frozen_L1_target_net.top_conv = conv_L1.top_conv;
-    //========= L1 convolution (vectors) all tensor size for convolution object is finnish =============
 
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 25;
+    int L2_tensor_out_channels = 35;
     int L2_kernel_size = 5;
     int L2_stride = 2;
 
@@ -154,7 +153,7 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 25;
+    int L3_tensor_out_channels = 60;
     int L3_kernel_size = 5;
     int L3_stride = 2;
 
@@ -171,12 +170,33 @@ int main()
     conv_frozen_L3_target_net.set_out_tensor(L3_tensor_out_channels);
     conv_frozen_L3_target_net.top_conv = conv_L3.top_conv;
 
+    //========= L1,2,3 convolution (vectors) all tensor size for convolution object is finnish =============
+
+    //============ Make vectors for convoution learning several numbers of frames ============
+    vector<vector<vector<vector<double>>>> L1_strobe_frame_in_tens;//4D [frame_strobed][input_channel][row][col].     The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    vector<vector<vector<vector<double>>>> L1_strobe_frame_i_tens_delta;//4D [frame_strobed][input_channel][row][col].   The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    vector<vector<vector<vector<double>>>> L2_strobe_frame_in_tens;//4D [frame_strobed][input_channel][row][col].     The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    vector<vector<vector<vector<double>>>> L2_strobe_frame_i_tens_delta;//4D [frame_strobed][input_channel][row][col].   The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    vector<vector<vector<vector<double>>>> L3_strobe_frame_in_tens;//4D [frame_strobed][input_channel][row][col].     The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    vector<vector<vector<vector<double>>>> L3_strobe_frame_i_tens_delta;//4D [frame_strobed][input_channel][row][col].   The size of this vectors will setup inside set_in_tensor(int, int) function when called.
+    for(int i=0;i<nr_frames_strobed;i++)
+    {
+        L1_strobe_frame_in_tens.push_back(conv_L1.input_tensor);
+        L1_strobe_frame_i_tens_delta.push_back(conv_L1.i_tensor_delta);
+        L2_strobe_frame_in_tens.push_back(conv_L2.input_tensor);
+        L2_strobe_frame_i_tens_delta.push_back(conv_L2.i_tensor_delta);
+        L3_strobe_frame_in_tens.push_back(conv_L3.input_tensor);
+        L3_strobe_frame_i_tens_delta.push_back(conv_L3.i_tensor_delta);
+    }
+    //=============== End setup for convoution learning several numbers of frames ============
+
     // output channels
-    int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size();
+    int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size() * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
-    const int end_hid_layers = 2;
+    const int end_hid_layers = 3;
     const int end_hid_nodes_L1 = 200;
     const int end_hid_nodes_L2 = 200;
+    const int end_hid_nodes_L3 = 200;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -196,40 +216,34 @@ int main()
     fc_nn_end_block.set_nr_of_hidden_layers(end_hid_layers);
     fc_nn_end_block.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L1);
     fc_nn_end_block.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L2);
+    fc_nn_end_block.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L3);
     fc_nn_frozen_target_net.set_nr_of_hidden_layers(end_hid_layers);
     fc_nn_frozen_target_net.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L1);
     fc_nn_frozen_target_net.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L2);
-
+    fc_nn_frozen_target_net.set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_L3);
     //  Note that set_nr_of_hidden_nodes_on_layer_nr() cal must be exactly same number as the set_nr_of_hidden_layers(end_hid_layers)
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.01; // OFF action target
+    double target_off_level = 0.5; // OFF action target
     const double learning_rate_end = 0.01;
-    fc_nn_end_block.momentum = 0.2;
+    fc_nn_end_block.momentum = 0.8;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.01;
-    conv_L1.momentum = 0.2;
-    conv_L1.use_dropouts = 1;
-    conv_L1.dropout_proportion = 0.5;
-    conv_L2.learning_rate = 0.01;
-    conv_L2.momentum = 0.2;
-    conv_L2.use_dropouts = 1;
-    conv_L2.dropout_proportion = 0.5;
-    conv_L3.learning_rate = 0.01;
-    conv_L3.momentum = 0.2;
-    conv_L3.use_dropouts = 1;
-    conv_L3.dropout_proportion = 0.5;
-
-    double init_random_weight_propotion = 0.1;
+    conv_L1.learning_rate = 0.0001;
+    conv_L1.momentum = 0.05;
+    conv_L2.learning_rate = 0.0001;
+    conv_L2.momentum = 0.05;
+    conv_L3.learning_rate = 0.0001;
+    conv_L3.momentum = 0.05;
+    double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.4;
+    const double start_epsilon = 0.35;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.5f;
-    double alpha = 0.9;
-    const int update_frozen_after_samples = 400;
+    double gamma = 0.9f;
+    double alpha = 0.7;
+    const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
@@ -238,7 +252,7 @@ int main()
     conv_L2.activation_function_mode = 2;
     conv_L3.activation_function_mode = 2;
     double visual_offset_conv = 0.5;
-    if(conv_L3.activation_function_mode == 0)
+    if (conv_L3.activation_function_mode == 0)
     {
         visual_offset_conv = 0.0;
     }
@@ -264,7 +278,7 @@ int main()
     cv::Mat visual_conv_kernel_L3_Mat((conv_L3.kernel_weights[0][0].size() + grid_gap) * conv_L3.kernel_weights[0].size(), (conv_L3.kernel_weights[0][0][0].size() + grid_gap) * conv_L3.output_tensor.size(), CV_32F);
 
     Mat upsampl_conv_view_2;
-    const int batch_size = 100;
+    const int batch_size = 10;
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
@@ -317,8 +331,8 @@ int main()
     resize(game_video_full_size, resized_grapics, image_size_reduced);
     imshow("resized_grapics", resized_grapics); ///  resize(src, dst, size);
     replay_grapics_buffert.create(pixel_height * gameObj1.nr_of_frames, pixel_width * batch_size, CV_32FC1);
-    upsampl_conv_view.create(pixel_height * nr_frames_strobed, pixel_width, CV_32FC1);
-    input_frm.create(pixel_height * nr_frames_strobed, pixel_width, CV_32FC1);
+    upsampl_conv_view.create(pixel_height, pixel_width, CV_32FC1);
+    input_frm.create(pixel_height, pixel_width, CV_32FC1);
 
     cout << "replay_grapics_buffert rows = " << replay_grapics_buffert.rows << endl;
     cout << "replay_grapics_buffert cols = " << replay_grapics_buffert.cols << endl;
@@ -344,15 +358,10 @@ int main()
         cout << "******** Epoch number = " << epoch << " **********" << endl;
         for (int batch_cnt = 0; batch_cnt < batch_size; batch_cnt++)
         {
-            cout << "                                                                                                       " << endl;
-            std::cout << "\033[F";
-            cout << "Play batch_cnt = " << batch_cnt << endl;
-            // Move the cursor up one line (ANSI escape code)
-            std::cout << "\033[F";
-
             batch_nr = batch_cnt;
             gameObj1.start_episode();
-        //    cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
+      //      cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
+
             for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
             {
                 gameObj1.frame = frame_g;
@@ -375,43 +384,70 @@ int main()
                 if (frame_g >= nr_frames_strobed - 1) // Wait until all 4 images is up there in the game after start
                 {
                     // Put in data from replay_grapics_buffert to L1_tensor_in_size
-                    for (int i = 0; i < L1_input_channels; i++)
+                    for (int f = 0; f < nr_frames_strobed; f++)
                     {
-                        for (int j = 0; j < L1_tensor_in_size; j++)
-                        {
-                            int row = j / pixel_width;
-                            int col = j % pixel_width;
-                            float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (frame_g - (nr_frames_strobed - 1) + i) + row, col + pixel_width * batch_nr);
-                            conv_L1.input_tensor[i][row][col] = pixelValue;
-                        }
-                    }
-                    if (batch_cnt == batch_nr - 1)
-                    {
-                        // Debug
+
                         for (int i = 0; i < L1_input_channels; i++)
                         {
-                            for (int j = 0; j < pixel_height; j++)
+                            for (int j = 0; j < L1_tensor_in_size; j++)
                             {
-                                for (int k = 0; k < pixel_width; k++)
+                                int row = j / pixel_width;
+                                int col = j % pixel_width;
+                                float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (frame_g - (nr_frames_strobed - 1) + f) + row, col + pixel_width * batch_nr);
+                                conv_L1.input_tensor[i][row][col] = pixelValue;
+                            }
+                        }
+
+                        if (batch_cnt == batch_nr - 1)
+                        {
+                            // Debug
+                            for (int i = 0; i < L1_input_channels; i++)
+                            {
+                                for (int j = 0; j < pixel_height; j++)
                                 {
-                                    float inp_frm = conv_L1.input_tensor[i][j][k];
-                                    //      cout << "inp = " << inp_frm << endl;
-                                    input_frm.at<float>(pixel_height * i + j, k) = inp_frm;
+                                    for (int k = 0; k < pixel_width; k++)
+                                    {
+                                        float inp_frm = conv_L1.input_tensor[i][j][k];
+                                        //      cout << "inp = " << inp_frm << endl;
+                                        input_frm.at<float>(pixel_height * i + j, k) = inp_frm;
+                                    }
+                                }
+                            }
+                            imshow("input_frm", input_frm);
+                            waitKey(1);
+                            // end Debug
+                        }
+
+                        //**********************************************************************
+                        //****************** Forward Pass training network *********************
+                        conv_L1.conv_forward1();
+                        conv_L2.input_tensor = conv_L1.output_tensor;
+                        conv_L2.conv_forward1();
+                        conv_L3.input_tensor = conv_L2.output_tensor;
+                        conv_L3.conv_forward1();
+
+                        int L3_out_one_side = conv_L3.output_tensor[0].size();
+                        int L3_out_ch = conv_L3.output_tensor.size();
+                        for (int oc = 0; oc < L3_out_ch; oc++)
+                        {
+                            for (int yi = 0; yi < L3_out_one_side; yi++)
+                            {
+                                for (int xi = 0; xi < L3_out_one_side; xi++)
+                                {
+                                    /*
+                                     double out_conv = conv_L3.output_tensor[oc][yi][xi];
+                                       if(yi== L3_out_one_side-1)
+                                    {
+                                        out_conv = 0.1;
+                                    }
+
+                            */
+                                    fc_nn_end_block.input_layer[f * oc * L3_out_one_side * L3_out_one_side + oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] = conv_L3.output_tensor[oc][yi][xi];
+                                    //           cout << "conv_L3.output_tensor[" << oc << "][" << yi << "["  << xi << "] = "  << conv_L3.output_tensor[oc][yi][xi] << endl;
                                 }
                             }
                         }
-                        imshow("input_frm", input_frm);
-                        waitKey(1);
-                        // end Debug
                     }
-
-                    //**********************************************************************
-                    //****************** Forward Pass training network *********************
-                    conv_L1.conv_forward1();
-                    conv_L2.input_tensor = conv_L1.output_tensor;
-                    conv_L2.conv_forward1();
-                    conv_L3.input_tensor = conv_L2.output_tensor;
-                    conv_L3.conv_forward1();
 
                     if (batch_cnt == 0)
                     {
@@ -472,30 +508,8 @@ int main()
 
                         cv::imshow("Convolution L3 output", Mat_L3_output_visualize);
                         waitKey(1);
-
                     }
 
-                    int L3_out_one_side = conv_L3.output_tensor[0].size();
-                    int L3_out_ch = conv_L3.output_tensor.size();
-                    for (int oc = 0; oc < L3_out_ch; oc++)
-                    {
-                        for (int yi = 0; yi < L3_out_one_side; yi++)
-                        {
-                            for (int xi = 0; xi < L3_out_one_side; xi++)
-                            {
-                                /*
-                                 double out_conv = conv_L3.output_tensor[oc][yi][xi];
-                                   if(yi== L3_out_one_side-1)
-                                {
-                                    out_conv = 0.1;
-                                }
-
-                        */
-                                fc_nn_end_block.input_layer[oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] = conv_L3.output_tensor[oc][yi][xi];
-                                //           cout << "conv_L3.output_tensor[" << oc << "][" << yi << "["  << xi << "] = "  << conv_L3.output_tensor[oc][yi][xi] << endl;
-                            }
-                        }
-                    }
                     // Start Forward pass fully connected network
                     fc_nn_end_block.forward_pass(); // Forward pass though fully connected network
 
@@ -515,6 +529,11 @@ int main()
                                 max_decision = (float)action_dice;
                                 decided_action = i;
                             }
+                            if (batch_cnt == 0)
+                            {
+               //                 cout << "Dice max_decision = " << max_decision << " i = " << i << endl;
+                            }
+
                         }
                     }
                     else
@@ -546,16 +565,62 @@ int main()
                     //**********************************************************************
                 }
             }
+            double abs_diff = abs(gameObj1.pad_ball_diff);
+            
+           // cout << "pad_ball_diff = " << abs_diff << endl;
             double rewards = 0.0;
+            if(abs_diff< 1.0)
+            {
+                abs_diff = 1.0;
+            }
+
             if (gameObj1.win_this_game == 1)
             {
-                rewards = 10.0; // Win Rewards
+                if(gameObj1.square == 1)
+                {
+                    
+                    rewards = 1.0; // Win Rewards avoid square
+             //       rewards /= abs_diff;
+                }
+                else
+                {
+                    rewards = 3.0; // Win Rewards catch ball
+             //       rewards /= abs_diff;
+                }
                 win_counter++;
             }
             else
             {
-                rewards = -10.0; // Lose Penalty
+                if(gameObj1.square == 1)
+                {
+                    rewards = -0.8; // Lose Penalty
+                    //rewards /= abs_diff;
+                }
+                else
+                {
+                    rewards = -1.0; // Lose Penalty
+                    //rewards *= abs_diff;
+                }
             }
+            /*
+            if(gameObj1.square == 1)
+            {
+                cout << "Game through a rectangle " << endl;
+            }
+            else
+            {
+                cout << "Game through a ball " << endl;
+            }
+            */
+            // cout << " Rewards = " << rewards;
+
+
+            cout << "                                                                                                       " << endl;
+            std::cout << "\033[F";
+            cout << "Play batch_cnt = " << batch_cnt << " Rewards = " << rewards << endl;
+            // Move the cursor up one line (ANSI escape code)
+            std::cout << "\033[F";
+
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
 
             // Calculate win probablilty
@@ -663,12 +728,12 @@ int main()
         int replay_decided_action = 0;
         for (int frame_state = single_game_state_size - 1; frame_state > 0; frame_state--)
         {
-            
+
             for (int batch_state_cnt = 0; batch_state_cnt < batch_size; batch_state_cnt++)
             {
                 check_batch_nr = batch_state_rand_list[batch_state_cnt];
                 batch_nr = check_batch_nr;
-                //int single_game_frame_state = frame_state;
+                // int single_game_frame_state = frame_state;
                 int single_game_frame_state = frame_state_rand_list[frame_state];
                 double max_Q_target_value = 0.0;
                 int L3_out_one_side = conv_L3.output_tensor[0].size();
@@ -681,58 +746,64 @@ int main()
                     int startRow = pixel_height * single_game_frame_state;
 
                     cv::Rect replay_roi(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
-                    for (int i = 0; i < L1_input_channels; i++)
+                    for (int f = 0; f < nr_frames_strobed; f++)
                     {
-                        for (int j = 0; j < L1_tensor_in_size; j++)
+
+                        for (int i = 0; i < L1_input_channels; i++)
                         {
-                            int row = j / pixel_width;
-                            int col = j % pixel_width;
-
-                            // Calculate the actual row and column indices in replay_roi
-                            int roi_row = row + replay_roi.y + i * pixel_height;
-                            int roi_col = col + replay_roi.x;
-
-                            // Ensure the indices are within bounds
-                            if (roi_row < replay_roi.y + replay_roi.height && roi_col < replay_roi.x + replay_roi.width)
+                            for (int j = 0; j < L1_tensor_in_size; j++)
                             {
-                                // Extract replay_roi data here to pixelValue
-                                float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
-                                conv_L1.input_tensor[i][row][col] = pixelValue;
-                            }
-                            else
-                            {
-                                // Handle the case where the indices are out of bounds
-                                // You might want to set a default value or handle it differently based on your requirements.
-                                cout << "error case where the indices are out of bounds" << endl;
-                                conv_L1.input_tensor[i][row][col] = 0.0; // Set a default value to 0.0 for example
+                                int row = j / pixel_width;
+                                int col = j % pixel_width;
+
+                                // Calculate the actual row and column indices in replay_roi
+                                int roi_row = row + replay_roi.y + f * pixel_height;
+                                int roi_col = col + replay_roi.x;
+
+                                // Ensure the indices are within bounds
+                                if (roi_row < replay_roi.y + replay_roi.height && roi_col < replay_roi.x + replay_roi.width)
+                                {
+                                    // Extract replay_roi data here to pixelValue
+                                    float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
+                                    conv_L1.input_tensor[i][row][col] = pixelValue;
+                                }
+                                else
+                                {
+                                    // Handle the case where the indices are out of bounds
+                                    // You might want to set a default value or handle it differently based on your requirements.
+                                    cout << "error case where the indices are out of bounds" << endl;
+                                    conv_L1.input_tensor[i][row][col] = 0.0; // Set a default value to 0.0 for example
+                                }
                             }
                         }
-                    }
-                    for (int frame_t = 0; frame_t < nr_frames_strobed; frame_t++) // Loop throue 4 frames
-                    {
-                    }
-                    //**********************************************************************
-                    //****************** Forward Pass training network *********************
-                    conv_L1.conv_forward1();
-                    conv_L2.input_tensor = conv_L1.output_tensor;
-                    conv_L2.conv_forward1();
-                    conv_L3.input_tensor = conv_L2.output_tensor;
-                    conv_L3.conv_forward1();
-                    for (int oc = 0; oc < L3_out_ch; oc++)
-                    {
-                        for (int yi = 0; yi < L3_out_one_side; yi++)
+                        //**********************************************************************
+                        //****************** Forward Pass training network *********************
+                        conv_L1.conv_forward1();
+                        conv_L2.input_tensor = conv_L1.output_tensor;
+                        conv_L2.conv_forward1();
+                        conv_L3.input_tensor = conv_L2.output_tensor;
+                        conv_L3.conv_forward1();
+                        //==== Store for training conv all frame stromes =======
+                        L1_strobe_frame_in_tens[f] = conv_L1.input_tensor;
+                        L2_strobe_frame_in_tens[f] = conv_L2.input_tensor;
+                        L3_strobe_frame_in_tens[f] = conv_L3.input_tensor;
+                        //======================================================
+                        for (int oc = 0; oc < L3_out_ch; oc++)
                         {
-                            for (int xi = 0; xi < L3_out_one_side; xi++)
+                            for (int yi = 0; yi < L3_out_one_side; yi++)
                             {
+                                for (int xi = 0; xi < L3_out_one_side; xi++)
+                                {
 
-                                //                             double out_conv = conv_L3.output_tensor[oc][yi][xi];
-                                //         if(yi== L3_out_one_side-1)
-                                //    {
-                                //       out_conv = 0.1;
-                                //  }
-                                // fc_nn_end_block.input_layer[oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] =out_conv ;
+                                    //                             double out_conv = conv_L3.output_tensor[oc][yi][xi];
+                                    //         if(yi== L3_out_one_side-1)
+                                    //    {
+                                    //       out_conv = 0.1;
+                                    //  }
+                                    // fc_nn_end_block.input_layer[oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] =out_conv ;
 
-                                fc_nn_end_block.input_layer[oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] = conv_L3.output_tensor[oc][yi][xi];
+                                    fc_nn_end_block.input_layer[f * oc * L3_out_one_side * L3_out_one_side + oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] = conv_L3.output_tensor[oc][yi][xi];
+                                }
                             }
                         }
                     }
@@ -750,6 +821,10 @@ int main()
                     startCol = pixel_width * batch_nr;
                     startRow = pixel_height * single_game_frame_state;
                     cv::Rect replay_roi_2(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
+                    for (int f = 0; f < nr_frames_strobed; f++)
+                    {
+
+
                     for (int i = 0; i < L1_input_channels; i++)
                     {
                         for (int j = 0; j < L1_tensor_in_size; j++)
@@ -758,7 +833,7 @@ int main()
                             int col = j % pixel_width;
 
                             // Calculate the actual row and column indices in replay_roi
-                            int roi_row = row + replay_roi_2.y + i * pixel_height;
+                            int roi_row = row + replay_roi_2.y + f * pixel_height;
                             int roi_col = col + replay_roi_2.x;
 
                             // Ensure the indices are within bounds
@@ -798,9 +873,10 @@ int main()
                                 //             }
                                 //    fc_nn_frozen_target_net.input_layer[oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] =out_conv ;
 
-                                fc_nn_frozen_target_net.input_layer[oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] = conv_frozen_L3_target_net.output_tensor[oc][yi][xi];
+                                fc_nn_frozen_target_net.input_layer[f * oc * L3_out_one_side * L3_out_one_side + oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] = conv_frozen_L3_target_net.output_tensor[oc][yi][xi];
                             }
                         }
+                    }
                     }
                     // Start Forward pass fully connected network
                     fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
@@ -822,7 +898,7 @@ int main()
                 {
                     // End game state
                     max_Q_target_value = target_off_level; // Zero Q value at end state Only rewards will be used
-                //    cout << "Replay END State at batch_nr = " << batch_nr << endl;
+              //      cout << "Replay END State at batch_nr = " << batch_nr << endl;
                 }
 
                 int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
@@ -842,30 +918,48 @@ int main()
                     else
                     {
                         fc_nn_end_block.target_layer[i] = target_off_level;
-                        //fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                        // fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                     }
                 }
 
                 fc_nn_end_block.backpropagtion_and_update();
                 // backprop convolution layers
-                for (int oc = 0; oc < L3_out_ch; oc++)
+
+                for (int f = 0; f < nr_frames_strobed; f++)
                 {
-                    for (int yi = 0; yi < L3_out_one_side; yi++)
+                    for (int oc = 0; oc < L3_out_ch; oc++)
                     {
-                        for (int xi = 0; xi < L3_out_one_side; xi++)
+                        for (int yi = 0; yi < L3_out_one_side; yi++)
                         {
-                            conv_L3.o_tensor_delta[oc][yi][xi] = fc_nn_end_block.i_layer_delta[oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi];
+                            for (int xi = 0; xi < L3_out_one_side; xi++)
+                            {
+                                conv_L3.o_tensor_delta[oc][yi][xi] = fc_nn_end_block.i_layer_delta[f * oc * L3_out_one_side * L3_out_one_side + oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi];
+                            }
                         }
                     }
+                    conv_L3.conv_backprop();
+                    conv_L2.o_tensor_delta = conv_L3.i_tensor_delta;
+                    conv_L2.conv_backprop();
+                    conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
+                    conv_L1.conv_backprop();
+
+                    L3_strobe_frame_i_tens_delta[f] = conv_L3.i_tensor_delta;
+                    L2_strobe_frame_i_tens_delta[f] = conv_L2.i_tensor_delta;
+                    L1_strobe_frame_i_tens_delta[f] = conv_L1.i_tensor_delta;
                 }
-                conv_L3.conv_backprop();
-                conv_L2.o_tensor_delta = conv_L3.i_tensor_delta;
-                conv_L2.conv_backprop();
-                conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
-                conv_L1.conv_backprop();
-                conv_L3.conv_update_weights();
-                conv_L2.conv_update_weights();
-                conv_L1.conv_update_weights();
+                for (int f = 0; f < nr_frames_strobed; f++)
+                {
+                    conv_L3.i_tensor_delta = L3_strobe_frame_i_tens_delta[f];
+                    conv_L2.i_tensor_delta = L2_strobe_frame_i_tens_delta[f];
+                    conv_L1.i_tensor_delta = L1_strobe_frame_i_tens_delta[f];
+                    conv_L3.input_tensor = L3_strobe_frame_in_tens[f];
+                    conv_L2.input_tensor = L2_strobe_frame_in_tens[f];
+                    conv_L1.input_tensor = L1_strobe_frame_in_tens[f];
+                    conv_L3.conv_update_weights();
+                    conv_L2.conv_update_weights();
+                    conv_L1.conv_update_weights();
+                }
+                    
                 if (update_frz_cnt < update_frozen_after_samples)
                 {
                     update_frz_cnt++;
@@ -911,16 +1005,16 @@ int main()
                     cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
                     waitKey(100);
                 }
-                cout << "                                                                                                       " << endl;
-                std::cout << "\033[F";
-                cout << "replay batch_state_cnt = " << batch_state_cnt << " frame state countdown = " << frame_state << endl;
-                // Move the cursor up one line (ANSI escape code)
-                std::cout << "\033[F";
             }
+            cout << "                                                                                                       " << endl;
+            std::cout << "\033[F";
+            cout <<"frame state countdown = " << frame_state << endl;
+            // Move the cursor up one line (ANSI escape code)
+            std::cout << "\033[F";
         }
         imshow("replay_grapics_buffert", replay_grapics_buffert);
         waitKey(1);
-        cout << "Replay END" << endl;
+
         // Save all weights
         if (save_cnt < save_after_nr)
         {
