@@ -96,6 +96,8 @@ int main()
     string L3_kernel_b_weight_filename;
     L3_kernel_b_weight_filename = "L3_kernel_b.dat";
 
+    const int all_clip_der = 0;
+
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
@@ -104,7 +106,7 @@ int main()
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
     fc_nn_end_block.dropout_proportion = 0.5;
-    fc_nn_end_block.clip_deriv = 0;
+    fc_nn_end_block.clip_deriv = all_clip_der;
 
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
@@ -112,7 +114,7 @@ int main()
     fc_nn_frozen_target_net.force_last_activation_function_to_sigmoid = fc_nn_end_block.force_last_activation_function_to_sigmoid;
     fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
     fc_nn_frozen_target_net.use_dropouts = 0;
-    fc_nn_frozen_target_net.clip_deriv = 0;
+    fc_nn_frozen_target_net.clip_deriv = all_clip_der;
 
     conv_L1.get_version();
 
@@ -130,7 +132,7 @@ int main()
     conv_L1.set_in_tensor(L1_tensor_in_size, L1_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L1.set_out_tensor(L1_tensor_out_channels);              // output channels
     conv_L1.top_conv = 0;
-    conv_L1.clip_deriv = 0;
+    conv_L1.clip_deriv = all_clip_der;
 
     // copy to a frozen copy network for target network
     conv_frozen_L1_target_net.set_kernel_size(L1_kernel_size);
@@ -153,7 +155,7 @@ int main()
     conv_L2.set_in_tensor(L2_tensor_in_size, L2_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L2.set_out_tensor(L2_tensor_out_channels);
     conv_L2.top_conv = 0;
-    conv_L2.clip_deriv = 0;
+    conv_L2.clip_deriv = all_clip_der;
     // copy to a frozen copy network for target network
     conv_frozen_L2_target_net.set_kernel_size(L2_kernel_size);
     conv_frozen_L2_target_net.set_stride(L2_stride);
@@ -175,7 +177,7 @@ int main()
     conv_L3.set_in_tensor(L3_tensor_in_size, L3_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L3.set_out_tensor(L3_tensor_out_channels);
     conv_L3.top_conv = 0;
-    conv_L3.clip_deriv = 0;
+    conv_L3.clip_deriv = all_clip_der;
     // copy to a frozen copy network for target network
     conv_frozen_L3_target_net.set_kernel_size(L3_kernel_size);
     conv_frozen_L3_target_net.set_stride(L3_stride);
@@ -240,8 +242,8 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.4; // OFF action target
     double target_dice_ON_level = 0.6; // Dice ON action target
-    const double learning_rate_fc = 0.01;
-    const double learning_rate_conv = 0.01;
+    const double learning_rate_fc = 0.005;
+    const double learning_rate_conv = 0.005;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.momentum = 0.9;
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -253,12 +255,15 @@ int main()
     conv_L3.momentum = 0.9;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.20;
-    const double stop_min_epsilon = 0.55;
-    const double derating_epsilon = 0.01; // Derating speed per batch game
+    const double start_epsilon = 0.2;
+    const double stop_min_epsilon = 0.5;
+    const int games_to_reach_stop_eps = 10000;
+    const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.9f;
+#ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.7;
+#endif
     const int batch_size = 10;
   //  const int update_frozen_after_samples = 10 * batch_size;
     const int update_frozen_after_samples = 1000;
@@ -390,8 +395,15 @@ int main()
     for (int epoch = 0; epoch < max_nr_epochs; epoch++)
     {
         cout << "******** Epoch number = " << epoch << " **********" << endl;
+        cout << "dqn_epsilon = " << dqn_epsilon << endl;
         for (int batch_cnt = 0; batch_cnt < batch_size; batch_cnt++)
         {
+            if(dqn_epsilon < stop_min_epsilon)
+            {
+                dqn_epsilon += derating_epsilon;
+            }
+            
+
             batch_nr = batch_cnt;
             gameObj1.start_episode();
       //      cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
@@ -794,7 +806,7 @@ int main()
 
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
-        cout << "********* Run the whole replay batch memory and traing the DQN network *********" << endl;
+        cout << "********* Run the whole replay batch memory and training the DQN network ********" << endl;
         cout << "********************************************************************************" << endl;
         //   cout << "single_game_state_size = " << single_game_state_size << endl;
         batch_state_rand_list = fisher_yates_shuffle(batch_state_rand_list);
