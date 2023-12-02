@@ -207,7 +207,7 @@ int main()
     int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size() * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 3;
-    const int end_hid_nodes_L1 = 300;
+    const int end_hid_nodes_L1 = 200;
     const int end_hid_nodes_L2 = 80;
     const int end_hid_nodes_L3 = 40;
     const int end_out_nodes = 3; // Up, Down and Stop action
