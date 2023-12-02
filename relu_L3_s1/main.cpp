@@ -22,7 +22,7 @@ using namespace std;
 #define MOVE_STOP 2
 
 #define Q_ALGORITHM_MODE_A
-#define DICE_SAME_AS_MAX_Q_USE_VALUE
+//#define DICE_SAME_AS_MAX_Q_USE_VALUE
 //#define SHUFFEL_BATCH
 
 vector<int> fisher_yates_shuffle(vector<int> table);
@@ -253,7 +253,7 @@ int main()
     conv_L3.momentum = 0.9;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.5;
+    const double start_epsilon = 0.15;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
