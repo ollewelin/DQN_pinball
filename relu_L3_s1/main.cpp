@@ -240,8 +240,8 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.05; // OFF action target
     double target_dice_ON_level = 1.0; // Dice ON action target
-    const double learning_rate_fc = 0.0001;
-    const double learning_rate_conv = 0.0001;
+    const double learning_rate_fc = 0.001;
+    const double learning_rate_conv = 0.001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.momentum = 0.9;
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -257,7 +257,7 @@ int main()
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.98f;
+    double gamma = 0.9f;
     double alpha = 0.7;
     const int batch_size = 10;
   //  const int update_frozen_after_samples = 10 * batch_size;
@@ -589,12 +589,12 @@ int main()
                             {
                                 cout << "action_node = " << action_node << " i = " << i << endl;
                             }
-                   /*
-                            if(fc_nn_end_block.output_layer[1] > fc_nn_end_block.output_layer[0] )
+                  
+                            if(fc_nn_end_block.output_layer[0] > fc_nn_end_block.output_layer[1] )
                             {
                                 cout << "action_node = " << action_node << " i = " << i << " frame_g = " << frame_g << endl;
                             }
-                            */
+                            
                         }
                     }
                     //  std::cout << std::fixed << std::setprecision(20);
@@ -1045,9 +1045,10 @@ int main()
                 }
                 else
                 {
+                    
                     for (int i = 0; i < end_out_nodes; i++)
                     {
-                        if (i == replay_decided_action)
+                        if (i == max_Q_index)
                         {
 #ifdef Q_ALGORITHM_MODE_A
                             // target_value = rewards_here + gamma * (max_Q_target_value - );
@@ -1063,7 +1064,7 @@ int main()
                             // fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                         }
                     }
-                   
+                  
                 }
                 /*
                     for (int i = 0; i < end_out_nodes; i++)
