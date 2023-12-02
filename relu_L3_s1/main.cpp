@@ -589,12 +589,12 @@ int main()
                             {
                                 cout << "action_node = " << action_node << " i = " << i << endl;
                             }
-                  
+                  /*
                             if(fc_nn_end_block.output_layer[0] > fc_nn_end_block.output_layer[1] )
                             {
                                 cout << "action_node = " << action_node << " i = " << i << " frame_g = " << frame_g << endl;
                             }
-                            
+                    */        
                         }
                     }
                     //  std::cout << std::fixed << std::setprecision(20);
