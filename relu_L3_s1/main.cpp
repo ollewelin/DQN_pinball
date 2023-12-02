@@ -238,8 +238,8 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.05; // OFF action target
-    double target_dice_ON_level = 1.0; // Dice ON action target
+    double target_off_level = 0.4; // OFF action target
+    double target_dice_ON_level = 0.6; // Dice ON action target
     const double learning_rate_fc = 0.001;
     const double learning_rate_conv = 0.001;
     double learning_rate_end = learning_rate_fc;
@@ -253,7 +253,7 @@ int main()
     conv_L3.momentum = 0.9;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.15;
+    const double start_epsilon = 0.20;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
