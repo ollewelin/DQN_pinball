@@ -104,7 +104,7 @@ int main()
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
     fc_nn_end_block.dropout_proportion = 0.5;
-    fc_nn_end_block.clip_deriv = 1;
+    fc_nn_end_block.clip_deriv = 0;
 
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
@@ -112,7 +112,7 @@ int main()
     fc_nn_frozen_target_net.force_last_activation_function_to_sigmoid = fc_nn_end_block.force_last_activation_function_to_sigmoid;
     fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
     fc_nn_frozen_target_net.use_dropouts = 0;
-    fc_nn_frozen_target_net.clip_deriv = 1;
+    fc_nn_frozen_target_net.clip_deriv = 0;
 
     conv_L1.get_version();
 
@@ -130,7 +130,7 @@ int main()
     conv_L1.set_in_tensor(L1_tensor_in_size, L1_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L1.set_out_tensor(L1_tensor_out_channels);              // output channels
     conv_L1.top_conv = 0;
-    conv_L1.clip_deriv = 1;
+    conv_L1.clip_deriv = 0;
 
     // copy to a frozen copy network for target network
     conv_frozen_L1_target_net.set_kernel_size(L1_kernel_size);
@@ -153,7 +153,7 @@ int main()
     conv_L2.set_in_tensor(L2_tensor_in_size, L2_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L2.set_out_tensor(L2_tensor_out_channels);
     conv_L2.top_conv = 0;
-    conv_L2.clip_deriv = 1;
+    conv_L2.clip_deriv = 0;
     // copy to a frozen copy network for target network
     conv_frozen_L2_target_net.set_kernel_size(L2_kernel_size);
     conv_frozen_L2_target_net.set_stride(L2_stride);
@@ -175,7 +175,7 @@ int main()
     conv_L3.set_in_tensor(L3_tensor_in_size, L3_input_channels); // data_size_one_sample_one_channel, input channels
     conv_L3.set_out_tensor(L3_tensor_out_channels);
     conv_L3.top_conv = 0;
-    conv_L3.clip_deriv = 1;
+    conv_L3.clip_deriv = 0;
     // copy to a frozen copy network for target network
     conv_frozen_L3_target_net.set_kernel_size(L3_kernel_size);
     conv_frozen_L3_target_net.set_stride(L3_stride);
@@ -240,8 +240,8 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.4; // OFF action target
     double target_dice_ON_level = 0.6; // Dice ON action target
-    const double learning_rate_fc = 0.001;
-    const double learning_rate_conv = 0.001;
+    const double learning_rate_fc = 0.01;
+    const double learning_rate_conv = 0.01;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.momentum = 0.9;
     fc_nn_end_block.learning_rate = learning_rate_end;
