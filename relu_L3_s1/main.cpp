@@ -22,6 +22,8 @@ using namespace std;
 #define MOVE_STOP 2
 
 #define Q_ALGORITHM_MODE_A
+#define DICE_SAME_AS_MAX_Q_USE_VALUE
+//#define SHUFFEL_BATCH
 
 vector<int> fisher_yates_shuffle(vector<int> table);
 
@@ -29,6 +31,7 @@ int main()
 {
     srand(static_cast<unsigned>(time(NULL))); // Seed the randomizer
     cout << "Convolution neural network under work..." << endl;
+    int total_plays = 0;
     // ======== create 2 convolution layer objects =========
     convolution conv_L1;
     convolution conv_L2;
@@ -62,8 +65,8 @@ int main()
     double now_win_probability = last_win_probability;
 
     // Set up a OpenCV mat
-    const int pixel_height = 36; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 36;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 45; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 45;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -77,7 +80,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 5;
+    const int save_after_nr = 1;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
     string L1_kernel_k_weight_filename;
@@ -96,11 +99,11 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 0;                  // ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
-    fc_nn_end_block.dropout_proportion = 0.65;
+    fc_nn_end_block.dropout_proportion = 0.5;
     fc_nn_end_block.clip_deriv = 1;
 
 
@@ -119,7 +122,7 @@ int main()
     const int nr_frames_strobed = 6;                 // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels; // color channels
     const int L1_tensor_in_size = pixel_width * pixel_height;
-    const int L1_tensor_out_channels = 25;
+    const int L1_tensor_out_channels = 15;
     const int L1_kernel_size = 5;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
@@ -140,7 +143,7 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 35;
+    int L2_tensor_out_channels = 30;
     int L2_kernel_size = 5;
     int L2_stride = 2;
 
@@ -162,9 +165,9 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 60;
-    int L3_kernel_size = 5;
-    int L3_stride = 2;
+    int L3_tensor_out_channels = 30;
+    int L3_kernel_size = 3;
+    int L3_stride = 1;
 
     cout << "conv_L3 setup:" << endl;
     conv_L3.set_kernel_size(L3_kernel_size); // Odd number
@@ -204,9 +207,9 @@ int main()
     int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size() * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 3;
-    const int end_hid_nodes_L1 = 200;
-    const int end_hid_nodes_L2 = 200;
-    const int end_hid_nodes_L3 = 200;
+    const int end_hid_nodes_L1 = 400;
+    const int end_hid_nodes_L2 = 100;
+    const int end_hid_nodes_L3 = 100;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -235,28 +238,34 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.5; // OFF action target
-    const double learning_rate_end = 0.05;
-    fc_nn_end_block.momentum = 0.8;
+    double target_off_level = 0.05; // OFF action target
+    double target_dice_ON_level = 1.0; // Dice ON action target
+    const double learning_rate_fc = 0.0001;
+    const double learning_rate_conv = 0.0001;
+    double learning_rate_end = learning_rate_fc;
+    fc_nn_end_block.momentum = 0.9;
     fc_nn_end_block.learning_rate = learning_rate_end;
-    conv_L1.learning_rate = 0.01;
-    conv_L1.momentum = 0.8;
-    conv_L2.learning_rate = 0.01;
-    conv_L2.momentum = 0.8;
-    conv_L3.learning_rate = 0.01;
-    conv_L3.momentum = 0.8;
-    double init_random_weight_propotion = 0.3;
+    conv_L1.learning_rate = learning_rate_conv;
+    conv_L1.momentum = 0.9;
+    conv_L2.learning_rate = learning_rate_conv;
+    conv_L2.momentum = 0.9;
+    conv_L3.learning_rate = learning_rate_conv;
+    conv_L3.momentum = 0.9;
+    double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.5;
     const double stop_min_epsilon = 0.55;
     const double derating_epsilon = 0.01; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.85f;
+    double gamma = 0.98f;
     double alpha = 0.7;
-    const int batch_size = 30;
+    const int batch_size = 10;
   //  const int update_frozen_after_samples = 10 * batch_size;
-    const int update_frozen_after_samples = 100;
+    const int update_frozen_after_samples = 1000;
     int update_frz_cnt = 0;
+    const int swapping_learning_mode = 0;
+    const int swap_fc_conv_learn_after = 100;
+    int swap_fc_conv_learn_cnt = 0;
     //==== Hyper parameter settings End ===========================
 
     //==== Set modes ===============
@@ -293,9 +302,11 @@ int main()
     
     int batch_nr = 0; // Used during play
     vector<int> batch_state_rand_list;
+        int check_batch_nr = 0;                                                     // Used during replay training
+ 
+#ifdef SHUFFEL_BATCH
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
-    int check_batch_nr = 0;                                                     // Used during replay training
-    for (int i = 0; i < batch_size; i++)
+   for (int i = 0; i < batch_size; i++)
     {
         batch_state_rand_list.push_back(0);
     }
@@ -304,7 +315,18 @@ int main()
     {
         frame_state_rand_list.push_back(0);
     }
+#else
+    int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
+//    int check_state_nr = 0;                                                     // Used during replay training
+    for (int i = 0; i < batch_size; i++)
+    {
+        for (int j = 0; j < single_game_state_size; j++)
+        {
+            batch_state_rand_list.push_back(0);
+        }
+    }
 
+#endif
     char answer;
     cout << "Do you want to load kernel weights from saved weight file = Y/N " << endl;
     cin >> answer;
@@ -528,9 +550,11 @@ int main()
                     float exploring_dice = (float)(rand() % 65535) / 65536; // Through a fair dice. Random value 0..1.0 range
                     // dqn_epsilon = 0.5;//Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
                     int decided_action = 0;
+                    int do_dice = 0;
                     double max_decision = 0.0f;
                     if (exploring_dice > dqn_epsilon)
                     {
+                        do_dice = end_out_nodes;
                         // Choose dice action (Exploration mode)
                         for (int i = 0; i < end_out_nodes; i++) // end_out_nodes = numbere of actions
                         {
@@ -550,6 +574,7 @@ int main()
                     }
                     else
                     {
+                        do_dice = 0;
                         // Choose predicted action (Exploit mode)
                         for (int i = 0; i < end_out_nodes; i++)
                         {
@@ -564,6 +589,12 @@ int main()
                             {
                                 cout << "action_node = " << action_node << " i = " << i << endl;
                             }
+                   /*
+                            if(fc_nn_end_block.output_layer[1] > fc_nn_end_block.output_layer[0] )
+                            {
+                                cout << "action_node = " << action_node << " i = " << i << " frame_g = " << frame_g << endl;
+                            }
+                            */
                         }
                     }
                     //  std::cout << std::fixed << std::setprecision(20);
@@ -571,8 +602,10 @@ int main()
                     //  cout << "exploring_dice = " << exploring_dice << endl;
 
                     gameObj1.move_up = decided_action; // Input Action from Agent. 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
-                    replay_actions_buffert[frame_g][batch_nr] = decided_action;
-
+                //    cout << " decided_action = " << decided_action << endl;
+                    replay_actions_buffert[frame_g][batch_nr] = decided_action + do_dice;
+                //    cout << " replay_actions_buffert[" << frame_g << "][" << batch_nr << "] = " << replay_actions_buffert[frame_g][batch_nr] << endl;
+                //    cout << "do_dice = " << do_dice << endl;
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************
                 }
@@ -591,12 +624,12 @@ int main()
                 if(gameObj1.square == 1)
                 {
                     
-                    rewards = 0.75; // Win Rewards avoid square
+                    rewards = 1.75; // Win Rewards avoid square
              //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 0.95; // Win Rewards catch ball
+                    rewards = 5.95; // Win Rewards catch ball
              //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -605,12 +638,12 @@ int main()
             {
                 if(gameObj1.square == 1)
                 {
-                    rewards = -0.35; // Lose Penalty
+                    rewards = -1.35; // Lose Penalty
                     //rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = -0.95; // Lose Penalty
+                    rewards = -2.95; // Lose Penalty
                     //rewards *= abs_diff;
                 }
             }
@@ -634,14 +667,43 @@ int main()
             std::cout << "\033[F";
 
             rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
+            total_plays++;
 
+//                const int swapping_learning_mode = 1;
+//    const int swap_fc_conv_learn_after = 1000;
+//    int swap_fc_conv_learn_cnt = 0;
+            if (swapping_learning_mode == 1)
+            {
+                if (swap_fc_conv_learn_cnt < swap_fc_conv_learn_after)
+                {
+                    swap_fc_conv_learn_cnt++;
+                }
+                else
+                {
+                    swap_fc_conv_learn_cnt = 0;
+                }
+                if (swap_fc_conv_learn_cnt < swap_fc_conv_learn_after/2)
+                {
+                    fc_nn_end_block.learning_rate = learning_rate_fc;
+                    conv_L1.learning_rate = 0.0;
+                    conv_L2.learning_rate = 0.0;
+                    conv_L3.learning_rate = 0.0;
+                }
+                else
+                {
+                    fc_nn_end_block.learning_rate = 0.0;
+                    conv_L1.learning_rate = learning_rate_conv;
+                    conv_L2.learning_rate = learning_rate_conv;
+                    conv_L3.learning_rate = learning_rate_conv;
+                }
+            }
             // Calculate win probablilty
             if (win_p_cnt > 10)
             {
                 now_win_probability = (double)win_counter / (double)(win_p_cnt + 1);
                 if (batch_nr == batch_size - 1)
                 {
-                    cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play couunt = " << win_p_cnt + 1 << " Old win probablilty = " << last_win_probability * 100.0 << "%" << endl;
+                    cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play count = " << win_p_cnt + 1 << " Old win probablilty = " << last_win_probability * 100.0 << "% total plays = " << total_plays << endl;
                 }
             }
             else
@@ -736,8 +798,11 @@ int main()
         cout << "********************************************************************************" << endl;
         //   cout << "single_game_state_size = " << single_game_state_size << endl;
         batch_state_rand_list = fisher_yates_shuffle(batch_state_rand_list);
-        frame_state_rand_list = fisher_yates_shuffle(frame_state_rand_list);
         int replay_decided_action = 0;
+
+#ifdef SHUFFEL_BATCH
+        frame_state_rand_list = fisher_yates_shuffle(frame_state_rand_list);
+
         for (int frame_state = single_game_state_size - 1; frame_state > 0; frame_state--)
         {
 
@@ -751,6 +816,23 @@ int main()
                 int L3_out_one_side = conv_L3.output_tensor[0].size();
                 int L3_out_ch = conv_L3.output_tensor.size();
 
+#else
+        for (int batch_state_cnt = 0; batch_state_cnt < (single_game_state_size * batch_size); batch_state_cnt++)
+        {
+            check_batch_nr = batch_state_rand_list[batch_state_cnt];
+            //     cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
+            batch_nr = check_batch_nr / single_game_state_size;
+            //    cout << "Run one training state sample at batch_nr = " << batch_nr << endl;
+            int single_game_frame_state = check_batch_nr % single_game_state_size;
+            int frame_state = single_game_frame_state;
+            //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
+            double max_Q_target_value = 0.0;
+            int max_Q_index = 0;
+            int L3_out_one_side = conv_L3.output_tensor[0].size();
+            int L3_out_ch = conv_L3.output_tensor.size();
+            {
+#endif
+                int do_dice = 0;
                 if (single_game_frame_state < single_game_state_size - 1)
                 {
                     // Calculate the starting column index for the ROI in replay_grapics_buffert
@@ -825,7 +907,18 @@ int main()
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************
                     replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][batch_nr];
-
+            //        cout <<" replay_decided_action = " << replay_decided_action  << endl;
+                   
+                    if(replay_decided_action < end_out_nodes)
+                    {
+                        do_dice = 0;
+                    }
+                    else
+                    {
+                        do_dice = end_out_nodes;
+                        replay_decided_action -= end_out_nodes;
+                    }
+            //        cout <<" *********** replay_decided_action = " << replay_decided_action  << endl;
                     //===================================
 
                     single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
@@ -897,12 +990,14 @@ int main()
 
                     // Search for max Q-value
                     max_Q_target_value = 0.0;
+                    
                     for (int i = 0; i < end_out_nodes; i++)
                     {
                         double action_node = fc_nn_frozen_target_net.output_layer[i];
                         if (action_node > max_Q_target_value)
                         {
                             max_Q_target_value = action_node;
+                            max_Q_index = i;
                         }
                     }
                 }
@@ -921,25 +1016,61 @@ int main()
                 //        Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
                 //   double target_value = rewards_here + gamma * (max_Q_target_value - );
                 // decided_action
-                for (int i = 0; i < end_out_nodes; i++)
+
+                if (do_dice > 0)
                 {
-                    if (i == replay_decided_action)
+                    for (int i = 0; i < end_out_nodes; i++)
                     {
-#ifdef Q_ALGORITHM_MODE_A
-                        // target_value = rewards_here + gamma * (max_Q_target_value - );
-                        fc_nn_end_block.target_layer[i] = rewards_here + gamma * max_Q_target_value;
+                        if(replay_decided_action == i)
+                        {
+#ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
+                            if(max_Q_index == replay_decided_action)
+                            {
+                                fc_nn_end_block.target_layer[i] = gamma * max_Q_target_value;
+                            }
+                            else
+                            {
+                                fc_nn_end_block.target_layer[i] = target_dice_ON_level;
+                            }
 #else
-                        // Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
-                        fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_here + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
+                            fc_nn_end_block.target_layer[i] = target_dice_ON_level;
 #endif
-                    }
-                    else
-                    {
-                        fc_nn_end_block.target_layer[i] = target_off_level;
-                        // fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                        }
+                        else
+                        {
+                            fc_nn_end_block.target_layer[i] = target_off_level;
+                        }
+                 //       cout << "replay_decided_action =  " << replay_decided_action << " fc_nn_end_block.target_layer[" << i << "] = " << fc_nn_end_block.target_layer[i] << endl;
                     }
                 }
-
+                else
+                {
+                    for (int i = 0; i < end_out_nodes; i++)
+                    {
+                        if (i == replay_decided_action)
+                        {
+#ifdef Q_ALGORITHM_MODE_A
+                            // target_value = rewards_here + gamma * (max_Q_target_value - );
+                            fc_nn_end_block.target_layer[i] = rewards_here + gamma * max_Q_target_value;
+#else
+                            // Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
+                            fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_here + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
+#endif
+                        }
+                        else
+                        {
+                            fc_nn_end_block.target_layer[i] = target_off_level;
+                            // fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                        }
+                    }
+                   
+                }
+                /*
+                    for (int i = 0; i < end_out_nodes; i++)
+                    {
+                         cout << "fc_nn_end_block.target_layer[" << i << "] = " << fc_nn_end_block.target_layer[i] << "   do_dice = " << do_dice << endl;
+                    }
+                */
                 fc_nn_end_block.backpropagtion_and_update();
                 // backprop convolution layers
 
