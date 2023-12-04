@@ -23,6 +23,7 @@ using namespace std;
 
 #define Q_ALGORITHM_MODE_A
 //#define DICE_SAME_AS_MAX_Q_USE_VALUE
+//#define USE_Q_ACTION_AS_TARGET
 //#define SHUFFEL_BATCH
 
 vector<int> fisher_yates_shuffle(vector<int> table);
@@ -245,14 +246,14 @@ int main()
     const double learning_rate_fc = 0.005;
     const double learning_rate_conv = 0.005;
     double learning_rate_end = learning_rate_fc;
-    fc_nn_end_block.momentum = 0.9;
+    fc_nn_end_block.momentum = 0.90;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = learning_rate_conv;
-    conv_L1.momentum = 0.9;
+    conv_L1.momentum = 0.90;
     conv_L2.learning_rate = learning_rate_conv;
-    conv_L2.momentum = 0.9;
+    conv_L2.momentum = 0.90;
     conv_L3.learning_rate = learning_rate_conv;
-    conv_L3.momentum = 0.9;
+    conv_L3.momentum = 0.90;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.2;
@@ -261,10 +262,12 @@ int main()
     const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     double gamma = 0.9f;
+#ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
     double alpha = 0.7;
-    const int batch_size = 10;
+#endif
+    const int batch_size = 20;
   //  const int update_frozen_after_samples = 10 * batch_size;
-    const int update_frozen_after_samples = 1000;
+    const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
     const int swapping_learning_mode = 0;
     const int swap_fc_conv_learn_after = 100;
@@ -634,12 +637,12 @@ int main()
                 if(gameObj1.square == 1)
                 {
                     
-                    rewards = 1.75; // Win Rewards avoid square
+                    rewards = 3.75; // Win Rewards avoid square
              //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 5.95; // Win Rewards catch ball
+                    rewards = 8.0; // Win Rewards catch ball
              //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -648,12 +651,12 @@ int main()
             {
                 if(gameObj1.square == 1)
                 {
-                    rewards = -1.35; // Lose Penalty
+                    rewards = -2.35; // Lose Penalty
                     //rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = -2.95; // Lose Penalty
+                    rewards = -3.95; // Lose Penalty
                     //rewards *= abs_diff;
                 }
             }
@@ -804,7 +807,7 @@ int main()
 
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
-        cout << "********* Run the whole replay batch memory and traing the DQN network *********" << endl;
+        cout << "********* Run the whole replay batch memory and training the DQN network *******" << endl;
         cout << "********************************************************************************" << endl;
         //   cout << "single_game_state_size = " << single_game_state_size << endl;
         batch_state_rand_list = fisher_yates_shuffle(batch_state_rand_list);
@@ -837,7 +840,9 @@ int main()
             int frame_state = single_game_frame_state;
             //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
             double max_Q_target_value = 0.0;
+#ifdef USE_Q_ACTION_AS_TARGET
             int max_Q_index = 0;
+#endif
             int L3_out_one_side = conv_L3.output_tensor[0].size();
             int L3_out_ch = conv_L3.output_tensor.size();
             {
@@ -1007,7 +1012,9 @@ int main()
                         if (action_node > max_Q_target_value)
                         {
                             max_Q_target_value = action_node;
+#ifdef USE_Q_ACTION_AS_TARGET
                             max_Q_index = i;
+#endif
                         }
                     }
                 }
@@ -1043,7 +1050,7 @@ int main()
                                 fc_nn_end_block.target_layer[i] = target_dice_ON_level;
                             }
 #else
-                            fc_nn_end_block.target_layer[i] = target_dice_ON_level;
+                            fc_nn_end_block.target_layer[i] = rewards_here + target_dice_ON_level;
 #endif
                         }
                         else
@@ -1058,8 +1065,13 @@ int main()
                     
                     for (int i = 0; i < end_out_nodes; i++)
                     {
+#ifdef USE_Q_ACTION_AS_TARGET
                         if (i == max_Q_index)
                         {
+#else
+                       if(replay_decided_action == i)
+                        {
+#endif
 #ifdef Q_ALGORITHM_MODE_A
                             // target_value = rewards_here + gamma * (max_Q_target_value - );
                             fc_nn_end_block.target_layer[i] = rewards_here + gamma * max_Q_target_value;
@@ -1168,7 +1180,7 @@ int main()
             }
             cout << "                                                                                                       " << endl;
             std::cout << "\033[F";
-            cout <<"frame state countdown = " << frame_state << endl;
+            cout <<"batch_state_cnt count down = " << (single_game_state_size * batch_size) - batch_state_cnt << endl;
             // Move the cursor up one line (ANSI escape code)
             std::cout << "\033[F";
         }
