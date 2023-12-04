@@ -246,14 +246,14 @@ int main()
     const double learning_rate_fc = 0.005;
     const double learning_rate_conv = 0.005;
     double learning_rate_end = learning_rate_fc;
-    fc_nn_end_block.momentum = 0.90;
+    fc_nn_end_block.momentum = 0.01;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = learning_rate_conv;
-    conv_L1.momentum = 0.90;
+    conv_L1.momentum = 0.01;
     conv_L2.learning_rate = learning_rate_conv;
-    conv_L2.momentum = 0.90;
+    conv_L2.momentum = 0.01;
     conv_L3.learning_rate = learning_rate_conv;
-    conv_L3.momentum = 0.90;
+    conv_L3.momentum = 0.01;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.2;
@@ -1047,7 +1047,7 @@ int main()
                             }
                             else
                             {
-                                fc_nn_end_block.target_layer[i] = target_dice_ON_level;
+                                fc_nn_end_block.target_layer[i] = rewards_here + target_dice_ON_level;
                             }
 #else
                             fc_nn_end_block.target_layer[i] = rewards_here + target_dice_ON_level;
