@@ -29,7 +29,7 @@ int main()
     srand(static_cast<unsigned>(time(NULL))); // Seed the randomizer
     cout << "DQN program" << endl;
     int total_plays = 0;
-    // ======== create 2 convolution layer objects =========
+    // ======== create convolution layer objects =========
     convolution conv_L1;
 
     //======================================================
@@ -59,8 +59,55 @@ int main()
     // Set up a OpenCV mat
     const int pixel_height = 45; /// The input data pixel height, note game_Width = 220
     const int pixel_width = 45;  /// The input data pixel width, note game_Height = 200
-    
-     int save_cnt = 0;
+
+    // ======== create convolution layer objects =========
+    const int nr_of_networks = 2;//0 = Policy network, 1 = Frozen Target network
+    const int conv_layers = 3;
+    const int see_nr_of_frames = 4;
+
+    convolution conv_net[nr_of_networks][conv_layers][see_nr_of_frames];
+
+    int conv_inp_channels[conv_layers];
+    int conv_out_channels[conv_layers];
+    int conv_kernel_size[conv_layers];
+    int conv_stride[conv_layers];
+
+    conv_inp_channels[0] = pixel_height * pixel_width;
+    conv_out_channels[0] = 12;
+    conv_out_channels[1] = 14;
+    conv_out_channels[2] = 16;
+    conv_kernel_size[0] = 5;
+    conv_kernel_size[1] = 5;
+    conv_kernel_size[2] = 3;
+    conv_stride[0] = 2;
+    conv_stride[1] = 2;
+    conv_stride[2] = 1;
+
+    for (int i = 0; i < nr_of_networks; i++)
+    {
+        for (int j = 0; j < conv_layers; j++)
+        {
+            for (int k = 0; k < see_nr_of_frames; k++)
+            {
+                if(j == 0)
+                {
+                    conv_net[i][j][k].set_in_tensor(conv_inp_channels[j], 1); 
+                }
+                else
+                {
+                    conv_net[i][j][k].set_in_tensor(conv_inp_channels[j], conv_net[i][j-1][k].output_tensor.size()); 
+                }
+                conv_net[i][j][k].set_out_tensor(conv_out_channels[j]);
+                conv_net[i][j][k].set_kernel_size(conv_kernel_size[j]); 
+                conv_net[i][j][k].set_stride(conv_stride[j]); 
+            }
+        }
+    }
+    // ========= Set up fully connected networks ============
+    fc_m_resnet fc_nn_end_block[nr_of_networks];
+
+
+    int save_cnt = 0;
     const int save_after_nr = 1;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
