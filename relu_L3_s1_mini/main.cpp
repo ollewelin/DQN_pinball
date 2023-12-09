@@ -22,9 +22,10 @@ using namespace std;
 #define MOVE_STOP 2
 
 #define Q_ALGORITHM_MODE_A
-//#define DICE_SAME_AS_MAX_Q_USE_VALUE
+#define DICE_SAME_AS_MAX_Q_USE_VALUE
 //#define USE_Q_ACTION_AS_TARGET
-//#define SHUFFEL_BATCH
+//#define SHUFFEL_game_replay
+#define ALL_STATE_REWARDS
 
 vector<int> fisher_yates_shuffle(vector<int> table);
 
@@ -75,7 +76,7 @@ int main()
 
     vector<vector<int>> replay_actions_buffert;
 
-    vector<vector<double>> rewards_at_batch;
+    vector<vector<double>> rewards_at_game_replay;
 
     //=========== Neural Network size settings ==============
     fc_m_resnet fc_nn_end_block;
@@ -241,19 +242,19 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.4; // OFF action target
-    double target_dice_ON_level = 0.6; // Dice ON action target
-    const double learning_rate_fc = 0.005;
-    const double learning_rate_conv = 0.005;
+    double target_off_level = 1.0; // OFF action target
+    double target_dice_ON_level = 2.0; // Dice ON action target
+    const double learning_rate_fc = 0.001;
+    const double learning_rate_conv = 0.001;
     double learning_rate_end = learning_rate_fc;
-    fc_nn_end_block.momentum = 0.01;
+    fc_nn_end_block.momentum = 0.9;//
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = learning_rate_conv;
-    conv_L1.momentum = 0.01;
+    conv_L1.momentum = 0.9;
     conv_L2.learning_rate = learning_rate_conv;
-    conv_L2.momentum = 0.01;
+    conv_L2.momentum = 0.9;
     conv_L3.learning_rate = learning_rate_conv;
-    conv_L3.momentum = 0.01;
+    conv_L3.momentum = 0.9;
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.2;
@@ -265,9 +266,9 @@ int main()
 #ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
     double alpha = 0.7;
 #endif
-    const int batch_size = 20;
-  //  const int update_frozen_after_samples = 10 * batch_size;
-    const int update_frozen_after_samples = 100;
+    const int g_replay_size = 20;
+   const int update_frozen_after_samples = 100 * g_replay_size/3;
+  //  const int update_frozen_after_samples = 1000;
     int update_frz_cnt = 0;
     const int swapping_learning_mode = 0;
     const int swap_fc_conv_learn_after = 100;
@@ -306,15 +307,15 @@ int main()
 
     Mat upsampl_conv_view_2;
     
-    int batch_nr = 0; // Used during play
-    vector<int> batch_state_rand_list;
-        int check_batch_nr = 0;                                                     // Used during replay training
+    int g_replay_nr = 0; // Used during play
+    vector<int> g_replay_state_rand_list;
+        int check_g_replay_nr = 0;                                                     // Used during replay training
  
-#ifdef SHUFFEL_BATCH
+#ifdef SHUFFEL_game_replay
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
-   for (int i = 0; i < batch_size; i++)
+   for (int i = 0; i < g_replay_size; i++)
     {
-        batch_state_rand_list.push_back(0);
+        g_replay_state_rand_list.push_back(0);
     }
     vector<int> frame_state_rand_list;
     for (int i = 0; i < single_game_state_size; i++)
@@ -324,11 +325,11 @@ int main()
 #else
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
 //    int check_state_nr = 0;                                                     // Used during replay training
-    for (int i = 0; i < batch_size; i++)
+    for (int i = 0; i < g_replay_size; i++)
     {
         for (int j = 0; j < single_game_state_size; j++)
         {
-            batch_state_rand_list.push_back(0);
+            g_replay_state_rand_list.push_back(0);
         }
     }
 
@@ -370,7 +371,7 @@ int main()
     game_video_full_size = gameObj1.gameGrapics.clone();
     resize(game_video_full_size, resized_grapics, image_size_reduced);
     imshow("resized_grapics", resized_grapics); ///  resize(src, dst, size);
-    replay_grapics_buffert.create(pixel_height * gameObj1.nr_of_frames, pixel_width * batch_size, CV_32FC1);
+    replay_grapics_buffert.create(pixel_height * gameObj1.nr_of_frames, pixel_width * g_replay_size, CV_32FC1);
     upsampl_conv_view.create(pixel_height, pixel_width, CV_32FC1);
     input_frm.create(pixel_height, pixel_width, CV_32FC1);
 
@@ -381,15 +382,15 @@ int main()
 
     vector<int> dummy_1D_vect_int;
     vector<double> dummy_1D_vect_double;
-    for (int i = 0; i < batch_size; i++)
+    for (int i = 0; i < g_replay_size; i++)
     {
-        dummy_1D_vect_int.push_back(0); // Prepare an inner 1D vector to put to next replay_action_buffert 2D vector with size of batch_size
+        dummy_1D_vect_int.push_back(0); // Prepare an inner 1D vector to put to next replay_action_buffert 2D vector with size of g_replay_size
         dummy_1D_vect_double.push_back(0.0);
     }
     for (int i = 0; i < gameObj1.nr_of_frames; i++)
     {
         replay_actions_buffert.push_back(dummy_1D_vect_int); // Create the size of replay_action_buffert memory how store replay action of all states and the whole batch
-        rewards_at_batch.push_back(dummy_1D_vect_double);    //
+        rewards_at_game_replay.push_back(dummy_1D_vect_double);    //
     }
     Mat debug;
     const int max_nr_epochs = 1000000;
@@ -397,7 +398,7 @@ int main()
     {
         cout << "******** Epoch number = " << epoch << " **********" << endl;
         cout << "dqn_epsilon = " << dqn_epsilon << endl;
-        for (int batch_cnt = 0; batch_cnt < batch_size; batch_cnt++)
+        for (int g_replay_cnt = 0; g_replay_cnt < g_replay_size; g_replay_cnt++)
         {
             if(dqn_epsilon < stop_min_epsilon)
             {
@@ -405,9 +406,9 @@ int main()
             }
             
 
-            batch_nr = batch_cnt;
+            g_replay_nr = g_replay_cnt;
             gameObj1.start_episode();
-      //      cout << "Run one game and store it in replay memory index at batch_cnt = " << batch_cnt << endl;
+      //      cout << "Run one game and store it in replay memory index at g_replay_cnt = " << g_replay_cnt << endl;
 
             for (int frame_g = 0; frame_g < gameObj1.nr_of_frames; frame_g++) // Loop throue each of the 100 frames
             {
@@ -420,7 +421,7 @@ int main()
                 // replay_grapics_buffert filled with data from resized_grapics rows from 0 to pixel_height-1 into replay_grapics_buffert rows index pixel_height * frame_g + (resized_grapics rows from 0 to pixel_height-1)
                 // Insert resized_grapics into replay_grapics_buffert
                 // Calculate the starting column index for the ROI in replay_grapics_buffert
-                int startCol = pixel_width * batch_nr;
+                int startCol = pixel_width * g_replay_nr;
                 // Create a Rect to define the ROI in replay_grapics_buffert
                 cv::Rect roi(startCol, pixel_height * frame_g, pixel_width, pixel_height);
                 // Copy the relevant region from resized_grapics to replay_grapics_buffert
@@ -440,12 +441,12 @@ int main()
                             {
                                 int row = j / pixel_width;
                                 int col = j % pixel_width;
-                                float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (frame_g - (nr_frames_strobed - 1) + f) + row, col + pixel_width * batch_nr);
+                                float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (frame_g - (nr_frames_strobed - 1) + f) + row, col + pixel_width * g_replay_nr);
                                 conv_L1.input_tensor[i][row][col] = pixelValue;
                             }
                         }
 
-                        if (batch_cnt == batch_nr - 1)
+                        if (g_replay_cnt == g_replay_nr - 1)
                         {
                             // Debug
                             for (int i = 0; i < L1_input_channels; i++)
@@ -496,7 +497,7 @@ int main()
                         }
                     }
 
-                    if (batch_cnt == 0)
+                    if (g_replay_cnt == 0)
                     {
 
                         // Visualization of L1 conv output
@@ -578,7 +579,7 @@ int main()
                                 max_decision = (float)action_dice;
                                 decided_action = i;
                             }
-                            if (batch_cnt == 0)
+                            if (g_replay_cnt == 0)
                             {
                //                 cout << "Dice max_decision = " << max_decision << " i = " << i << endl;
                             }
@@ -598,16 +599,17 @@ int main()
                                 max_decision = action_node;
                                 decided_action = i;
                             }
-                            if (batch_cnt == 0)
+                            if (g_replay_cnt == 0)
                             {
                                 cout << "action_node = " << action_node << " i = " << i << endl;
                             }
                   /*
-                            if(fc_nn_end_block.output_layer[0] > fc_nn_end_block.output_layer[1] )
+                            if((fc_nn_end_block.output_layer[0] > fc_nn_end_block.output_layer[2]) || (fc_nn_end_block.output_layer[1] > fc_nn_end_block.output_layer[2]))
                             {
                                 cout << "action_node = " << action_node << " i = " << i << " frame_g = " << frame_g << endl;
                             }
-                    */        
+                        */
+                            
                         }
                     }
                     //  std::cout << std::fixed << std::setprecision(20);
@@ -616,8 +618,8 @@ int main()
 
                     gameObj1.move_up = decided_action; // Input Action from Agent. 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
                 //    cout << " decided_action = " << decided_action << endl;
-                    replay_actions_buffert[frame_g][batch_nr] = decided_action + do_dice;
-                //    cout << " replay_actions_buffert[" << frame_g << "][" << batch_nr << "] = " << replay_actions_buffert[frame_g][batch_nr] << endl;
+                    replay_actions_buffert[frame_g][g_replay_nr] = decided_action + do_dice;
+                //    cout << " replay_actions_buffert[" << frame_g << "][" << g_replay_nr << "] = " << replay_actions_buffert[frame_g][g_replay_nr] << endl;
                 //    cout << "do_dice = " << do_dice << endl;
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************
@@ -675,11 +677,11 @@ int main()
 
             cout << "                                                                                                       " << endl;
             std::cout << "\033[F";
-            cout << "Play batch_cnt = " << batch_cnt << " Rewards = " << rewards << endl;
+            cout << "Play g_replay_cnt = " << g_replay_cnt << " Rewards = " << rewards << endl;
             // Move the cursor up one line (ANSI escape code)
             std::cout << "\033[F";
 
-            rewards_at_batch[gameObj1.nr_of_frames - 1][batch_nr] = rewards;
+            rewards_at_game_replay[gameObj1.nr_of_frames - 1][g_replay_nr] = rewards;
             total_plays++;
 
 //                const int swapping_learning_mode = 1;
@@ -714,7 +716,7 @@ int main()
             if (win_p_cnt > 10)
             {
                 now_win_probability = (double)win_counter / (double)(win_p_cnt + 1);
-                if (batch_nr == batch_size - 1)
+                if (g_replay_nr == g_replay_size - 1)
                 {
                     cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play count = " << win_p_cnt + 1 << " Old win probablilty = " << last_win_probability * 100.0 << "% total plays = " << total_plays << endl;
                 }
@@ -735,8 +737,8 @@ int main()
                 last_win_probability = now_win_probability;
             }
         }
-        imshow("replay_grapics_buffert", replay_grapics_buffert);
-        waitKey(1);
+  //      imshow("replay_grapics_buffert", replay_grapics_buffert);
+  //      waitKey(1);
 
         // visual_conv_kernel_L1_Mat
         int kernel_output_channels = conv_L1.kernel_weights.size();
@@ -810,19 +812,19 @@ int main()
         cout << "********* Run the whole replay batch memory and training the DQN network *******" << endl;
         cout << "********************************************************************************" << endl;
         //   cout << "single_game_state_size = " << single_game_state_size << endl;
-        batch_state_rand_list = fisher_yates_shuffle(batch_state_rand_list);
+        g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
         int replay_decided_action = 0;
 
-#ifdef SHUFFEL_BATCH
+#ifdef SHUFFEL_game_replay
         frame_state_rand_list = fisher_yates_shuffle(frame_state_rand_list);
 
         for (int frame_state = single_game_state_size - 1; frame_state > 0; frame_state--)
         {
 
-            for (int batch_state_cnt = 0; batch_state_cnt < batch_size; batch_state_cnt++)
+            for (int g_replay_state_cnt = 0; g_replay_state_cnt < g_replay_size; g_replay_state_cnt++)
             {
-                check_batch_nr = batch_state_rand_list[batch_state_cnt];
-                batch_nr = check_batch_nr;
+                check_g_replay_nr = g_replay_state_rand_list[g_replay_state_cnt];
+                g_replay_nr = check_g_replay_nr;
                 // int single_game_frame_state = frame_state;
                 int single_game_frame_state = frame_state_rand_list[frame_state];
                 double max_Q_target_value = 0.0;
@@ -830,13 +832,13 @@ int main()
                 int L3_out_ch = conv_L3.output_tensor.size();
 
 #else
-        for (int batch_state_cnt = 0; batch_state_cnt < (single_game_state_size * batch_size); batch_state_cnt++)
+        for (int g_replay_state_cnt = 0; g_replay_state_cnt < (single_game_state_size * g_replay_size); g_replay_state_cnt++)
         {
-            check_batch_nr = batch_state_rand_list[batch_state_cnt];
+            check_g_replay_nr = g_replay_state_rand_list[g_replay_state_cnt];
             //     cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
-            batch_nr = check_batch_nr / single_game_state_size;
-            //    cout << "Run one training state sample at batch_nr = " << batch_nr << endl;
-            int single_game_frame_state = check_batch_nr % single_game_state_size;
+            g_replay_nr = check_g_replay_nr / single_game_state_size;
+            //    cout << "Run one training state sample at g_replay_nr = " << g_replay_nr << endl;
+            int single_game_frame_state = check_g_replay_nr % single_game_state_size;
             int frame_state = single_game_frame_state;
             //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
             double max_Q_target_value = 0.0;
@@ -851,7 +853,7 @@ int main()
                 if (single_game_frame_state < single_game_state_size - 1)
                 {
                     // Calculate the starting column index for the ROI in replay_grapics_buffert
-                    int startCol = pixel_width * batch_nr;
+                    int startCol = pixel_width * g_replay_nr;
                     int startRow = pixel_height * single_game_frame_state;
 
                     cv::Rect replay_roi(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
@@ -921,7 +923,7 @@ int main()
 
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************
-                    replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][batch_nr];
+                    replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][g_replay_nr];
             //        cout <<" replay_decided_action = " << replay_decided_action  << endl;
                    
                     if(replay_decided_action < end_out_nodes)
@@ -938,7 +940,7 @@ int main()
 
                     single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
                     // Calculate the starting column index for the ROI in replay_grapics_buffert
-                    startCol = pixel_width * batch_nr;
+                    startCol = pixel_width * g_replay_nr;
                     startRow = pixel_height * single_game_frame_state;
                     cv::Rect replay_roi_2(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
                     for (int f = 0; f < nr_frames_strobed; f++)
@@ -1022,12 +1024,17 @@ int main()
                 {
                     // End game state
                     max_Q_target_value = target_off_level; // Zero Q value at end state Only rewards will be used
-              //      cout << "Replay END State at batch_nr = " << batch_nr << endl;
+              //      cout << "Replay END State at g_replay_nr = " << g_replay_nr << endl;
                 }
 
                 int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
                 // cout << "rewards_idx_state = " << rewards_idx_state << endl;
-                double rewards_here = rewards_at_batch[rewards_idx_state][batch_nr];
+            
+#ifdef ALL_STATE_REWARDS               
+                double rewards_here = rewards_at_game_replay[gameObj1.nr_of_frames - 1][g_replay_nr];
+#else
+                double rewards_here = rewards_at_game_replay[rewards_idx_state][g_replay_nr];
+#endif             
                 //     double target_value = rewards_here + gamma * max_Q_target_value;
                 //        #Q table UPDATE
                 //        Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
@@ -1041,7 +1048,7 @@ int main()
                         if(replay_decided_action == i)
                         {
 #ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
-                            if(max_Q_index == replay_decided_action)
+                            if(i == replay_decided_action)
                             {
                                 fc_nn_end_block.target_layer[i] = gamma * max_Q_target_value;
                             }
@@ -1146,7 +1153,7 @@ int main()
                     fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
                 }
 
-                if (batch_nr == 0 && single_game_frame_state == single_game_state_size - 1)
+                if (g_replay_nr == 0 && single_game_frame_state == single_game_state_size - 1)
                 {
                     // Show upsampling
                     // Put in the output data from the convolution operation into the transpose upsampling operation
@@ -1180,7 +1187,7 @@ int main()
             }
             cout << "                                                                                                       " << endl;
             std::cout << "\033[F";
-            cout <<"batch_state_cnt count down = " << (single_game_state_size * batch_size) - batch_state_cnt << endl;
+            cout <<"g_replay_state_cnt count down = " << (single_game_state_size * g_replay_size) - g_replay_state_cnt << endl;
             // Move the cursor up one line (ANSI escape code)
             std::cout << "\033[F";
         }
