@@ -22,10 +22,10 @@ using namespace std;
 #define MOVE_STOP 2
 
 #define Q_ALGORITHM_MODE_A
-#define DICE_SAME_AS_MAX_Q_USE_VALUE
+//#define DICE_SAME_AS_MAX_Q_USE_VALUE
 //#define USE_Q_ACTION_AS_TARGET
 //#define SHUFFEL_game_replay
-#define ALL_STATE_REWARDS
+//#define ALL_STATE_REWARDS
 
 vector<int> fisher_yates_shuffle(vector<int> table);
 
@@ -227,8 +227,8 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 1.0; // OFF action target
     double target_dice_ON_level = 2.0; // Dice ON action target
-    const double learning_rate_fc = 0.001;
-    const double learning_rate_conv = 0.001;
+    const double learning_rate_fc = 0.04;
+    const double learning_rate_conv = 0.04;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.momentum = 1.0;//1.0 for batch fc baackpropagation
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -250,8 +250,8 @@ int main()
     double alpha = 0.7;
 #endif
     const int g_replay_size = 20;
-   const int update_frozen_after_samples = 100 * g_replay_size/3;
-  //  const int update_frozen_after_samples = 1000;
+  // const int update_frozen_after_samples = 100 * g_replay_size/3;
+    const int update_frozen_after_samples = 100;
     int update_frz_cnt = 0;
     const int swapping_learning_mode = 0;
     const int swap_fc_conv_learn_after = 100;
