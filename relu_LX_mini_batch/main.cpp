@@ -91,6 +91,14 @@ int main()
         {
             for (int k = 0; k < see_nr_of_frames; k++)
             {
+                cout << endl;
+                cout << endl;
+                cout << "********************************************" << endl;
+                cout << "==== Setup convolution network number " << i << " ====" << endl;
+                cout << "==== Convolution layer number " << j << " ============" << endl;
+                cout << "==== Convolution sceen number " << k << " ============" << endl;
+                cout << "********************************************" << endl;
+                cout << endl;
                 conv_net[i][j][k].set_kernel_size(conv_kernel_size[j]); 
                 conv_net[i][j][k].set_stride(conv_stride[j]); 
                 if(j == 0)
@@ -122,12 +130,13 @@ int main()
     int nr_of_fc_hid_layers = 3;
     fc_m_resnet fc_nn_end_block[nr_of_networks];
 
-    
-
-
-
     for (int i = 0; i < nr_of_networks; i++)
     {
+        cout << endl;
+        cout << "================================================"<< endl;
+        cout << "==== Setup fully conencted network number " << i << " ===="<< endl;
+        cout << "================================================"<< endl;
+
         fc_nn_end_block[i].get_version();
         fc_nn_end_block[i].block_type = 2;
         fc_nn_end_block[i].use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
@@ -157,8 +166,11 @@ int main()
         {
             fc_nn_end_block[i].set_nr_of_hidden_nodes_on_layer_nr(end_hid_nodes_LX[j]);
         }
-        
     }
+    cout << endl;
+    cout << endl;
+//===============
+
 
     int save_cnt = 0;
     const int save_after_nr = 1;
