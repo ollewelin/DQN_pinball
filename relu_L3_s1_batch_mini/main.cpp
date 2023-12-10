@@ -1090,6 +1090,7 @@ int main()
                 */
                 //fc_nn_end_block.backpropagtion_and_update();
                 fc_nn_end_block.backpropagtion();
+                fc_nn_end_block.update_all_weights(0);
                 // backprop convolution layers
 
                 for (int f = 0; f < nr_frames_strobed; f++)
@@ -1120,7 +1121,7 @@ int main()
                     conv_L3.conv_update_weights();
                     conv_L2.conv_update_weights();
                     conv_L1.conv_update_weights();
-
+                    fc_nn_end_block.update_all_weights(1);
                     fc_nn_end_block.clear_batch_accum();
                     conv_L3.clear_kernel_delta();
                     conv_L2.clear_kernel_delta();
