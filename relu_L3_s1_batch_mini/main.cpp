@@ -22,7 +22,7 @@ using namespace std;
 #define MOVE_STOP 2
 
 #define Q_ALGORITHM_MODE_A
-#define DICE_SAME_AS_MAX_Q_USE_VALUE
+//#define DICE_SAME_AS_MAX_Q_USE_VALUE
 //#define USE_Q_ACTION_AS_TARGET
 //#define SHUFFEL_game_replay
 //#define ALL_STATE_REWARDS
@@ -123,10 +123,10 @@ int main()
     //==== Set up convolution layers ===========
     cout << "conv_L1 setup:" << endl;
     const int nr_color_channels = 1;                 //=== 1 channel gray scale ====
-    const int nr_frames_strobed = 6;                 // 4 Images in serie to make neural network to see movments
+    const int nr_frames_strobed = 8;                 // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels; // color channels
     const int L1_tensor_in_size = pixel_width * pixel_height;
-    const int L1_tensor_out_channels = 12;
+    const int L1_tensor_out_channels = 10;
     const int L1_kernel_size = 5;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
@@ -147,7 +147,7 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 15;
+    int L2_tensor_out_channels = 20;
     int L2_kernel_size = 5;
     int L2_stride = 2;
 
@@ -169,7 +169,7 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 15;
+    int L3_tensor_out_channels = 50;
     int L3_kernel_size = 3;
     int L3_stride = 1;
 
@@ -194,9 +194,9 @@ int main()
     int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size() * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 3;
-    const int end_hid_nodes_L1 = 200;
-    const int end_hid_nodes_L2 = 80;
-    const int end_hid_nodes_L3 = 40;
+    const int end_hid_nodes_L1 = 300;
+    const int end_hid_nodes_L2 = 20;
+    const int end_hid_nodes_L3 = 10;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -225,10 +225,10 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.0; // OFF action target
-    double target_dice_ON_level = 1.0; // Dice ON action target
-    const double learning_rate_fc = 0.01;
-    const double learning_rate_conv = 0.01;
+    double target_off_level = 0.05; // OFF action target
+    double target_dice_ON_level = 0.95; // Dice ON action target
+    const double learning_rate_fc = 0.0001;
+    const double learning_rate_conv = 0.0001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.momentum = 1.0;//1.0 for batch fc baackpropagation
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -238,22 +238,22 @@ int main()
     conv_L2.momentum = 0.0;//0.0 for batch conv baackpropagation
     conv_L3.learning_rate = learning_rate_conv;
     conv_L3.momentum = 0.0;//0.0 for batch conv baackpropagation
-    double init_random_weight_propotion = 0.1;
+    double init_random_weight_propotion = 0.5;
     double init_random_weight_propotion_conv = 0.3;
     const double start_epsilon = 0.25;
     const double stop_min_epsilon = 0.55;
     const int games_to_reach_stop_eps = 10000;
     const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.2f;
+    double gamma = 0.9f;
 #ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
     double alpha = 0.7;
 #endif
-    const int g_replay_size = 20;
+    const int g_replay_size = 8;
   // const int update_frozen_after_samples = 100 * g_replay_size/3;
     const int update_frozen_after_samples = 10000;
     int update_frz_cnt = 0;
-    const int mini_batch_size = 25;
+    const int mini_batch_size = 100;
     int mini_batch_cnt = 0;
     
     const int swapping_learning_mode = 0;
@@ -639,12 +639,14 @@ int main()
             {
                 if(gameObj1.square == 1)
                 {
-                    rewards = -2.35; // Lose Penalty
+                  //  rewards = -2.35; // Lose Penalty
+                  rewards = 0.0;
                     //rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = -3.95; // Lose Penalty
+                   // rewards = -3.95; // Lose Penalty
+                   rewards = 0.0;
                     //rewards *= abs_diff;
                 }
             }
