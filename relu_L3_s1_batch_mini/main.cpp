@@ -225,8 +225,9 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.45; // OFF action target
+    
     double target_dice_ON_level = 0.55; // Dice ON action target
+    double target_off_level = target_dice_ON_level / end_out_nodes; // OFF action target
     const double learning_rate_fc = 0.0001;
     const double learning_rate_conv = 0.0001;
     double learning_rate_end = learning_rate_fc;
@@ -245,7 +246,7 @@ int main()
     const int games_to_reach_stop_eps = 10000;
     const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.9f;
+    double gamma = 0.45f;
 #ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
     double alpha = 0.7;
 #endif
@@ -1077,7 +1078,7 @@ int main()
 #endif
 #ifdef Q_ALGORITHM_MODE_A
                             // target_value = rewards_here + gamma * (max_Q_target_value - );
-                            fc_nn_end_block.target_layer[i] = rewards_here + gamma * max_Q_target_value;
+                            fc_nn_end_block.target_layer[i] = rewards_here + gamma * (max_Q_target_value - target_off_level) + target_off_level;
 #else
                             // Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
                             fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_here + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
