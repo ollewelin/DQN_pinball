@@ -82,7 +82,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 1;
+    const int save_after_nr = 10;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
     string L1_kernel_k_weight_filename;
@@ -225,8 +225,8 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 0.05; // OFF action target
-    double target_dice_ON_level = 0.95; // Dice ON action target
+    double target_off_level = 0.45; // OFF action target
+    double target_dice_ON_level = 0.55; // Dice ON action target
     const double learning_rate_fc = 0.0001;
     const double learning_rate_conv = 0.0001;
     double learning_rate_end = learning_rate_fc;
@@ -240,8 +240,8 @@ int main()
     conv_L3.momentum = 0.0;//0.0 for batch conv baackpropagation
     double init_random_weight_propotion = 0.5;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.25;
-    const double stop_min_epsilon = 0.55;
+    const double start_epsilon = 0.4;
+    const double stop_min_epsilon = 0.65;
     const int games_to_reach_stop_eps = 10000;
     const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
