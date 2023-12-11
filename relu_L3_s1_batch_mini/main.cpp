@@ -225,10 +225,10 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
-    double target_off_level = 1.0; // OFF action target
-    double target_dice_ON_level = 2.0; // Dice ON action target
-    const double learning_rate_fc = 0.04;
-    const double learning_rate_conv = 0.04;
+    double target_off_level = 0.0; // OFF action target
+    double target_dice_ON_level = 1.0; // Dice ON action target
+    const double learning_rate_fc = 0.001;
+    const double learning_rate_conv = 0.001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.momentum = 1.0;//1.0 for batch fc baackpropagation
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -240,19 +240,22 @@ int main()
     conv_L3.momentum = 0.0;//0.0 for batch conv baackpropagation
     double init_random_weight_propotion = 0.1;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.2;
-    const double stop_min_epsilon = 0.5;
+    const double start_epsilon = 0.25;
+    const double stop_min_epsilon = 0.55;
     const int games_to_reach_stop_eps = 10000;
     const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.9f;
+    double gamma = 0.2f;
 #ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
     double alpha = 0.7;
 #endif
     const int g_replay_size = 20;
   // const int update_frozen_after_samples = 100 * g_replay_size/3;
-    const int update_frozen_after_samples = 100;
+    const int update_frozen_after_samples = 10000;
     int update_frz_cnt = 0;
+    const int mini_batch_size = 100;
+    int mini_batch_cnt = 0;
+    
     const int swapping_learning_mode = 0;
     const int swap_fc_conv_learn_after = 100;
     int swap_fc_conv_learn_cnt = 0;
@@ -1112,9 +1115,10 @@ int main()
                     conv_L1.conv_backprop();
                 }
 
-                if (update_frz_cnt < update_frozen_after_samples)
+
+                if (mini_batch_cnt < mini_batch_size)
                 {
-                    update_frz_cnt++;
+                    mini_batch_cnt++;
                 }
                 else
                 {
@@ -1129,7 +1133,15 @@ int main()
                     conv_L3.clear_i_tens_delta();
                     conv_L2.clear_i_tens_delta();
                     conv_L1.clear_i_tens_delta();
-                    
+                    mini_batch_cnt = 0;
+                }
+
+                if (update_frz_cnt < update_frozen_after_samples)
+                {
+                    update_frz_cnt++;
+                }
+                else
+                {
                     update_frz_cnt = 0;
                     // copy over to frozen fc and conv network
                     conv_frozen_L1_target_net.kernel_weights = conv_L1.kernel_weights;
