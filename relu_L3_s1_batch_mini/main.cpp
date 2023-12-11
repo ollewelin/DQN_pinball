@@ -640,13 +640,13 @@ int main()
                 if(gameObj1.square == 1)
                 {
                   //  rewards = -2.35; // Lose Penalty
-                  rewards = 0.0;
+                  rewards = -1.0;
                     //rewards /= abs_diff;
                 }
                 else
                 {
                    // rewards = -3.95; // Lose Penalty
-                   rewards = 0.0;
+                   rewards = -1.0;
                     //rewards *= abs_diff;
                 }
             }
