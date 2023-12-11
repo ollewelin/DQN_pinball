@@ -123,7 +123,7 @@ int main()
     //==== Set up convolution layers ===========
     cout << "conv_L1 setup:" << endl;
     const int nr_color_channels = 1;                 //=== 1 channel gray scale ====
-    const int nr_frames_strobed = 8;                 // 4 Images in serie to make neural network to see movments
+    const int nr_frames_strobed = 6;                 // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels; // color channels
     const int L1_tensor_in_size = pixel_width * pixel_height;
     const int L1_tensor_out_channels = 10;
@@ -195,8 +195,8 @@ int main()
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 3;
     const int end_hid_nodes_L1 = 300;
-    const int end_hid_nodes_L2 = 20;
-    const int end_hid_nodes_L3 = 10;
+    const int end_hid_nodes_L2 = 40;
+    const int end_hid_nodes_L3 = 20;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -240,8 +240,8 @@ int main()
     conv_L3.learning_rate = learning_rate_conv;
     conv_L3.momentum = 0.0;//0.0 for batch conv backpropagation
     double init_random_weight_propotion = 0.5;
-    double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.5;
+    double init_random_weight_propotion_conv = 0.5;
+    const double start_epsilon = 0.6;
     const double stop_min_epsilon = 0.2;
     const int games_to_reach_stop_eps = 10000;
     const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
@@ -250,7 +250,7 @@ int main()
 #ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
     double alpha = 0.7;
 #endif
-    const int g_replay_size = 2000;
+    const int g_replay_size = 1000;
   // const int update_frozen_after_samples = 100 * g_replay_size/3;
    // const int update_frozen_after_samples = 32 * 8;
     int update_frz_cnt = 0;
