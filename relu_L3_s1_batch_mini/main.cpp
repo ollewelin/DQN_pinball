@@ -22,7 +22,7 @@ using namespace std;
 #define MOVE_STOP 2
 
 #define Q_ALGORITHM_MODE_A
-//#define DICE_SAME_AS_MAX_Q_USE_VALUE
+#define DICE_SAME_AS_MAX_Q_USE_VALUE
 //#define USE_Q_ACTION_AS_TARGET
 //#define SHUFFEL_game_replay
 //#define ALL_STATE_REWARDS
@@ -227,8 +227,8 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     double target_off_level = 0.0; // OFF action target
     double target_dice_ON_level = 1.0; // Dice ON action target
-    const double learning_rate_fc = 0.001;
-    const double learning_rate_conv = 0.001;
+    const double learning_rate_fc = 0.01;
+    const double learning_rate_conv = 0.01;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.momentum = 1.0;//1.0 for batch fc baackpropagation
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -253,7 +253,7 @@ int main()
   // const int update_frozen_after_samples = 100 * g_replay_size/3;
     const int update_frozen_after_samples = 10000;
     int update_frz_cnt = 0;
-    const int mini_batch_size = 100;
+    const int mini_batch_size = 25;
     int mini_batch_cnt = 0;
     
     const int swapping_learning_mode = 0;
@@ -1024,6 +1024,10 @@ int main()
                 double rewards_here = rewards_at_game_replay[gameObj1.nr_of_frames - 1][g_replay_nr];
 #else
                 double rewards_here = rewards_at_game_replay[rewards_idx_state][g_replay_nr];
+                if(rewards_here != 0.0)
+                {
+                    cout << "rewards_here = " << rewards_here << " at rewards_idx_state = " << rewards_idx_state << " at g_replay_nr = " << g_replay_nr << endl;
+                }
 #endif             
                 //     double target_value = rewards_here + gamma * max_Q_target_value;
                 //        #Q table UPDATE
@@ -1040,11 +1044,11 @@ int main()
 #ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
                             if(i == replay_decided_action)
                             {
-                                fc_nn_end_block.target_layer[i] = gamma * max_Q_target_value;
+                                fc_nn_end_block.target_layer[i] = rewards_here + gamma * max_Q_target_value;
                             }
                             else
                             {
-                                fc_nn_end_block.target_layer[i] = rewards_here + target_dice_ON_level;
+                                fc_nn_end_block.target_layer[i] = target_off_level;
                             }
 #else
                             fc_nn_end_block.target_layer[i] = rewards_here + target_dice_ON_level;
@@ -1126,6 +1130,9 @@ int main()
                     conv_L2.conv_update_weights();
                     conv_L1.conv_update_weights();
                     fc_nn_end_block.update_all_weights(1);
+             //       cout << "=========================================" << endl;
+             //       cout << "======== Policy network updated =========" << endl;
+             //       cout << "=========================================" << endl;
                     fc_nn_end_block.clear_batch_accum();
                     conv_L3.clear_kernel_delta();
                     conv_L2.clear_kernel_delta();
@@ -1148,6 +1155,10 @@ int main()
                     conv_frozen_L2_target_net.kernel_weights = conv_L2.kernel_weights;
                     conv_frozen_L3_target_net.kernel_weights = conv_L3.kernel_weights;
                     fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
+                    cout << "=========================================" << endl;
+                    cout << "======== Target network updated =========" << endl;
+                    cout << "=========================================" << endl;
+
                 }
 
                 if (g_replay_nr == 0 && single_game_frame_state == single_game_state_size - 1)
