@@ -1026,7 +1026,7 @@ int main()
                 double rewards_here = rewards_at_game_replay[rewards_idx_state][g_replay_nr];
                 if(rewards_here != 0.0)
                 {
-                    cout << "rewards_here = " << rewards_here << " at rewards_idx_state = " << rewards_idx_state << " at g_replay_nr = " << g_replay_nr << endl;
+    //                cout << "rewards_here = " << rewards_here << " at rewards_idx_state = " << rewards_idx_state << " at g_replay_nr = " << g_replay_nr << endl;
                 }
 #endif             
                 //     double target_value = rewards_here + gamma * max_Q_target_value;
