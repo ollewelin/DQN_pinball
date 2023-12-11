@@ -228,33 +228,34 @@ int main()
     
     double target_dice_ON_level = 0.55; // Dice ON action target
     double target_off_level = target_dice_ON_level / end_out_nodes; // OFF action target
-    const double learning_rate_fc = 0.0001;
-    const double learning_rate_conv = 0.0001;
+    const double learning_rate_fc = 0.001;
+    const double learning_rate_conv = 0.001;
     double learning_rate_end = learning_rate_fc;
-    fc_nn_end_block.momentum = 1.0;//1.0 for batch fc baackpropagation
+    fc_nn_end_block.momentum = 1.0;//1.0 for batch fc backpropagation
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = learning_rate_conv;
-    conv_L1.momentum = 0.0;//0.0 for batch conv baackpropagation
+    conv_L1.momentum = 0.0;//0.0 for batch conv backpropagation
     conv_L2.learning_rate = learning_rate_conv;
-    conv_L2.momentum = 0.0;//0.0 for batch conv baackpropagation
+    conv_L2.momentum = 0.0;//0.0 for batch conv backpropagation
     conv_L3.learning_rate = learning_rate_conv;
-    conv_L3.momentum = 0.0;//0.0 for batch conv baackpropagation
+    conv_L3.momentum = 0.0;//0.0 for batch conv backpropagation
     double init_random_weight_propotion = 0.5;
     double init_random_weight_propotion_conv = 0.3;
-    const double start_epsilon = 0.4;
-    const double stop_min_epsilon = 0.65;
+    const double start_epsilon = 0.5;
+    const double stop_min_epsilon = 0.2;
     const int games_to_reach_stop_eps = 10000;
     const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    double gamma = 0.45f;
+    double gamma = 0.85f;
 #ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
     double alpha = 0.7;
 #endif
-    const int g_replay_size = 8;
+    const int g_replay_size = 2000;
   // const int update_frozen_after_samples = 100 * g_replay_size/3;
-    const int update_frozen_after_samples = 10000;
+   // const int update_frozen_after_samples = 32 * 8;
     int update_frz_cnt = 0;
-    const int mini_batch_size = 100;
+    const int mini_batch_size = 32;
+    const int update_frozen_after_samples = mini_batch_size * 8;
     int mini_batch_cnt = 0;
     
     const int swapping_learning_mode = 0;
@@ -387,9 +388,9 @@ int main()
         cout << "dqn_epsilon = " << dqn_epsilon << endl;
         for (int g_replay_cnt = 0; g_replay_cnt < g_replay_size; g_replay_cnt++)
         {
-            if(dqn_epsilon < stop_min_epsilon)
+            if(dqn_epsilon > stop_min_epsilon)
             {
-                dqn_epsilon += derating_epsilon;
+                dqn_epsilon -= derating_epsilon;
             }
             
 
@@ -553,7 +554,7 @@ int main()
                     int decided_action = 0;
                     int do_dice = 0;
                     double max_decision = 0.0f;
-                    if (exploring_dice > dqn_epsilon)
+                    if (exploring_dice < dqn_epsilon)
                     {
                         do_dice = end_out_nodes;
                         // Choose dice action (Exploration mode)
@@ -626,12 +627,12 @@ int main()
                 if(gameObj1.square == 1)
                 {
                     
-                    rewards = 3.75; // Win Rewards avoid square
+                    rewards = 5.0; // Win Rewards avoid square
              //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 8.0; // Win Rewards catch ball
+                    rewards = 10.0; // Win Rewards catch ball
              //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -641,13 +642,13 @@ int main()
                 if(gameObj1.square == 1)
                 {
                   //  rewards = -2.35; // Lose Penalty
-                  rewards = -1.0;
+                  rewards = -3.0;
                     //rewards /= abs_diff;
                 }
                 else
                 {
                    // rewards = -3.95; // Lose Penalty
-                   rewards = -1.0;
+                   rewards = -3.0;
                     //rewards *= abs_diff;
                 }
             }
@@ -1190,10 +1191,10 @@ int main()
                         }
                     }
                     cv::imshow("upsampl_conv_view", upsampl_conv_view);
-                    waitKey(100);
+                    waitKey(1);
                     upsampl_conv_view_2 = upsampl_conv_view + 0.5;
                     cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
-                    waitKey(100);
+                    waitKey(1);
                 }
             }
             cout << "                                                                                                       " << endl;
@@ -1202,8 +1203,8 @@ int main()
             // Move the cursor up one line (ANSI escape code)
             std::cout << "\033[F";
         }
-        imshow("replay_grapics_buffert", replay_grapics_buffert);
-        waitKey(1);
+     //   imshow("replay_grapics_buffert", replay_grapics_buffert);
+     //   waitKey(1);
 
         // Save all weights
         if (save_cnt < save_after_nr)
