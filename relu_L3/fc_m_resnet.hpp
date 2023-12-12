@@ -21,10 +21,10 @@ private:
     vector<int> number_of_hidden_nodes;
     vector<vector<double>> hidden_layer;//2D [layer_nr][node_nr]
     vector<vector<double>> internal_delta;//2D [layer_nr][node_nr] nr_of_hidden_layers + 2 for i_layer_delta and o_layer_delta as well
-public:
-    vector<vector<vector<double>>> all_weights;//3D [layer_nr][node_nr][weights_from_previous_layer]
-private:
-    vector<vector<vector<double>>> change_weights;//3D [layer_nr][node_nr][weights_from_previous_layer]
+
+    // weight_der_accu vector is ether used for mini batch accumulated derivative through several backprop_accum() calls or if SGD moment is used for single sample optimizer
+    // if mini batch is used call clear_acc_deriv() at start of minibatch
+    vector<vector<vector<double>>> weight_der_accu;//3D [layer_nr][node_nr][weights_from_previous_layer]
     double activation_function(double, int);
     double delta_activation_func(double,double);
     double delta_only_sigmoid_func(double,double);
@@ -41,7 +41,12 @@ private:
 public:
     fc_m_resnet(/* args */);
     ~fc_m_resnet();
-    
+    vector<vector<vector<double>>> all_weights;//3D [layer_nr][node_nr][weights_from_previous_layer]
+    //Clipping diratives mode
+    //0 = Normal mode
+    //1 = clipping irivatives +/-1.0
+    int clip_deriv;
+
     //0 = start block 
     //1 = middle block means both i_layer_delta is produced (backpropagate) and o_layer_delta is needed
     //2 = end block. target_nodes is used but o_layer_delta not used only loss and i_layer_delta i calculated. 
@@ -68,13 +73,8 @@ public:
     //0 = all ununiform in/out skip connections are connected every sample every where (forward and backwards). default
     //1 = If ununiform in/out skip connectetions are the case, only uniform in/out skip connection is made forward and backwards and switched every sample
     //2....n = uniform in/out skip connection switch after this number of samples
-     int shift_ununiform_skip_connection_after_samp_n;
-    
-    //0 = SGD Stocastic Gradient Decent
-    //1 = Batch Gradient Decent, not yet implemented
-    int training_mode;
-    int batch_size; //Only used if trainging_mode 1
-    
+    int shift_ununiform_skip_connection_after_samp_n;
+
     //0 = No dropout
     //1 = Use dropout
     int use_dropouts;
@@ -100,7 +100,9 @@ public:
     void save_weights(string);//save weights with file name argument 
     void forward_pass(void);
     void only_loss_calculation(void);
-    void backpropagtion_and_update(void);//If batchmode update only when batch end
+    void backpropagtion(void);//
+    void clear_batch_accum(void);//If batchmode update only when batch end
+    void update_all_weights(int);//int do_update_weight = 1 update weight. 0 = only accumulate batch the use momentum = 1.0 as well
     void print_weights(void);
 
     //================= Functions only for debugging/verify the backpropagation gradient functions ============

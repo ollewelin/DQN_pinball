@@ -57,6 +57,7 @@ public:
     void save_weights(string, string);//save weights with file name argument 
     void conv_forward1(void);//Low memory swaping high aritmetric operation variant
     void clear_i_tens_delta(void);
+    void clear_kernel_delta(void); 
     void conv_backprop(void);
     void conv_update_weights(void);
     void conv_transpose_fwd(void);//Same algorithm as conv_backprop but go forward from output_tensor to input_tensor. Used for show patches or as forward conv autoencodes
@@ -74,6 +75,11 @@ public:
     //0 = No dropout
     //1 = Use dropout
     double dropout_proportion;
+
+    //Clipping diratives mode
+    //0 = Normal mode
+    //1 = clipping irivatives +/-1.0
+    int clip_deriv;
 
 
     void get_version(void);
