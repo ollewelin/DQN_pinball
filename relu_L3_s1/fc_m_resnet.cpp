@@ -10,8 +10,8 @@ using namespace std;
 fc_m_resnet::fc_m_resnet(/* args */)
 {
     version_major = 0;
-    version_mid = 1;
-    version_minor = 3;
+    version_mid = 2;
+    version_minor = 0;
     // 0.0.4 fix softmax bugs
     // 0.0.5 fix bug when block type < 2 remove loss calclulation in backprop if not end block
     // 0.0.6 fix bug at  if (block_type < 2){} add else{ .... for end block } at  void fc_m_resnet::set_nr_of_hidden_nodes_on_layer_nr(int nodes)
@@ -22,6 +22,9 @@ fc_m_resnet::fc_m_resnet(/* args */)
     // 0.1.1 loss_A and loss_B
     // 0.1.2 Add force_last_activation_function_to_sigmoid = 0;// 1 = Last activation layer will set to sigmoid regardless activation_function_mode set
     // 0.1.3 Add clipping derivative mode +/- 1.0
+    // 0.2.0 Made batch accumulated derivative optimizer possible depending how to call diffrent functions. Add clear weight_der_accu vector
+    // weight_der_accu vector is ether used for mini batch accumulated derivative through several backprop_accum() calls or if SGD moment is used for single sample optimizer
+    // if mini batch is used call clear_acc_deriv() at start of minibatch
     shift_ununiform_skip_connection_after_samp_n = 0;
     shift_ununiform_skip_connection_sample_counter = 0;
     switch_skip_con_selector = 0;
@@ -54,17 +57,13 @@ fc_m_resnet::fc_m_resnet(/* args */)
     // 1 = turn ON skip connectons
     skip_conn_rest_part = 0;
     skip_conn_multiple_part = 0;
-    skip_conn_in_out_relation = 0;
     // 0 = same input/output
     // 1 = input > output
     // 2 = output > input
-    training_mode = 0;
-    // 0 = SGD Stocastic Gradient Decent
-    // 1 = Batch Gradient Decent, not yet implemented
-    use_dropouts = 0;
+    skip_conn_in_out_relation = 0;
     // 0 = No dropout
     // 1 = Use dropout
-    batch_size = 0; // Only used if trainging_mode 1
+    use_dropouts = 0;
     loss_A = 0.0;
     loss_B = 0.0;
     learning_rate = 0.0;
@@ -147,6 +146,10 @@ void fc_m_resnet::randomize_weights(double rand_proportion)
             for (int w_cnt = 0; w_cnt < weights_to_this_node; w_cnt++)
             {
                 all_weights[l_cnt][n_cnt][w_cnt] = ((((double)rand() / RAND_MAX) - 0.5) * rand_proportion);
+                if(w_cnt == weights_to_this_node-1)
+                {
+           //         all_weights[l_cnt][n_cnt][w_cnt] = ((((double)rand() / RAND_MAX) - 0.5) * rand_proportion/10.0);
+                }
             }
         }
     }
@@ -353,7 +356,7 @@ void fc_m_resnet::set_nr_of_hidden_nodes_on_layer_nr(int nodes)
         // Likevice internal_delta[end output layer][x] before the activation function
         // but o_layer_delta[x] is the delta from outside after the activation function
 
-        cout << "Now setup all_weight, change_weights vectors size of this fc block" << endl;
+        cout << "Now setup all_weight, weight_der_accu vectors size of this fc block" << endl;
         vector<double> dummy_1D_weight_vector;
         vector<vector<double>> dummy_2D_weight_vector;
         int weight_size_1D = 0;
@@ -388,7 +391,7 @@ void fc_m_resnet::set_nr_of_hidden_nodes_on_layer_nr(int nodes)
                 dummy_2D_weight_vector.push_back(dummy_1D_weight_vector);
             }
             all_weights.push_back(dummy_2D_weight_vector);
-            change_weights.push_back(dummy_2D_weight_vector);
+            weight_der_accu.push_back(dummy_2D_weight_vector);
         }
 
         // output weight setup
@@ -407,8 +410,8 @@ void fc_m_resnet::set_nr_of_hidden_nodes_on_layer_nr(int nodes)
             dummy_2D_weight_vector.push_back(dummy_1D_weight_vector);
         }
         all_weights.push_back(dummy_2D_weight_vector);
-        change_weights.push_back(dummy_2D_weight_vector);
-        cout << "The size of all_weight and change_weights in now setup OK !" << endl;
+        weight_der_accu.push_back(dummy_2D_weight_vector);
+        cout << "The size of all_weight and weight_der_accu in now setup OK !" << endl;
         cout << "Note that the program how call this object could only set this size once. No protections against change size of the public vectors" << endl;
         setup_state = 2;
         cout << "Setup state = " << setup_state << endl;
@@ -779,7 +782,7 @@ void fc_m_resnet::only_loss_calculation(void)
         loss_B += 0.5 * (target_layer[i] - output_layer[i]) * (target_layer[i] - output_layer[i]); // Squared error * 0.5
     }
 }
-void fc_m_resnet::backpropagtion_and_update(void)
+void fc_m_resnet::backpropagtion(void)
 {
 
     int output_nodes = output_layer.size();
@@ -919,46 +922,64 @@ void fc_m_resnet::backpropagtion_and_update(void)
     }
 
     //============ Backpropagate finish =================================
+}
 
+void fc_m_resnet::clear_batch_accum(void)
+{
+    int weight_size_1D = all_weights.size();
+    for (int i = 0; i < weight_size_1D; i++)
+    {
+        int weight_size_2D = all_weights[i].size();
+        for (int j = 0; j < weight_size_2D; j++)
+        {
+            int weight_size_3D = all_weights[i][j].size() - 1;
+            weight_der_accu[i][j][weight_size_3D] = 0.0; // Bias weight
+            all_weights[i][j][weight_size_3D] += weight_der_accu[i][j][weight_size_3D];                                                      // Update Bias wheight
+            for (int k = 0; k < weight_size_3D; k++)
+            {
+                weight_der_accu[i][j][k] = 0.0;
+            }
+        }
+    }
+}
+
+void fc_m_resnet::update_all_weights(int do_update_weight)
+{
     // ======== Update weights ========================
     int weight_size_1D = all_weights.size();
     for (int i = 0; i < weight_size_1D; i++)
     {
-
         int weight_size_2D = all_weights[i].size();
-        if (i == 0)
+        for (int j = 0; j < weight_size_2D; j++)
         {
-            // Input layer
-            for (int j = 0; j < weight_size_2D; j++)
+            int weight_size_3D = all_weights[i][j].size() - 1;
+            weight_der_accu[i][j][weight_size_3D] = learning_rate * internal_delta[i][j] + momentum * weight_der_accu[i][j][weight_size_3D]; // Bias weight
+            all_weights[i][j][weight_size_3D] += weight_der_accu[i][j][weight_size_3D];                                                      // Update Bias wheight
+            for (int k = 0; k < weight_size_3D; k++)
             {
-                int weight_size_3D = all_weights[i][j].size() - 1;
-                change_weights[i][j][weight_size_3D] = learning_rate * internal_delta[i][j] + momentum * change_weights[i][j][weight_size_3D]; // Bias weight
-                all_weights[i][j][weight_size_3D] += change_weights[i][j][weight_size_3D];                                                     // Update Bias wheight
-                for (int k = 0; k < weight_size_3D; k++)
+                double layer_x = 0.0;
+                if (i == 0)
                 {
-                    change_weights[i][j][k] = learning_rate * input_layer[k] * internal_delta[i][j] + momentum * change_weights[i][j][k];
-                    all_weights[i][j][k] += change_weights[i][j][k];
+                    // Input layer
+                    layer_x = input_layer[k];
                 }
-            }
-        }
-        else
-        {
-            // Hidden layer
-            for (int j = 0; j < weight_size_2D; j++)
-            {
-                int weight_size_3D = all_weights[i][j].size() - 1;
-                change_weights[i][j][weight_size_3D] = learning_rate * internal_delta[i][j] + momentum * change_weights[i][j][weight_size_3D]; // Bias weight
-                all_weights[i][j][weight_size_3D] += change_weights[i][j][weight_size_3D];                                                     // Update Bias wheight
-                for (int k = 0; k < weight_size_3D; k++)
+                else
                 {
-                    change_weights[i][j][k] = learning_rate * hidden_layer[i - 1][k] * internal_delta[i][j] + momentum * change_weights[i][j][k];
-                    all_weights[i][j][k] += change_weights[i][j][k];
+                    // Hidden layer
+                    layer_x = hidden_layer[i - 1][k];
+                }
+                weight_der_accu[i][j][k] = learning_rate * layer_x * internal_delta[i][j] + momentum * weight_der_accu[i][j][k];
+                if(do_update_weight == 1)
+                {
+                    all_weights[i][j][k] += weight_der_accu[i][j][k];
                 }
             }
         }
     }
     // ===============================================
 }
+
+
 void fc_m_resnet::print_weights(void)
 {
     cout << "all_weights = " << endl;
