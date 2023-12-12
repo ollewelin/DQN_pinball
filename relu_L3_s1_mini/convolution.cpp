@@ -8,8 +8,8 @@ using namespace std;
 convolution::convolution()
 {
     version_major = 0;
-    version_mid = 3;
-    version_minor = 7;
+    version_mid = 4;
+    version_minor = 0;
     // 0.0.0 Not finnish at all
     // 0.2.0 Added void convolution::conv_transpose_fwd() function not yet tested
     // 0.0.3 remove conv_forward2(void) function 
@@ -18,6 +18,7 @@ convolution::convolution()
     // 0.3.5 Make kernel_weights public so it's possible for open CV to show kernels in main
     // 0.3.6 Fix bug in conv_transpose_fwd() when using Sigmoid function now add a pseudo_activation_output_value = 0.5 when sigmoid used. 1.0 when Relu used
     // 0.3.7 Add clipping derivative mode +/- 1.0
+    // 0.4.0 Split backprop and update for make it possible to do batch update
     
     clip_deriv = 0;
     setup_state = 0;
@@ -583,10 +584,11 @@ void convolution::clear_i_tens_delta()
     }
 }
 
-void convolution::conv_backprop()
+void convolution::clear_kernel_delta()
 {
     for (int out_ch_cnt = 0; out_ch_cnt < output_tensor_channels; out_ch_cnt++)
     {
+        accum_bias_deltas[out_ch_cnt] = 0.0; // used only for bias weight update later
         for (int ky = 0; ky < kernel_size; ky++)
         {
             for (int kx = 0; kx < kernel_size; kx++)
@@ -600,10 +602,14 @@ void convolution::conv_backprop()
         }
     }
 
+}
+void convolution::conv_backprop()
+{
+//    clear_kernel_delta();
     // Compute delta for each output channel
     for (int out_ch_cnt = 0; out_ch_cnt < output_tensor_channels; out_ch_cnt++)
     {
-        accum_bias_deltas[out_ch_cnt] = 0.0; // used only for bias weight update later
+    //    accum_bias_deltas[out_ch_cnt] = 0.0; // used only for bias weight update later
         for (int y_slide = 0; y_slide < output_side_size; y_slide++)
         {
             for (int x_slide = 0; x_slide < output_side_size; x_slide++)
