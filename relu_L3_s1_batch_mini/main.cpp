@@ -44,7 +44,7 @@ int main()
     gameObj1.init_game();       /// Initialize the pinball game with serten parametrers
     gameObj1.slow_motion = 0;   /// 0=full speed game. 1= slow down
     gameObj1.replay_times = 0;  /// If =0 no replay. >0 this is the nuber of replay with serveral diffrent actions so the ageint take the best rewards before make any weights update
-    gameObj1.advanced_game = 1; /// 0= only a ball. 1= ball give awards. square gives punish
+    gameObj1.advanced_game = 0; /// 0= only a ball. 1= ball give awards. square gives punish
     gameObj1.use_image_diff = 0;
     gameObj1.high_precition_mode = 1; /// This will make adjustable rewards highest at center of the pad.
     gameObj1.use_dice_action = 0;
@@ -59,8 +59,8 @@ int main()
 
 
     // Set up a OpenCV mat
-    const int pixel_height = 51; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 51;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 79; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 79;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -115,7 +115,7 @@ int main()
     //==== Set up convolution layers ===========
     cout << "conv_L1 setup:" << endl;
     const int nr_color_channels = 1;                 //=== 1 channel gray scale ====
-    const int nr_frames_strobed = 6;                 // 4 Images in serie to make neural network to see movments
+    const int nr_frames_strobed = 5;                 // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels; // color channels
     const int L1_tensor_in_size = pixel_width * pixel_height;
     const int L1_tensor_out_channels = 10;
@@ -162,8 +162,8 @@ int main()
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
     int L3_tensor_out_channels = 25;
-    int L3_kernel_size = 7;
-    int L3_stride = 2;
+    int L3_kernel_size = 5;
+    int L3_stride = 1;
 
     cout << "conv_L3 setup:" << endl;
     conv_L3.set_kernel_size(L3_kernel_size); // Odd number
@@ -254,9 +254,9 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.85f;
+    double gamma = 0.8f;
 #ifndef Q_ALGORITHM_MODE_A
-    double alpha = 0.9;
+    double alpha = 0.96;
 #endif
     const int g_replay_size = 1000;//Should be 10000 or more
     int update_frz_cnt = 0;
@@ -272,6 +272,7 @@ int main()
     const int mini_batch_size = 32;
     int mini_batch_cnt = 0;
     const int update_frozen_after_samples = mini_batch_size * 8;
+    //const int update_frozen_after_samples = 2000;
 #else
     const int update_frozen_after_samples = 32 * 8;
 #endif
