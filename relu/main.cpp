@@ -59,8 +59,8 @@ int main()
 
 
     // Set up a OpenCV mat
-    const int pixel_height = 55; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 55;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 79; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 79;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -139,7 +139,7 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 20;
+    int L2_tensor_out_channels = 12;
     int L2_kernel_size = 7;
     int L2_stride = 2;
 
@@ -161,7 +161,7 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 25;
+    int L3_tensor_out_channels = 12;
     int L3_kernel_size = 5;
     int L3_stride = 1;
 
@@ -219,8 +219,8 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     
     double target_off_level = 0.0; // OFF action target
-    const double learning_rate_fc = 0.0005;
-    const double learning_rate_conv = 0.0005;
+    const double learning_rate_fc = 0.001;
+    const double learning_rate_conv = 0.001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = learning_rate_conv;
@@ -237,7 +237,7 @@ int main()
     conv_L2.momentum = 0.9;//
     conv_L3.momentum = 0.9;//
 #endif
-    double init_random_weight_propotion = 0.1;
+    double init_random_weight_propotion = 0.55;
     double init_random_weight_propotion_conv = 0.35;
     const double warm_up_epsilon_start = 0.95;
     double warm_up_epsilon = warm_up_epsilon_start;
