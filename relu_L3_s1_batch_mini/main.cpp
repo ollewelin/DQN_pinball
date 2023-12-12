@@ -22,7 +22,7 @@ using namespace std;
 #define MOVE_STOP 2
 
 #define USE_MINIBATCH
-#define Q_ALGORITHM_MODE_A
+//#define Q_ALGORITHM_MODE_A
 
 vector<int> fisher_yates_shuffle(vector<int> table);
 
@@ -59,8 +59,8 @@ int main()
 
 
     // Set up a OpenCV mat
-    const int pixel_height = 45; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 45;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 51; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 51;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -74,7 +74,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 1;
+    const int save_after_nr = 0;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
     string L1_kernel_k_weight_filename;
@@ -119,7 +119,7 @@ int main()
     const int L1_input_channels = nr_color_channels; // color channels
     const int L1_tensor_in_size = pixel_width * pixel_height;
     const int L1_tensor_out_channels = 10;
-    const int L1_kernel_size = 5;
+    const int L1_kernel_size = 7;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
     conv_L1.set_stride(L1_stride);
@@ -140,7 +140,7 @@ int main()
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
     int L2_tensor_out_channels = 20;
-    int L2_kernel_size = 5;
+    int L2_kernel_size = 7;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
@@ -161,9 +161,9 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 30;
-    int L3_kernel_size = 3;
-    int L3_stride = 1;
+    int L3_tensor_out_channels = 25;
+    int L3_kernel_size = 7;
+    int L3_stride = 2;
 
     cout << "conv_L3 setup:" << endl;
     conv_L3.set_kernel_size(L3_kernel_size); // Odd number
@@ -186,7 +186,7 @@ int main()
     int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size() * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 3;
-    const int end_hid_nodes_L1 = 300;
+    const int end_hid_nodes_L1 = 200;
     const int end_hid_nodes_L2 = 40;
     const int end_hid_nodes_L3 = 20;
     const int end_out_nodes = 3; // Up, Down and Stop action
@@ -255,8 +255,10 @@ int main()
         dqn_epsilon = warm_up_epsilon;
     }
     double gamma = 0.85f;
-
-    const int g_replay_size = 2000;//Should be 10000 or more
+#ifndef Q_ALGORITHM_MODE_A
+    double alpha = 0.9;
+#endif
+    const int g_replay_size = 1000;//Should be 10000 or more
     int update_frz_cnt = 0;
     // statistics report
     // const int max_w_p_nr = 1000;
