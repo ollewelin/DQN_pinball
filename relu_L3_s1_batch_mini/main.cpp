@@ -62,12 +62,7 @@ int main()
     gameObj1.use_character = 0;
     gameObj1.enabel_3_state = 1; // Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
-    // statistics report
-    const int max_w_p_nr = 1000;
-    int win_p_cnt = 0;
-    int win_counter = 0;
-    double last_win_probability = 0.5;
-    double now_win_probability = last_win_probability;
+
 
     // Set up a OpenCV mat
     const int pixel_height = 45; /// The input data pixel height, note game_Width = 220
@@ -273,6 +268,14 @@ int main()
 #endif
     const int g_replay_size = 2000;//Should be 10000 or more
     int update_frz_cnt = 0;
+    // statistics report
+    // const int max_w_p_nr = 1000;
+    const int max_w_p_nr = g_replay_size;
+    int win_p_cnt = 0;
+    int win_counter = 0;
+    double last_win_probability = 0.5;
+    double now_win_probability = last_win_probability;
+
 #ifdef USE_MINIBATCH   
     const int mini_batch_size = 32;
     int mini_batch_cnt = 0;
