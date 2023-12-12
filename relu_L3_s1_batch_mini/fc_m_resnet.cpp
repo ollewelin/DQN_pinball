@@ -146,6 +146,10 @@ void fc_m_resnet::randomize_weights(double rand_proportion)
             for (int w_cnt = 0; w_cnt < weights_to_this_node; w_cnt++)
             {
                 all_weights[l_cnt][n_cnt][w_cnt] = ((((double)rand() / RAND_MAX) - 0.5) * rand_proportion);
+                if(w_cnt == weights_to_this_node-1)
+                {
+           //         all_weights[l_cnt][n_cnt][w_cnt] = ((((double)rand() / RAND_MAX) - 0.5) * rand_proportion/10.0);
+                }
             }
         }
     }

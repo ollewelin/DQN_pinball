@@ -21,11 +21,14 @@ using namespace std;
 #define MOVE_UP 1
 #define MOVE_STOP 2
 
+#define USE_MINIBATCH
 #define Q_ALGORITHM_MODE_A
 //#define DICE_SAME_AS_MAX_Q_USE_VALUE
 //#define USE_Q_ACTION_AS_TARGET
 //#define SHUFFEL_game_replay
 //#define ALL_STATE_REWARDS
+
+
 
 vector<int> fisher_yates_shuffle(vector<int> table);
 
@@ -82,7 +85,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 10;
+    const int save_after_nr = 1;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
     string L1_kernel_k_weight_filename;
@@ -169,7 +172,7 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 50;
+    int L3_tensor_out_channels = 30;
     int L3_kernel_size = 3;
     int L3_stride = 1;
 
@@ -227,36 +230,56 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     
     double target_dice_ON_level = 0.55; // Dice ON action target
-    double target_off_level = target_dice_ON_level / end_out_nodes; // OFF action target
+    //double target_off_level = target_dice_ON_level / end_out_nodes; // OFF action target
+    double target_off_level = 0.0; // OFF action target
     const double learning_rate_fc = 0.001;
     const double learning_rate_conv = 0.001;
     double learning_rate_end = learning_rate_fc;
-    fc_nn_end_block.momentum = 1.0;//1.0 for batch fc backpropagation
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = learning_rate_conv;
-    conv_L1.momentum = 0.0;//0.0 for batch conv backpropagation
     conv_L2.learning_rate = learning_rate_conv;
-    conv_L2.momentum = 0.0;//0.0 for batch conv backpropagation
     conv_L3.learning_rate = learning_rate_conv;
+#ifdef USE_MINIBATCH
+    fc_nn_end_block.momentum = 1.0;//1.0 for batch fc backpropagation
+    conv_L1.momentum = 0.0;//0.0 for batch conv backpropagation
+    conv_L2.momentum = 0.0;//0.0 for batch conv backpropagation
     conv_L3.momentum = 0.0;//0.0 for batch conv backpropagation
-    double init_random_weight_propotion = 0.5;
-    double init_random_weight_propotion_conv = 0.5;
-    const double start_epsilon = 0.6;
-    const double stop_min_epsilon = 0.2;
+#else
+    fc_nn_end_block.momentum = 0.9;//
+    conv_L1.momentum = 0.9;//
+    conv_L2.momentum = 0.9;//
+    conv_L3.momentum = 0.9;//
+#endif
+    double init_random_weight_propotion = 0.3;
+    double init_random_weight_propotion_conv = 0.3;
+    const double warm_up_epsilon_start = 0.95;
+    double warm_up_epsilon = warm_up_epsilon_start;
+    const double warm_up_eps_derating = 0.15;
+    const int warm_up_eps_nr = 3;
+    int warm_up_eps_cnt = 0;
+    const double start_epsilon = 0.60;
+    const double stop_min_epsilon = 0.3;
     const int games_to_reach_stop_eps = 10000;
-    const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
+   // const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
+    const double derating_epsilon = 0.01;
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
+    if(warm_up_eps_nr > 0)
+    {
+        dqn_epsilon = warm_up_epsilon;
+    }
     double gamma = 0.85f;
 #ifdef DICE_SAME_AS_MAX_Q_USE_VALUE
     double alpha = 0.7;
 #endif
-    const int g_replay_size = 1000;
-  // const int update_frozen_after_samples = 100 * g_replay_size/3;
-   // const int update_frozen_after_samples = 32 * 8;
+    const int g_replay_size = 2000;//Should be 10000 or more
     int update_frz_cnt = 0;
+#ifdef USE_MINIBATCH   
     const int mini_batch_size = 32;
-    const int update_frozen_after_samples = mini_batch_size * 8;
     int mini_batch_cnt = 0;
+    const int update_frozen_after_samples = mini_batch_size * 8;
+#else
+    const int update_frozen_after_samples = 32 * 1;
+#endif
     
     const int swapping_learning_mode = 0;
     const int swap_fc_conv_learn_after = 100;
@@ -388,11 +411,6 @@ int main()
         cout << "dqn_epsilon = " << dqn_epsilon << endl;
         for (int g_replay_cnt = 0; g_replay_cnt < g_replay_size; g_replay_cnt++)
         {
-            if(dqn_epsilon > stop_min_epsilon)
-            {
-                dqn_epsilon -= derating_epsilon;
-            }
-            
 
             g_replay_nr = g_replay_cnt;
             gameObj1.start_episode();
@@ -726,9 +744,29 @@ int main()
                 // Store last 1000 win probablilty
                 last_win_probability = now_win_probability;
             }
+
+          
+
         }
   //      imshow("replay_grapics_buffert", replay_grapics_buffert);
   //      waitKey(1);
+          
+    if (dqn_epsilon > stop_min_epsilon)
+    {
+        if (warm_up_eps_cnt < warm_up_eps_nr)
+        {
+            dqn_epsilon -= warm_up_eps_derating;
+            warm_up_eps_cnt++;
+        }
+        else
+        {
+            if (dqn_epsilon > start_epsilon)
+            {
+                dqn_epsilon = start_epsilon; // Limit warm up warm_up_eps_derating if go below the start_epsilon value during warm up epsilon
+            }
+            dqn_epsilon -= derating_epsilon;
+        }
+    }
 
         // visual_conv_kernel_L1_Mat
         int kernel_output_channels = conv_L1.kernel_weights.size();
@@ -1100,8 +1138,19 @@ int main()
                     }
                 */
                 //fc_nn_end_block.backpropagtion_and_update();
+#ifdef USE_MINIBATCH 
                 fc_nn_end_block.backpropagtion();
                 fc_nn_end_block.update_all_weights(0);
+#else
+                fc_nn_end_block.clear_batch_accum();
+                fc_nn_end_block.backpropagtion();
+                conv_L3.clear_kernel_delta();
+                conv_L2.clear_kernel_delta();
+                conv_L1.clear_kernel_delta();
+                conv_L3.clear_i_tens_delta();
+                conv_L2.clear_i_tens_delta();
+                conv_L1.clear_i_tens_delta();
+#endif
                 // backprop convolution layers
 
                 for (int f = 0; f < nr_frames_strobed; f++)
@@ -1123,7 +1172,7 @@ int main()
                     conv_L1.conv_backprop();
                 }
 
-
+#ifdef USE_MINIBATCH 
                 if (mini_batch_cnt < mini_batch_size)
                 {
                     mini_batch_cnt++;
@@ -1146,7 +1195,12 @@ int main()
                     conv_L1.clear_i_tens_delta();
                     mini_batch_cnt = 0;
                 }
-
+#else
+                conv_L3.conv_update_weights();
+                conv_L2.conv_update_weights();
+                conv_L1.conv_update_weights();
+                fc_nn_end_block.update_all_weights(1);
+#endif
                 if (update_frz_cnt < update_frozen_after_samples)
                 {
                     update_frz_cnt++;
@@ -1159,14 +1213,9 @@ int main()
                     conv_frozen_L2_target_net.kernel_weights = conv_L2.kernel_weights;
                     conv_frozen_L3_target_net.kernel_weights = conv_L3.kernel_weights;
                     fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
-                    cout << "=========================================" << endl;
-                    cout << "======== Target network updated =========" << endl;
-                    cout << "=========================================" << endl;
-
-                }
-
-                if (g_replay_nr == 0 && single_game_frame_state == single_game_state_size - 1)
-                {
+       //             cout << "=========================================" << endl;
+       //             cout << "======== Target network updated =========" << endl;
+       //             cout << "=========================================" << endl;
                     // Show upsampling
                     // Put in the output data from the convolution operation into the transpose upsampling operation
 
@@ -1195,7 +1244,12 @@ int main()
                     upsampl_conv_view_2 = upsampl_conv_view + 0.5;
                     cv::imshow("upsampl_conv_view_2", upsampl_conv_view_2);
                     waitKey(1);
+
                 }
+
+  //              if (g_replay_nr == 0 && single_game_frame_state == single_game_state_size - 1)
+  //              {
+  //              }
             }
             cout << "                                                                                                       " << endl;
             std::cout << "\033[F";
