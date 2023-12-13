@@ -96,7 +96,7 @@ int main()
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
     fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
-    fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
+    fc_nn_end_block.force_last_activation_function_to_sigmoid = 1; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
     fc_nn_end_block.dropout_proportion = 0.5;
@@ -115,7 +115,7 @@ int main()
     //==== Set up convolution layers ===========
     cout << "conv_L1 setup:" << endl;
     const int nr_color_channels = 1;                 //=== 1 channel gray scale ====
-    const int nr_frames_strobed = 4;                 // 4 Images in serie to make neural network to see movments
+    const int nr_frames_strobed = 7;                 // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels; // color channels
     const int L1_tensor_in_size = pixel_width * pixel_height;
     const int L1_tensor_out_channels = 10;
@@ -161,7 +161,7 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 12;
+    int L3_tensor_out_channels = 10;
     int L3_kernel_size = 5;
     int L3_stride = 1;
 
@@ -188,7 +188,7 @@ int main()
     const int end_hid_layers = 3;
     const int end_hid_nodes_L1 = 200;
     const int end_hid_nodes_L2 = 40;
-    const int end_hid_nodes_L3 = 20;
+    const int end_hid_nodes_L3 = 10;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -218,8 +218,8 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
     
-    double target_off_level = 0.0; // OFF action target
-    const double learning_rate_fc = 0.001;
+    double target_off_level = 0.5; // OFF action target
+    const double learning_rate_fc = 0.01;
     const double learning_rate_conv = 0.001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -248,7 +248,7 @@ int main()
     const double stop_min_epsilon = 0.3;
   //  const int games_to_reach_stop_eps = 10000;
    // const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
-    const double derating_epsilon = 0.01;
+    const double derating_epsilon = 0.001;
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if(warm_up_eps_nr > 0)
     {
@@ -258,7 +258,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 1000;//Should be 10000 or more
+    const int g_replay_size = 500;//Should be 10000 or more
     int update_frz_cnt = 0;
     // statistics report
     // const int max_w_p_nr = 1000;

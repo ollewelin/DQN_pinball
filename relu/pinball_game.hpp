@@ -338,7 +338,7 @@ void pinball_game::start_episode(void)
         ball_angle_derivate = save_replay_start_ball_ang;
     }
     ball_angle_derivate *= 6.0;
-    ball_angle_derivate -= 3.0;/// -0.5..+0.5 will mean +/- 12.5 deg random ball angle
+    ball_angle_derivate -= 6.0;/// -0.5..+0.5 will mean +/- 12.5 deg random ball angle
     frame_steps=0;
     ball_offset_y = game_Height/2;///
     pad_position = game_Height/2;///Start the game at center
