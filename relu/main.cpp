@@ -181,7 +181,15 @@ int main()
     conv_frozen_L3_target_net.clip_deriv = conv_L3.clip_deriv;
     //========= L1,2,3 convolution (vectors) all tensor size for convolution object is finnish =============
 
-  
+    vector<vector<vector<vector<double>>>> conv_L1_stored_input_tensor;//4D [frames_stobed][input_channel][row][col].
+    vector<vector<vector<vector<double>>>> conv_L2_stored_input_tensor;//4D [frames_stobed][input_channel][row][col].
+    vector<vector<vector<vector<double>>>> conv_L3_stored_input_tensor;//4D [frames_stobed][input_channel][row][col].
+    for(int i=0;i<nr_frames_strobed;i++)
+    {
+        conv_L1_stored_input_tensor.push_back(conv_L1.input_tensor);
+        conv_L2_stored_input_tensor.push_back(conv_L2.input_tensor);
+        conv_L3_stored_input_tensor.push_back(conv_L3.input_tensor);
+    }
     // output channels
     int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size() * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
@@ -842,7 +850,6 @@ int main()
                     cv::Rect replay_roi(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
                     for (int f = 0; f < nr_frames_strobed; f++)
                     {
-
                         for (int i = 0; i < L1_input_channels; i++)
                         {
                             for (int j = 0; j < L1_tensor_in_size; j++)
@@ -877,6 +884,10 @@ int main()
                         conv_L2.conv_forward1();
                         conv_L3.input_tensor = conv_L2.output_tensor;
                         conv_L3.conv_forward1();
+                        conv_L1_stored_input_tensor[f] = conv_L1.input_tensor;
+                        conv_L2_stored_input_tensor[f] = conv_L2.input_tensor;
+                        conv_L3_stored_input_tensor[f] = conv_L3.input_tensor;
+
                         for (int oc = 0; oc < L3_out_ch; oc++)
                         {
                             for (int yi = 0; yi < L3_out_one_side; yi++)
@@ -912,60 +923,58 @@ int main()
                     cv::Rect replay_roi_2(startCol, startRow, pixel_width, pixel_height * nr_frames_strobed);
                     for (int f = 0; f < nr_frames_strobed; f++)
                     {
-
-
-                    for (int i = 0; i < L1_input_channels; i++)
-                    {
-                        for (int j = 0; j < L1_tensor_in_size; j++)
+                        for (int i = 0; i < L1_input_channels; i++)
                         {
-                            int row = j / pixel_width;
-                            int col = j % pixel_width;
-
-                            // Calculate the actual row and column indices in replay_roi
-                            int roi_row = row + replay_roi_2.y + f * pixel_height;
-                            int roi_col = col + replay_roi_2.x;
-
-                            // Ensure the indices are within bounds
-                            if (roi_row < replay_roi_2.y + replay_roi_2.height && roi_col < replay_roi_2.x + replay_roi_2.width)
+                            for (int j = 0; j < L1_tensor_in_size; j++)
                             {
-                                // Extract replay_roi data here to pixelValue
-                                float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
-                                conv_frozen_L1_target_net.input_tensor[i][row][col] = pixelValue;
-                            }
-                            else
-                            {
-                                // Handle the case where the indices are out of bounds
-                                // You might want to set a default value or handle it differently based on your requirements.
-                                cout << "error case where the indices are out of bounds" << endl;
-                                conv_frozen_L1_target_net.input_tensor[i][row][col] = 0.0; // Set a default value to 0.0 for example
+                                int row = j / pixel_width;
+                                int col = j % pixel_width;
+
+                                // Calculate the actual row and column indices in replay_roi
+                                int roi_row = row + replay_roi_2.y + f * pixel_height;
+                                int roi_col = col + replay_roi_2.x;
+
+                                // Ensure the indices are within bounds
+                                if (roi_row < replay_roi_2.y + replay_roi_2.height && roi_col < replay_roi_2.x + replay_roi_2.width)
+                                {
+                                    // Extract replay_roi data here to pixelValue
+                                    float pixelValue = replay_grapics_buffert.at<float>(roi_row, roi_col);
+                                    conv_frozen_L1_target_net.input_tensor[i][row][col] = pixelValue;
+                                }
+                                else
+                                {
+                                    // Handle the case where the indices are out of bounds
+                                    // You might want to set a default value or handle it differently based on your requirements.
+                                    cout << "error case where the indices are out of bounds" << endl;
+                                    conv_frozen_L1_target_net.input_tensor[i][row][col] = 0.0; // Set a default value to 0.0 for example
+                                }
                             }
                         }
-                    }
 
-                    //======================================================================
-                    //================== Forward Pass Frozen network NEXT state ============
-                    conv_frozen_L1_target_net.conv_forward1();
-                    conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
-                    conv_frozen_L2_target_net.conv_forward1();
-                    conv_frozen_L3_target_net.input_tensor = conv_frozen_L2_target_net.output_tensor;
-                    conv_frozen_L3_target_net.conv_forward1();
-                    for (int oc = 0; oc < L3_out_ch; oc++)
-                    {
-                        for (int yi = 0; yi < L3_out_one_side; yi++)
+                        //======================================================================
+                        //================== Forward Pass Frozen network NEXT state ============
+                        conv_frozen_L1_target_net.conv_forward1();
+                        conv_frozen_L2_target_net.input_tensor = conv_frozen_L1_target_net.output_tensor;
+                        conv_frozen_L2_target_net.conv_forward1();
+                        conv_frozen_L3_target_net.input_tensor = conv_frozen_L2_target_net.output_tensor;
+                        conv_frozen_L3_target_net.conv_forward1();
+                        for (int oc = 0; oc < L3_out_ch; oc++)
                         {
-                            for (int xi = 0; xi < L3_out_one_side; xi++)
+                            for (int yi = 0; yi < L3_out_one_side; yi++)
                             {
-                                //                                          double out_conv = conv_frozen_L3_target_net.output_tensor[oc][yi][xi];
-                                //                if(yi== L3_out_one_side-1)
-                                //             {
-                                //                 out_conv = 0.1;
-                                //             }
-                                //    fc_nn_frozen_target_net.input_layer[oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] =out_conv ;
+                                for (int xi = 0; xi < L3_out_one_side; xi++)
+                                {
+                                    //                                          double out_conv = conv_frozen_L3_target_net.output_tensor[oc][yi][xi];
+                                    //                if(yi== L3_out_one_side-1)
+                                    //             {
+                                    //                 out_conv = 0.1;
+                                    //             }
+                                    //    fc_nn_frozen_target_net.input_layer[oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] =out_conv ;
 
-                                fc_nn_frozen_target_net.input_layer[f * oc * L3_out_one_side * L3_out_one_side + oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] = conv_frozen_L3_target_net.output_tensor[oc][yi][xi];
+                                    fc_nn_frozen_target_net.input_layer[f * oc * L3_out_one_side * L3_out_one_side + oc * L3_out_one_side * L3_out_one_side + yi * L3_out_one_side + xi] = conv_frozen_L3_target_net.output_tensor[oc][yi][xi];
+                                }
                             }
                         }
-                    }
                     }
                     // Start Forward pass fully connected network
                     fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
@@ -974,14 +983,13 @@ int main()
 
                     // Search for max Q-value
                     max_Q_target_value = 0.0;
-                    
+
                     for (int i = 0; i < end_out_nodes; i++)
                     {
                         double action_node = fc_nn_frozen_target_net.output_layer[i];
                         if (action_node > max_Q_target_value)
                         {
                             max_Q_target_value = action_node;
-
                         }
                     }
                 }
@@ -1029,6 +1037,9 @@ int main()
 
    
                 //fc_nn_end_block.backpropagtion_and_update();
+
+
+
 #ifdef USE_MINIBATCH 
                 fc_nn_end_block.backpropagtion();
                 fc_nn_end_block.update_all_weights(0);
@@ -1043,7 +1054,7 @@ int main()
                 conv_L1.clear_i_tens_delta();
 #endif
                 // backprop convolution layers
-
+                // TODO reload f image to convolution input tenor to make a proper backprop of convolution layers
                 for (int f = 0; f < nr_frames_strobed; f++)
                 {
                     for (int oc = 0; oc < L3_out_ch; oc++)
@@ -1056,11 +1067,20 @@ int main()
                             }
                         }
                     }
+                    conv_L1.input_tensor = conv_L1_stored_input_tensor[f];
+                    conv_L2.input_tensor = conv_L2_stored_input_tensor[f];
+                    conv_L3.input_tensor = conv_L3_stored_input_tensor[f];
+                    
                     conv_L3.conv_backprop();
                     conv_L2.o_tensor_delta = conv_L3.i_tensor_delta;
                     conv_L2.conv_backprop();
                     conv_L1.o_tensor_delta = conv_L2.i_tensor_delta;
                     conv_L1.conv_backprop();
+#ifndef USE_MINIBATCH 
+                    conv_L3.conv_update_weights();
+                    conv_L2.conv_update_weights();
+                    conv_L1.conv_update_weights();
+#endif
                 }
 
 #ifdef USE_MINIBATCH 
@@ -1087,9 +1107,6 @@ int main()
                     mini_batch_cnt = 0;
                 }
 #else
-                conv_L3.conv_update_weights();
-                conv_L2.conv_update_weights();
-                conv_L1.conv_update_weights();
                 fc_nn_end_block.update_all_weights(1);
 #endif
                 if (update_frz_cnt < update_frozen_after_samples)
