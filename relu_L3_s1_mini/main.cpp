@@ -59,8 +59,8 @@ int main()
 
 
     // Set up a OpenCV mat
-    const int pixel_height = 51; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 51;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 53; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 53;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -247,7 +247,7 @@ int main()
 #endif
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
-    const double warm_up_epsilon_start = 0.95;
+    const double warm_up_epsilon_start = 0.9;
     double warm_up_epsilon = warm_up_epsilon_start;
     const double warm_up_eps_derating = 0.15;
     const int warm_up_eps_nr = 3;
