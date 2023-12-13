@@ -227,7 +227,7 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     
     double target_off_level = 0.5; // OFF action target
-    const double learning_rate_fc = 0.01;
+    const double learning_rate_fc = 0.001;
     const double learning_rate_conv = 0.001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -1070,7 +1070,7 @@ int main()
                     conv_L1.input_tensor = conv_L1_stored_input_tensor[f];
                     conv_L2.input_tensor = conv_L2_stored_input_tensor[f];
                     conv_L3.input_tensor = conv_L3_stored_input_tensor[f];
-                    
+
                     conv_L3.conv_backprop();
                     conv_L2.o_tensor_delta = conv_L3.i_tensor_delta;
                     conv_L2.conv_backprop();
