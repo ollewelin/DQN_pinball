@@ -227,8 +227,13 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     
     double target_off_level = 0.5; // OFF action target
+#ifdef USE_MINIBATCH    
     const double learning_rate_fc = 0.0003;
     const double learning_rate_conv = 0.0003;
+#else
+    const double learning_rate_fc = 0.00003;
+    const double learning_rate_conv = 0.00003;
+#endif
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = learning_rate_conv;
@@ -245,6 +250,7 @@ int main()
     conv_L2.momentum = 0.9;//
     conv_L3.momentum = 0.9;//
 #endif
+
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
     const double warm_up_epsilon_start = 0.9;
@@ -262,7 +268,7 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.65f;
+    double gamma = 0.9f;
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.9;
 #endif
