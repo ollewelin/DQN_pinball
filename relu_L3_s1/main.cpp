@@ -96,7 +96,7 @@ int main()
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
     fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
-    fc_nn_end_block.force_last_activation_function_to_sigmoid = 1; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
+    fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
     fc_nn_end_block.dropout_proportion = 0.5;
@@ -227,8 +227,8 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
     
     double target_off_level = 0.5; // OFF action target
-    const double learning_rate_fc = 0.001;
-    const double learning_rate_conv = 0.001;
+    const double learning_rate_fc = 0.0001;
+    const double learning_rate_conv = 0.0001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = learning_rate_conv;
@@ -262,11 +262,11 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.4f;
+    double gamma = 0.93f;
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 500;//Should be 10000 or more
+    const int g_replay_size = 2000;//Should be 10000 or more
     int update_frz_cnt = 0;
     // statistics report
     // const int max_w_p_nr = 1000;
