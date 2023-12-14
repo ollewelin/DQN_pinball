@@ -44,7 +44,7 @@ int main()
     gameObj1.init_game();       /// Initialize the pinball game with serten parametrers
     gameObj1.slow_motion = 0;   /// 0=full speed game. 1= slow down
     gameObj1.replay_times = 0;  /// If =0 no replay. >0 this is the nuber of replay with serveral diffrent actions so the ageint take the best rewards before make any weights update
-    gameObj1.advanced_game = 1; /// 0= only a ball. 1= ball give awards. square gives punish
+    gameObj1.advanced_game = 0; /// 0= only a ball. 1= ball give awards. square gives punish
     gameObj1.use_image_diff = 0;
     gameObj1.high_precition_mode = 1; /// This will make adjustable rewards highest at center of the pad.
     gameObj1.use_dice_action = 0;
@@ -59,8 +59,8 @@ int main()
 
 
     // Set up a OpenCV mat
-    const int pixel_height = 79; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 79;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 56; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 56;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -115,11 +115,11 @@ int main()
     //==== Set up convolution layers ===========
     cout << "conv_L1 setup:" << endl;
     const int nr_color_channels = 1;                 //=== 1 channel gray scale ====
-    const int nr_frames_strobed = 5;                 // 4 Images in serie to make neural network to see movments
+    const int nr_frames_strobed = 6;                 // 4 Images in serie to make neural network to see movments
     const int L1_input_channels = nr_color_channels; // color channels
     const int L1_tensor_in_size = pixel_width * pixel_height;
     const int L1_tensor_out_channels = 10;
-    const int L1_kernel_size = 7;
+    const int L1_kernel_size = 5;
     const int L1_stride = 2;
     conv_L1.set_kernel_size(L1_kernel_size); // Odd number
     conv_L1.set_stride(L1_stride);
@@ -139,7 +139,7 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 20;
+    int L2_tensor_out_channels = 25;
     int L2_kernel_size = 7;
     int L2_stride = 2;
 
@@ -161,9 +161,9 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 25;
-    int L3_kernel_size = 5;
-    int L3_stride = 1;
+    int L3_tensor_out_channels = 28;
+    int L3_kernel_size = 7;
+    int L3_stride = 2;
 
     cout << "conv_L3 setup:" << endl;
     conv_L3.set_kernel_size(L3_kernel_size); // Odd number
@@ -180,7 +180,6 @@ int main()
     conv_frozen_L3_target_net.top_conv = conv_L3.top_conv;
     conv_frozen_L3_target_net.clip_deriv = conv_L3.clip_deriv;
     //========= L1,2,3 convolution (vectors) all tensor size for convolution object is finnish =============
-
     vector<vector<vector<vector<double>>>> conv_L1_stored_input_tensor;//4D [frames_stobed][input_channel][row][col].
     vector<vector<vector<vector<double>>>> conv_L2_stored_input_tensor;//4D [frames_stobed][input_channel][row][col].
     vector<vector<vector<vector<double>>>> conv_L3_stored_input_tensor;//4D [frames_stobed][input_channel][row][col].
@@ -190,13 +189,14 @@ int main()
         conv_L2_stored_input_tensor.push_back(conv_L2.input_tensor);
         conv_L3_stored_input_tensor.push_back(conv_L3.input_tensor);
     }
+
     // output channels
     int end_inp_nodes = (conv_L3.output_tensor[0].size() * conv_L3.output_tensor[0].size()) * conv_L3.output_tensor.size() * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 3;
-    const int end_hid_nodes_L1 = 200;
+    const int end_hid_nodes_L1 = 300;
     const int end_hid_nodes_L2 = 40;
-    const int end_hid_nodes_L3 = 10;
+    const int end_hid_nodes_L3 = 20;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
     {
@@ -224,11 +224,11 @@ int main()
     //  Note that set_nr_of_hidden_nodes_on_layer_nr() cal must be exactly same number as the set_nr_of_hidden_layers(end_hid_layers)
     //============ Neural Network Size setup is finnish ! ==================
 
-     //=== Now setup the hyper parameters of the Neural Network ====
+    //=== Now setup the hyper parameters of the Neural Network ====
     
-    double target_off_level = 0.0; // OFF action target
-    const double learning_rate_fc = 0.001;
-    const double learning_rate_conv = 0.001;
+    double target_off_level = 0.5; // OFF action target
+    const double learning_rate_fc = 0.0003;
+    const double learning_rate_conv = 0.0003;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
     conv_L1.learning_rate = learning_rate_conv;
@@ -247,7 +247,7 @@ int main()
 #endif
     double init_random_weight_propotion = 0.3;
     double init_random_weight_propotion_conv = 0.3;
-    const double warm_up_epsilon_start = 0.95;
+    const double warm_up_epsilon_start = 0.9;
     double warm_up_epsilon = warm_up_epsilon_start;
     const double warm_up_eps_derating = 0.15;
     const int warm_up_eps_nr = 3;
@@ -256,17 +256,17 @@ int main()
     const double stop_min_epsilon = 0.3;
   //  const int games_to_reach_stop_eps = 10000;
    // const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
-    const double derating_epsilon = 0.01;
+    const double derating_epsilon = 0.002;
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if(warm_up_eps_nr > 0)
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.8f;
+    double gamma = 0.65f;
 #ifndef Q_ALGORITHM_MODE_A
-    double alpha = 0.96;
+    double alpha = 0.9;
 #endif
-    const int g_replay_size = 1000;//Should be 10000 or more
+    const int g_replay_size = 10000;//Should be 10000 or more
     int update_frz_cnt = 0;
     // statistics report
     // const int max_w_p_nr = 1000;
@@ -280,7 +280,6 @@ int main()
     const int mini_batch_size = 32;
     int mini_batch_cnt = 0;
     const int update_frozen_after_samples = mini_batch_size * 8;
-    //const int update_frozen_after_samples = 2000;
 #else
     const int update_frozen_after_samples = 32 * 8;
 #endif
@@ -1070,7 +1069,7 @@ int main()
                     conv_L1.input_tensor = conv_L1_stored_input_tensor[f];
                     conv_L2.input_tensor = conv_L2_stored_input_tensor[f];
                     conv_L3.input_tensor = conv_L3_stored_input_tensor[f];
-                    
+
                     conv_L3.conv_backprop();
                     conv_L2.o_tensor_delta = conv_L3.i_tensor_delta;
                     conv_L2.conv_backprop();
