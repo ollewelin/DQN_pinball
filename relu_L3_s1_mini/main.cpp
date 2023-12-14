@@ -59,8 +59,8 @@ int main()
 
 
     // Set up a OpenCV mat
-    const int pixel_height = 53; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 53;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 56; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 56;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -139,8 +139,8 @@ int main()
     //==== Set up convolution layers ===========
     int L2_input_channels = conv_L1.output_tensor.size();
     int L2_tensor_in_size = (conv_L1.output_tensor[0].size() * conv_L1.output_tensor[0].size());
-    int L2_tensor_out_channels = 20;
-    int L2_kernel_size = 5;
+    int L2_tensor_out_channels = 25;
+    int L2_kernel_size = 7;
     int L2_stride = 2;
 
     cout << "conv_L2 setup:" << endl;
@@ -161,9 +161,9 @@ int main()
     //==== Set up convolution layers ===========
     int L3_input_channels = conv_L2.output_tensor.size();
     int L3_tensor_in_size = (conv_L2.output_tensor[0].size() * conv_L2.output_tensor[0].size());
-    int L3_tensor_out_channels = 20;
-    int L3_kernel_size = 5;
-    int L3_stride = 1;
+    int L3_tensor_out_channels = 32;
+    int L3_kernel_size = 7;
+    int L3_stride = 2;
 
     cout << "conv_L3 setup:" << endl;
     conv_L3.set_kernel_size(L3_kernel_size); // Odd number
@@ -195,7 +195,7 @@ int main()
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 3;
     const int end_hid_nodes_L1 = 300;
-    const int end_hid_nodes_L2 = 40;
+    const int end_hid_nodes_L2 = 50;
     const int end_hid_nodes_L3 = 20;
     const int end_out_nodes = 3; // Up, Down and Stop action
     for (int i = 0; i < end_inp_nodes; i++)
@@ -256,7 +256,7 @@ int main()
     const double stop_min_epsilon = 0.3;
   //  const int games_to_reach_stop_eps = 10000;
    // const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
-    const double derating_epsilon = 0.01;
+    const double derating_epsilon = 0.002;
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if(warm_up_eps_nr > 0)
     {
@@ -266,7 +266,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.9;
 #endif
-    const int g_replay_size = 1000;//Should be 10000 or more
+    const int g_replay_size = 5;//Should be 10000 or more
     int update_frz_cnt = 0;
     // statistics report
     // const int max_w_p_nr = 1000;
