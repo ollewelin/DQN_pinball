@@ -20,7 +20,7 @@ using namespace std;
 #define MOVE_UP 1
 #define MOVE_STOP 2
 
-//#define USE_MINIBATCH
+#define USE_MINIBATCH
 #define Q_ALGORITHM_MODE_A
 
 vector<int> fisher_yates_shuffle(vector<int> table);
@@ -138,7 +138,7 @@ int main()
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.1; //
+    fc_nn_end_block.momentum = 0.9; //
 #endif
     double init_random_weight_propotion = 0.55;
     const double warm_up_epsilon_start = 0.95;
@@ -154,7 +154,7 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.8f;
+    double gamma = 0.93f;
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
@@ -348,12 +348,12 @@ int main()
                 if (gameObj1.square == 1)
                 {
 
-                    rewards = 1.0; // Win Rewards avoid square
+                    rewards = 0.95; // Win Rewards avoid square
                                    //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 1.0; // Win Rewards catch ball
+                    rewards = 0.95; // Win Rewards catch ball
                                     //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -363,13 +363,13 @@ int main()
                 if (gameObj1.square == 1)
                 {
                     //  rewards = -2.35; // Lose Penalty
-                    rewards = -1.0;
+                    rewards = -0.95;
                     // rewards /= abs_diff;
                 }
                 else
                 {
                     // rewards = -3.95; // Lose Penalty
-                    rewards = -1.0;
+                    rewards = -0.95;
                     // rewards *= abs_diff;
                 }
             }
