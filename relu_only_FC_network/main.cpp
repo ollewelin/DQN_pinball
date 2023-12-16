@@ -20,7 +20,7 @@ using namespace std;
 #define MOVE_UP 1
 #define MOVE_STOP 2
 
-#define USE_MINIBATCH
+//#define USE_MINIBATCH
 #define Q_ALGORITHM_MODE_A
 
 vector<int> fisher_yates_shuffle(vector<int> table);
@@ -82,7 +82,7 @@ int main()
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
-    fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
+    fc_nn_end_block.activation_function_mode = 0;                  // ReLU for all fully connected activation functions except output last layer
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
@@ -132,7 +132,7 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
 
     double target_off_level = 0.5; // OFF action target
-    const double learning_rate_fc = 0.00001;
+    const double learning_rate_fc = 0.0003;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
@@ -154,7 +154,7 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.93f;
+    double gamma = 0.83f;
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
