@@ -85,8 +85,8 @@ int main()
     fc_nn_end_block.activation_function_mode = 0;                  // ReLU for all fully connected activation functions except output last layer
     fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
-    fc_nn_end_block.use_dropouts = 1;
-    fc_nn_end_block.dropout_proportion = 0.5;
+    fc_nn_end_block.use_dropouts = 0;
+    fc_nn_end_block.dropout_proportion = 0.0;
     fc_nn_end_block.clip_deriv = all_clip_der;
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
