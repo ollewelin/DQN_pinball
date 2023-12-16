@@ -158,7 +158,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 100; // Should be 10000 or more
+    const int g_replay_size = 10; // Should be 10000 or more
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
@@ -465,7 +465,7 @@ int main()
                     {
                         int row = i / pixel_width;
                         int col = i % pixel_width;
-                        float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (single_game_frame_state - (nr_frames_strobed - 1) + f) + row, col + pixel_width * g_replay_nr);
+                        float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (single_game_frame_state + f) + row, col + pixel_width * g_replay_nr);
                         fc_nn_end_block.input_layer[i] = pixelValue;
                     }
                 }
@@ -490,7 +490,7 @@ int main()
                     {
                         int row = i / pixel_width;
                         int col = i % pixel_width;
-                        float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (single_game_frame_state - (nr_frames_strobed - 1) + f) + row, col + pixel_width * g_replay_nr);
+                        float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (single_game_frame_state + f) + row, col + pixel_width * g_replay_nr);
                         fc_nn_frozen_target_net.input_layer[i] = pixelValue;
                     }
                 }
