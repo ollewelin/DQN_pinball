@@ -138,7 +138,7 @@ int main()
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.9; //
+    fc_nn_end_block.momentum = 0.1; //
 #endif
     double init_random_weight_propotion = 0.55;
     const double warm_up_epsilon_start = 0.95;
@@ -154,7 +154,7 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.93f;
+    double gamma = 0.8f;
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
@@ -348,12 +348,12 @@ int main()
                 if (gameObj1.square == 1)
                 {
 
-                    rewards = 5.0; // Win Rewards avoid square
+                    rewards = 1.0; // Win Rewards avoid square
                                    //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 10.0; // Win Rewards catch ball
+                    rewards = 1.0; // Win Rewards catch ball
                                     //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -363,13 +363,13 @@ int main()
                 if (gameObj1.square == 1)
                 {
                     //  rewards = -2.35; // Lose Penalty
-                    rewards = -3.0;
+                    rewards = -1.0;
                     // rewards /= abs_diff;
                 }
                 else
                 {
                     // rewards = -3.95; // Lose Penalty
-                    rewards = -3.0;
+                    rewards = -1.0;
                     // rewards *= abs_diff;
                 }
             }
