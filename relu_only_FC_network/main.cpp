@@ -73,7 +73,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 100;
+    
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
 
@@ -158,7 +158,9 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 10; // Should be 10000 or more
+    const int g_replay_size = 1000; // Should be 10000 or more
+
+    const int save_after_nr = g_replay_size / 100;
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
