@@ -73,7 +73,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 0;
+    const int save_after_nr = 1;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
 
@@ -147,7 +147,7 @@ int main()
     const int warm_up_eps_nr = 3;
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.60;
-    const double stop_min_epsilon = 0.3;
+    const double stop_min_epsilon = 0.4;
     const double derating_epsilon = 0.001;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if (warm_up_eps_nr > 0)
@@ -220,7 +220,9 @@ int main()
     game_video_full_size = gameObj1.gameGrapics.clone();
     resize(game_video_full_size, resized_grapics, image_size_reduced);
     imshow("resized_grapics", resized_grapics); ///  resize(src, dst, size);
-    replay_grapics_buffert.create(pixel_height * gameObj1.nr_of_frames, pixel_width * g_replay_size, CV_32FC1);
+    int replay_row_size = pixel_height * gameObj1.nr_of_frames;
+    int replay_col_size = pixel_width * g_replay_size;
+    replay_grapics_buffert.create(replay_row_size, replay_col_size, CV_32FC1);
     input_frm.create(pixel_height, pixel_width, CV_32FC1);
 
     cout << "replay_grapics_buffert rows = " << replay_grapics_buffert.rows << endl;
@@ -276,7 +278,9 @@ int main()
                         {
                             int row = i / pixel_width;
                             int col = i % pixel_width;
-                            float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (frame_g - (nr_frames_strobed - 1) + f) + row, col + pixel_width * g_replay_nr);
+                            int replay_column = col + pixel_width * g_replay_nr;
+                            int replay_row = pixel_height * (frame_g - (nr_frames_strobed - 1)) + row;
+                            float pixelValue = replay_grapics_buffert.at<float>(replay_row, replay_column);
                             fc_nn_end_block.input_layer[i] = pixelValue;
                         }
                     }
