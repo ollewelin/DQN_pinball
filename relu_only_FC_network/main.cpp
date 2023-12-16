@@ -158,7 +158,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 1000; // Should be 10000 or more
+    const int g_replay_size = 100; // Should be 10000 or more
 
     const int save_after_nr = g_replay_size / 100;
     int update_frz_cnt = 0;
@@ -465,15 +465,12 @@ int main()
             if (single_game_frame_state < single_game_state_size - 1)
             {
                 // Calculate the starting column index for the ROI in replay_grapics_buffert
-                for (int f = 0; f < nr_frames_strobed; f++)
+                for (int i = 0; i < end_inp_nodes; i++)
                 {
-                    for (int i = 0; i < end_inp_nodes; i++)
-                    {
-                        int row = i / pixel_width;
-                        int col = i % pixel_width;
-                        float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (single_game_frame_state + f) + row, col + pixel_width * g_replay_nr);
-                        fc_nn_end_block.input_layer[i] = pixelValue;
-                    }
+                    int row = i / pixel_width;
+                    int col = i % pixel_width;
+                    float pixelValue = replay_grapics_buffert.at<float>(pixel_height * single_game_frame_state + row, col + pixel_width * g_replay_nr);
+                    fc_nn_end_block.input_layer[i] = pixelValue;
                 }
                 //**********************************************************************
                 //****************** Forward Pass training network *********************
@@ -490,15 +487,12 @@ int main()
                 //================== Forward Pass Frozen network NEXT state ============
                 single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
                 // Calculate the starting column index for the ROI in replay_grapics_buffert
-                for (int f = 0; f < nr_frames_strobed; f++)
+                for (int i = 0; i < end_inp_nodes; i++)
                 {
-                    for (int i = 0; i < end_inp_nodes; i++)
-                    {
-                        int row = i / pixel_width;
-                        int col = i % pixel_width;
-                        float pixelValue = replay_grapics_buffert.at<float>(pixel_height * (single_game_frame_state + f) + row, col + pixel_width * g_replay_nr);
-                        fc_nn_frozen_target_net.input_layer[i] = pixelValue;
-                    }
+                    int row = i / pixel_width;
+                    int col = i % pixel_width;
+                    float pixelValue = replay_grapics_buffert.at<float>(pixel_height * single_game_frame_state + row, col + pixel_width * g_replay_nr);
+                    fc_nn_frozen_target_net.input_layer[i] = pixelValue;
                 }
                 // Start Forward pass fully connected network
                 fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
