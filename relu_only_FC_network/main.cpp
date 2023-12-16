@@ -57,8 +57,8 @@ int main()
     gameObj1.enabel_3_state = 1; // Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
     // Set up a OpenCV mat
-    const int pixel_height = 30; /// The input data pixel height, note game_Width = 220
-    const int pixel_width = 30;  /// The input data pixel width, note game_Height = 200
+    const int pixel_height = 25; /// The input data pixel height, note game_Width = 220
+    const int pixel_width = 25;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
     Mat input_frm;
 
@@ -99,7 +99,7 @@ int main()
     int end_inp_nodes = pixel_height * pixel_width * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 3;
-    const int end_hid_nodes_L1 = 200;
+    const int end_hid_nodes_L1 = 500;
     const int end_hid_nodes_L2 = 40;
     const int end_hid_nodes_L3 = 10;
     const int end_out_nodes = 3; // Up, Down and Stop action
@@ -154,7 +154,7 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.83f;
+    double gamma = 0.8f;
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
@@ -174,7 +174,7 @@ int main()
     int mini_batch_cnt = 0;
     const int update_frozen_after_samples = 32 * 8;
 #else
-    const int update_frozen_after_samples = 32 * 1;
+    const int update_frozen_after_samples = 32 * 8;
 #endif
 
     //==== Hyper parameter settings End ===========================
