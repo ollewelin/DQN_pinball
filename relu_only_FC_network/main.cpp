@@ -73,7 +73,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 1;
+    const int save_after_nr = 100;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
 
