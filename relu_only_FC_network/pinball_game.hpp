@@ -579,7 +579,7 @@ void pinball_game::run_episode(void)
         //cv::putText(gameGrapics, random, cvPoint((3+episode_char/20),(35+((char) (rand() % 16)))), CV_FONT_HERSHEY_PLAIN, 2, cvScalar(0.5),2);// CV_... for Opencv3.1
         cv::putText(gameGrapics, random, cvPoint((3+episode_char/20),(35+((char) (rand() % 16)))), FONT_HERSHEY_PLAIN, 2, cvScalar(0.5),2);
     }
-    imshow("Game", gameGrapics);
+ //   imshow("Game", gameGrapics);
     if(slow_motion==1)
     {
         waitKey(20);///Wait 100msec

@@ -132,7 +132,7 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
 
     double target_off_level = 0.5; // OFF action target
-    const double learning_rate_fc = 0.0001;
+    const double learning_rate_fc = 0.00001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
@@ -146,7 +146,7 @@ int main()
     const double warm_up_eps_derating = 0.15;
     const int warm_up_eps_nr = 3;
     int warm_up_eps_cnt = 0;
-    const double start_epsilon = 0.60;
+    const double start_epsilon = 0.50;
     const double stop_min_epsilon = 0.4;
     const double derating_epsilon = 0.001;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
@@ -158,7 +158,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 100; // Should be 10000 or more
+    const int g_replay_size = 1000; // Should be 10000 or more
 
     const int save_after_nr = g_replay_size / 100;
     int update_frz_cnt = 0;
