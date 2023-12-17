@@ -77,7 +77,7 @@ int main()
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
 
-    const int all_clip_der = 0;
+    const int all_clip_der = 1;
 
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
@@ -132,7 +132,7 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
 
     double target_off_level = 0.5; // OFF action target
-    const double learning_rate_fc = 0.0003;
+    const double learning_rate_fc = 0.0001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
@@ -141,7 +141,7 @@ int main()
     fc_nn_end_block.momentum = 0.9; //
 #endif
     double init_random_weight_propotion = 0.55;
-    const double warm_up_epsilon_start = 0.95;
+    const double warm_up_epsilon_start = 0.85;
     double warm_up_epsilon = warm_up_epsilon_start;
     const double warm_up_eps_derating = 0.15;
     const int warm_up_eps_nr = 3;
@@ -154,13 +154,13 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.93f;
+    double gamma = 0.9f;
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
     const int g_replay_size = 1000; // Should be 10000 or more
 
-    const int save_after_nr = g_replay_size / 100;
+    const int save_after_nr = g_replay_size / 10;
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
@@ -207,7 +207,7 @@ int main()
     {
         fc_nn_end_block.randomize_weights(init_random_weight_propotion);
     }
-
+    fc_nn_frozen_target_net.all_weights = fc_nn_end_block.all_weights;
     cout << "gameObj1.gameObj1.game_Height " << gameObj1.game_Height << endl;
     cout << "gameObj1.gameObj1.game_Width " << gameObj1.game_Width << endl;
 
@@ -279,14 +279,14 @@ int main()
                             int replay_column = col + pixel_width * g_replay_nr;
                             int replay_row = pixel_height * (frame_g - (nr_frames_strobed - 1)) + row;
                             float pixelValue = replay_grapics_buffert.at<float>(replay_row, replay_column);
-                            fc_nn_end_block.input_layer[i] = pixelValue;
+                            fc_nn_frozen_target_net.input_layer[i] = pixelValue;
                         }
                     }
 
                     //**********************************************************************
                     //****************** Forward Pass training network *********************
                     //**********************************************************************
-                    fc_nn_end_block.forward_pass();                         // Forward pass though fully connected network
+                    fc_nn_frozen_target_net.forward_pass();                         // Forward pass though fully connected network
                     float exploring_dice = (float)(rand() % 65535) / 65536; // Through a fair dice. Random value 0..1.0 range
                     int decided_action = 0;
                     double max_decision = 0.0f;
@@ -310,7 +310,7 @@ int main()
                         for (int i = 0; i < end_out_nodes; i++)
                         {
                             // end_out_nodes = numbere of actions
-                            double action_node = fc_nn_end_block.output_layer[i];
+                            double action_node = fc_nn_frozen_target_net.output_layer[i];
                             if (action_node > max_decision)
                             {
                                 max_decision = action_node;
@@ -348,12 +348,12 @@ int main()
                 if (gameObj1.square == 1)
                 {
 
-                    rewards = 0.95; // Win Rewards avoid square
+                    rewards = 10.0; // Win Rewards avoid square
                                    //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 0.95; // Win Rewards catch ball
+                    rewards = 10.0; // Win Rewards catch ball
                                     //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -363,13 +363,13 @@ int main()
                 if (gameObj1.square == 1)
                 {
                     //  rewards = -2.35; // Lose Penalty
-                    rewards = -0.95;
+                    rewards = -3.0;
                     // rewards /= abs_diff;
                 }
                 else
                 {
                     // rewards = -3.95; // Lose Penalty
-                    rewards = -0.95;
+                    rewards = -3.0;
                     // rewards *= abs_diff;
                 }
             }
@@ -476,8 +476,6 @@ int main()
                 //****************** Forward Pass training network complete ************
                 //**********************************************************************
                 replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][g_replay_nr];
-                //        cout <<" replay_decided_action = " << replay_decided_action  << endl;
-
 
                 //======================================================================
                 //================== Forward Pass Frozen network NEXT state ============
@@ -518,6 +516,10 @@ int main()
             // cout << "rewards_idx_state = " << rewards_idx_state << endl;
 
             double rewards_here = rewards_at_game_replay[rewards_idx_state][g_replay_nr];
+            if(rewards_here != 0.0)
+            {
+      //          cout << "rewards_here = " << rewards_here << " at rewards_idx_state = " << rewards_idx_state << " at g_replay_nr = " << g_replay_nr << endl;
+            }
             //     double target_value = rewards_here + gamma * max_Q_target_value;
             //        #Q table UPDATE
             //        Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
