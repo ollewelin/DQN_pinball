@@ -132,8 +132,8 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
 
-    double target_off_level = 0.0; // OFF action target. 0.0 you Need to use force_last_activation_function_mode = 3
-    const double learning_rate_fc = 0.00001;
+    double target_off_level = 0.5; // OFF action target. 0.0 you Need to use force_last_activation_function_mode = 3
+    const double learning_rate_fc = 0.0001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
@@ -155,11 +155,11 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.75f;
+    double gamma = 0.6f;
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 10000; // Should be 10000 or more
+    const int g_replay_size = 3000; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = g_replay_size / 10;
     int update_frz_cnt = 0;
@@ -362,13 +362,13 @@ int main()
                 if (gameObj1.square == 1)
                 {
                     //  rewards = -2.35; // Lose Penalty
-                    rewards = -10.5;
+                    rewards = -15.5;
                     // rewards /= abs_diff;
                 }
                 else
                 {
                     // rewards = -3.95; // Lose Penalty
-                    rewards = -10.5;
+                    rewards = -15.5;
                     // rewards *= abs_diff;
                 }
             }
