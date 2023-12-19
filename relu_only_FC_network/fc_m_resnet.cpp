@@ -509,7 +509,8 @@ double fc_m_resnet::activation_function(double input_data, int end_layer)
             {
                 // Positiv value go right though ar Relu (Rectify Linear)
                 output_data = input_data;
-                // cout << "forward + output_data = " << output_data << endl;
+               //  cout << "forward + output_data = " << output_data << endl;
+                 
             }
             else
             {
