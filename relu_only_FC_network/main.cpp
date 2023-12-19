@@ -20,7 +20,7 @@ using namespace std;
 #define MOVE_UP 1
 #define MOVE_STOP 2
 
-//#define USE_MINIBATCH
+#define USE_MINIBATCH
 #define Q_ALGORITHM_MODE_A
 
 vector<int> fisher_yates_shuffle(vector<int> table);
@@ -83,7 +83,7 @@ int main()
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
     fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
-    fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
+    fc_nn_end_block.force_last_activation_function_mode = 3; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 0;
     fc_nn_end_block.dropout_proportion = 0.0;
@@ -91,7 +91,7 @@ int main()
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
-    fc_nn_frozen_target_net.force_last_activation_function_to_sigmoid = fc_nn_end_block.force_last_activation_function_to_sigmoid;
+    fc_nn_frozen_target_net.force_last_activation_function_mode = fc_nn_end_block.force_last_activation_function_mode;
     fc_nn_frozen_target_net.activation_function_mode = fc_nn_end_block.activation_function_mode;  
     fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
     fc_nn_frozen_target_net.use_dropouts = 0;
@@ -132,8 +132,8 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
 
-    double target_off_level = 1.5; // OFF action target
-    const double learning_rate_fc = 0.0001;
+    double target_off_level = 0.0; // OFF action target. 0.0 you Need to use force_last_activation_function_mode = 3
+    const double learning_rate_fc = 0.00001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
@@ -155,11 +155,11 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.85f;
+    double gamma = 0.75f;
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 1000; // Should be 10000 or more
+    const int g_replay_size = 10000; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = g_replay_size / 10;
     int update_frz_cnt = 0;
@@ -347,12 +347,12 @@ int main()
                 if (gameObj1.square == 1)
                 {
 
-                    rewards = 10.0; // Win Rewards avoid square
+                    rewards = 100.0; // Win Rewards avoid square
                                     //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 10.0; // Win Rewards catch ball
+                    rewards = 100.0; // Win Rewards catch ball
                                     //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -362,13 +362,13 @@ int main()
                 if (gameObj1.square == 1)
                 {
                     //  rewards = -2.35; // Lose Penalty
-                    rewards = -1.5;
+                    rewards = -10.5;
                     // rewards /= abs_diff;
                 }
                 else
                 {
                     // rewards = -3.95; // Lose Penalty
-                    rewards = -1.5;
+                    rewards = -10.5;
                     // rewards *= abs_diff;
                 }
             }
