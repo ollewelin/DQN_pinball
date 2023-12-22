@@ -133,13 +133,13 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
 
     double target_off_level = 0.5; // OFF action target. 0.0 you Need to use force_last_activation_function_mode = 3
-    const double learning_rate_fc = 0.00001;
+    const double learning_rate_fc = 0.000001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.9; //
+    fc_nn_end_block.momentum = 0.98; //
 #endif
     double init_random_weight_propotion = 0.6;
     const double warm_up_epsilon_start = 0.85;
