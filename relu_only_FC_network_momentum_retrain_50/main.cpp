@@ -453,9 +453,9 @@ int main()
             fc_nn_end_block.clear_batch_accum();
             for (int rt = 0; rt < retraing_times; rt++)
             {
+                g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
                 for (int g_replay_state_cnt = 0; g_replay_state_cnt < single_game_state_size; g_replay_state_cnt++)
                 {
-                    g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
                     int single_game_frame_state = g_replay_state_rand_list[g_replay_state_cnt];
                     //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
                     double max_Q_target_value = 0.0;
