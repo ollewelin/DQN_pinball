@@ -159,7 +159,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 10; // Should be 10000 or more
+    const int g_replay_size = 100; // Should be 10000 or more
     const int retraing_times = 10;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
@@ -184,6 +184,11 @@ int main()
     for (int j = 0; j < single_game_state_size; j++)
     {
         g_replay_state_rand_list.push_back(0);
+    }
+    vector<int> g_replay_r_rand_list;
+    for (int i = 0; i < g_replay_size; i++)
+    {
+        g_replay_r_rand_list.push_back(0);
     }
 
     char answer;
@@ -436,10 +441,10 @@ int main()
             }
         }
         // g_replay_nr
-        for (int g_replay_nr = 0; g_replay_nr < g_replay_size; g_replay_nr++)
+        for (int rt = 0; rt < retraing_times; rt++)
         {
             //******************** Go through the batch of replay memory *******************
-            if (g_replay_nr == 0)
+            if (rt == 0)
             {
                 cout << "********************************************************************************" << endl;
                 cout << "********* Run the whole replay batch memory and training the DQN network *******" << endl;
@@ -451,11 +456,13 @@ int main()
             // g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
             int replay_decided_action = 0;
             fc_nn_end_block.clear_batch_accum();
-            for (int rt = 0; rt < retraing_times; rt++)
+            g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
+            for (int g_replay_state_cnt = 0; g_replay_state_cnt < single_game_state_size; g_replay_state_cnt++)
             {
-                for (int g_replay_state_cnt = 0; g_replay_state_cnt < single_game_state_size; g_replay_state_cnt++)
+                g_replay_r_rand_list = fisher_yates_shuffle(g_replay_r_rand_list);
+                for (int rep_nr = 0; rep_nr < g_replay_size; rep_nr++)
                 {
-                    g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
+                    g_replay_nr = g_replay_r_rand_list[rep_nr];
                     int single_game_frame_state = g_replay_state_rand_list[g_replay_state_cnt];
                     //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
                     double max_Q_target_value = 0.0;
