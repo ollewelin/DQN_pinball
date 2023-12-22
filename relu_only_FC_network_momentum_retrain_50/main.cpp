@@ -160,7 +160,7 @@ int main()
     double alpha = 0.8;
 #endif
     const int g_replay_size = 200; // Should be 10000 or more
-    const int retraing_times = 50;
+    const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
     // statistics report
