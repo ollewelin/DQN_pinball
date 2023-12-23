@@ -21,7 +21,7 @@ using namespace std;
 #define MOVE_STOP 2
 
 // #define USE_MINIBATCH
-#define EPISODE_RANDOM_REPLAY
+//#define EPISODE_RANDOM_REPLAY
 //#define TIMESTEP_RANDOM_REPLAY
 #define Q_ALGORITHM_MODE_A
 
@@ -161,7 +161,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 2000; // Should be 10000 or more
+    const int g_replay_size = 100; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
@@ -354,12 +354,12 @@ int main()
                 if (gameObj1.square == 1)
                 {
 
-                    rewards = 100.0; // Win Rewards avoid square
+                    rewards = 1.0; // Win Rewards avoid square
                                      //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 100.0; // Win Rewards catch ball
+                    rewards = 1.0; // Win Rewards catch ball
                                      //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -369,13 +369,13 @@ int main()
                 if (gameObj1.square == 1)
                 {
                     //  rewards = -2.35; // Lose Penalty
-                    rewards = -15.5;
+                    rewards = -1;
                     // rewards /= abs_diff;
                 }
                 else
                 {
                     // rewards = -3.95; // Lose Penalty
-                    rewards = -15.5;
+                    rewards = -1;
                     // rewards *= abs_diff;
                 }
             }
@@ -505,7 +505,6 @@ int main()
             fc_nn_end_block.clear_batch_accum();
             for (int rt = 0; rt < retraing_times; rt++)
             {
-                min_loss = 9999999999999999999.0;
                 g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
                 for (int g_replay_state_cnt = 0; g_replay_state_cnt < single_game_state_size; g_replay_state_cnt++)
                 {
@@ -676,12 +675,24 @@ int main()
                     std::cout << "\033[F";
                 }
             }
+#ifdef EPISODE_RANDOM_REPLAY
             avg_loss = avg_loss / loss_update_cnt;
             cout << endl;
             cout << "***********************" << endl;
             cout << "Avarage loss = " << avg_loss << endl;
             cout << "***********************" << endl;
+
         }
+#else
+        }
+        avg_loss = avg_loss / loss_update_cnt;
+        cout << endl;
+        cout << "***********************" << endl;
+        cout << "Avarage loss = " << avg_loss << endl;
+        cout << "***********************" << endl;
+        avg_loss = 0.0;
+
+#endif
         //   imshow("replay_grapics_buffert", replay_grapics_buffert);
         //   waitKey(1);
 
