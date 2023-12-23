@@ -141,7 +141,7 @@ int main()
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.95; //
+    fc_nn_end_block.momentum = 0.98; //
 #endif
     double init_random_weight_propotion = 0.6;
     const double warm_up_epsilon_start = 0.85;
@@ -151,7 +151,7 @@ int main()
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
     const double stop_min_epsilon = 0.2;
-    const double derating_epsilon = 0.001;
+    const double derating_epsilon = 0.0005;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if (warm_up_eps_nr > 0)
     {
@@ -161,7 +161,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 1000; // Should be 10000 or more
+    const int g_replay_size = 500; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
@@ -354,12 +354,12 @@ int main()
                 if (gameObj1.square == 1)
                 {
 
-                    rewards = 1.0; // Win Rewards avoid square
+                    rewards = 2.2; // Win Rewards avoid square
                                      //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 2.0; // Win Rewards catch ball
+                    rewards = 10.0; // Win Rewards catch ball
                                      //       rewards /= abs_diff;
                 }
                 win_counter++;
