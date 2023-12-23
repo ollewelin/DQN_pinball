@@ -445,7 +445,11 @@ int main()
             }
         }
         // g_replay_nr
-
+        double loss_report = 0.0;
+        double min_loss = 9999999999999999999.0;
+        double max_loss = 0.0;
+        double avg_loss = 0.0;
+        int loss_update_cnt = 0;
 #ifdef FULL_RANDOM_REPLAY
         int g_replay_nr = 0;
         //******************** Go through the batch of replay memory *******************
@@ -453,8 +457,10 @@ int main()
         cout << "********* Run the whole replay batch memory and training the DQN network *******" << endl;
         cout << "********************************************************************************" << endl;
         cout << "Training full random ..." << endl;
+       
         for (int rt = 0; rt < retraing_times; rt++)
         {
+            min_loss = 9999999999999999999.0;
             //   cout << "single_game_state_size = " << single_game_state_size << endl;
             // g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
             {
@@ -487,6 +493,7 @@ int main()
             fc_nn_end_block.clear_batch_accum();
             for (int rt = 0; rt < retraing_times; rt++)
             {
+                min_loss = 9999999999999999999.0;
                 g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
                 for (int g_replay_state_cnt = 0; g_replay_state_cnt < single_game_state_size; g_replay_state_cnt++)
                 {
@@ -548,6 +555,7 @@ int main()
                         double rew_here = rewards_at_game_replay[single_game_frame_state + nr_frames_strobed - 1][g_replay_nr];
                         max_Q_target_value = rew_here; // Zero Q value at end state Only rewards will be used
                                                        //      cout << "Replay END State at g_replay_nr = " << g_replay_nr << endl;
+                        
                     }
 
                     int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
@@ -611,6 +619,7 @@ int main()
 #else
                     fc_nn_end_block.update_all_weights(1);
 #endif
+                    
                     if (update_frz_cnt < update_frozen_after_samples)
                     {
                         update_frz_cnt++;
@@ -623,6 +632,18 @@ int main()
                         //             cout << "=========================================" << endl;
                         //             cout << "======== Target network updated =========" << endl;
                         //             cout << "=========================================" << endl;
+                        loss_report = fc_nn_end_block.loss_B;
+                        avg_loss += loss_report;//add upp loss
+                        loss_update_cnt++;
+                        fc_nn_end_block.loss_B = 0.0;
+                        if(min_loss > loss_report)
+                        {
+                            min_loss = loss_report;
+                        }
+                        if(max_loss < loss_report)
+                        {
+                            max_loss = loss_report;
+                        }
                     }
 
                     cout << "                                                                                                       " << endl;
@@ -630,15 +651,20 @@ int main()
                     int count_down = 0;
 #ifdef FULL_RANDOM_REPLAY
                     count_down = (single_game_state_size * g_replay_size) - g_replay_state_cnt;
-                    cout << "rt = " << rt << " count down = " << count_down << "  g_replay_nr = " << g_replay_nr << endl;
+                    cout << "rt = " << rt << " count down = " << count_down << "  loss = " << loss_report <<  " min_loss = " << min_loss << endl;
 #else
                     count_down = single_game_state_size - g_replay_state_cnt;
-                    cout << "g_replay_nr = " << g_replay_nr << " rt = " << rt << "  g_replay_state_cnt count down = " << count_down << endl;
+                    cout << "g_replay_nr = " << g_replay_nr << " rt = " << rt << "  g_replay_state_cnt count down = " << count_down << "  loss = " << loss_report <<  " min_loss = " << min_loss << endl;
 #endif
                     // Move the cursor up one line (ANSI escape code)
                     std::cout << "\033[F";
                 }
             }
+            avg_loss = avg_loss / loss_update_cnt;
+            cout << endl;
+            cout << "***********************" << endl;
+            cout << "Avarage loss = " << avg_loss << endl;
+            cout << "***********************" << endl;
         }
         //   imshow("replay_grapics_buffert", replay_grapics_buffert);
         //   waitKey(1);
