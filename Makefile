@@ -8,7 +8,7 @@ LIBS = -I/usr/local/include/opencv4 -lopencv_core -lopencv_highgui -lopencv_imgp
 #LIBS = $(OPENCV)
 #
 #####################################################
-SRCS = main.cpp fc_m_resnet.cpp pinball_game.hpp convolution.cpp
+SRCS = main.cpp fc_m_resnet.cpp pinball_game.hpp 
 PROG = dqn_pinball
 $(PROG):$(SRCS)
 	$(CC) $(CFLAGS) -o $(PROG) $(SRCS) $(LIBS)

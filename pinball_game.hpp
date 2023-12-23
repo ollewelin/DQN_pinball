@@ -304,7 +304,7 @@ void pinball_game::init_game(void)
     pad_position = game_Height/2;///Start the game at center
     game_Width = 220;///
     game_Height = 200;///
-    nr_of_frames = 100;///
+    nr_of_frames = 35;///
     gameGrapics.create(game_Height, game_Width, CV_32FC1);
     gameGrapics = Scalar(0.0f);///Init with Black
     srand (static_cast <unsigned> (time(0)));///Seed the randomizer
@@ -337,8 +337,8 @@ void pinball_game::start_episode(void)
     {
         ball_angle_derivate = save_replay_start_ball_ang;
     }
-    ball_angle_derivate *= 6.0;
-    ball_angle_derivate -= 3.0;/// -0.5..+0.5 will mean +/- 12.5 deg random ball angle
+    ball_angle_derivate *= 12.0;
+    ball_angle_derivate -= 6.0;/// -0.5..+0.5 will mean +/- 12.5 deg random ball angle
     frame_steps=0;
     ball_offset_y = game_Height/2;///
     pad_position = game_Height/2;///Start the game at center
@@ -365,14 +365,14 @@ void pinball_game::start_episode(void)
 void pinball_game::run_episode(void)
 {
     int circle_size = 6;
-    int rect_size = 10;
-    int rect_x_expand = 25;///Expand rectangle x direction
+    int rect_size = 23;
+    int rect_x_expand = 28;///Expand rectangle x direction
     int ball_start_x = 10;///Start 10 pixel inside game plan
     int y_bounce_constraints = 20;
     int y_pad_constraints = 28;
-    int pad_width = 25;
+    int pad_width = 35;
     int pad_height = 40;
-    int pad_speed = 6;//4
+    int pad_speed = 8;//4
 
 ///The frame loop is outside this class so The Agient cad do actions each frame step
 
@@ -396,7 +396,7 @@ void pinball_game::run_episode(void)
         }
         ball_offset_y = ball_pos_y + (ball_angle_derivate+bounce_extra);
     }
-    ball_pos_x = (frame * 2) + ball_start_x;///Take 2 pixel step forward
+    ball_pos_x = (frame * (game_Width-circle_size)/nr_of_frames) + ball_start_x;///Take 2 pixel step forward
     P1.x = ball_pos_x;///Set to control grapic OpenCV circle() below
     P1.y = ball_pos_y;///Set to control grapic OpenCV circle() below
     if(enable_ball_swan==1)
@@ -508,7 +508,7 @@ void pinball_game::run_episode(void)
     P3.y = pad_position + (pad_height/2);
     P2.x = - (pad_width/2) + game_Width-10;
     P3.x = (pad_width/2) + game_Width-10;
-    rectangle(gameGrapics, P2, P3, Scalar(0.8), 7);///   C++: void rectangle(Mat& img, Point pt1, Point pt2, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
+    rectangle(gameGrapics, P2, P3, Scalar(0.8), 13);///   C++: void rectangle(Mat& img, Point pt1, Point pt2, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
     if(frame > nr_of_frames-2)
     {
         ///This episode is over
@@ -579,7 +579,7 @@ void pinball_game::run_episode(void)
         //cv::putText(gameGrapics, random, cvPoint((3+episode_char/20),(35+((char) (rand() % 16)))), CV_FONT_HERSHEY_PLAIN, 2, cvScalar(0.5),2);// CV_... for Opencv3.1
         cv::putText(gameGrapics, random, cvPoint((3+episode_char/20),(35+((char) (rand() % 16)))), FONT_HERSHEY_PLAIN, 2, cvScalar(0.5),2);
     }
-    imshow("Game", gameGrapics);
+ //   imshow("Game", gameGrapics);
     if(slow_motion==1)
     {
         waitKey(20);///Wait 100msec
