@@ -630,10 +630,11 @@ int main()
                     int count_down = 0;
 #ifdef FULL_RANDOM_REPLAY
                     count_down = (single_game_state_size * g_replay_size) - g_replay_state_cnt;
+                    cout << " rt = " << rt << " g_replay_state_cnt count down = " << count_down << "g_replay_nr = " << g_replay_nr << endl;
 #else
                     count_down = single_game_state_size - g_replay_state_cnt;
-#endif
                     cout << "g_replay_nr = " << g_replay_nr << " rt = " << rt << "  g_replay_state_cnt count down = " << count_down << endl;
+#endif
                     // Move the cursor up one line (ANSI escape code)
                     std::cout << "\033[F";
                 }
