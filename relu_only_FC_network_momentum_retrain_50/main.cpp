@@ -21,7 +21,8 @@ using namespace std;
 #define MOVE_STOP 2
 
 // #define USE_MINIBATCH
-#define FULL_RANDOM_REPLAY
+#define EPISODE_RANDOM_REPLAY
+//#define TIMESTEP_RANDOM_REPLAY
 #define Q_ALGORITHM_MODE_A
 
 vector<int> fisher_yates_shuffle(vector<int> table);
@@ -160,7 +161,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 2000; // Should be 10000 or more
+    const int g_replay_size = 40; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
@@ -181,7 +182,7 @@ int main()
     int g_replay_nr = 0; // Used during play
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
     cout << " single_game_state_size = " << single_game_state_size << endl;
-#ifdef FULL_RANDOM_REPLAY
+#ifdef EPISODE_RANDOM_REPLAY
     cout << "Full random replay mode " << endl;
     vector<int> check_g_replay_list;
     for (int i = 0; i < (single_game_state_size * g_replay_size); i++)
@@ -450,7 +451,7 @@ int main()
         double max_loss = 0.0;
         double avg_loss = 0.0;
         int loss_update_cnt = 0;
-#ifdef FULL_RANDOM_REPLAY
+#ifdef EPISODE_RANDOM_REPLAY
         int g_replay_nr = 0;
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
@@ -473,7 +474,11 @@ int main()
                     //     cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
                     g_replay_nr = check_g_replay_list[g_replay_state_cnt] / single_game_state_size;
                     //    cout << "Run one training state sample at g_replay_nr = " << g_replay_nr << endl;
+#ifdef TIMESTEP_RANDOM_REPLAY
                     int single_game_frame_state = check_g_replay_list[g_replay_state_cnt] % single_game_state_size;
+#else
+                    int single_game_frame_state = single_game_state_size - 1 - (g_replay_state_cnt % single_game_state_size);
+#endif
 
 #else
         for (int g_replay_nr = 0; g_replay_nr < g_replay_size; g_replay_nr++)
@@ -497,9 +502,13 @@ int main()
                 g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
                 for (int g_replay_state_cnt = 0; g_replay_state_cnt < single_game_state_size; g_replay_state_cnt++)
                 {
+#ifdef TIMESTEP_RANDOM_REPLAY
                     int single_game_frame_state = g_replay_state_rand_list[g_replay_state_cnt];
+#else
+                    int single_game_frame_state = single_game_state_size - 1 - g_replay_state_cnt;
 #endif
 
+#endif
                     //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
                     double max_Q_target_value = 0.0;
                     if (single_game_frame_state < single_game_state_size - 1)
@@ -649,7 +658,7 @@ int main()
                     cout << "                                                                                                       " << endl;
                     std::cout << "\033[F";
                     int count_down = 0;
-#ifdef FULL_RANDOM_REPLAY
+#ifdef EPISODE_RANDOM_REPLAY
                     count_down = (single_game_state_size * g_replay_size) - g_replay_state_cnt;
                     cout << "rt = " << rt << " count down = " << count_down << "  loss = " << loss_report <<  " min_loss = " << min_loss << endl;
 #else
