@@ -134,7 +134,7 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
 
-    double target_off_level = 0.5; // OFF action target. 0.0 you Need to use force_last_activation_function_mode = 3
+    double target_off_level = 0.0; // OFF action target. 0.0 you Need to use force_last_activation_function_mode = 3
     const double learning_rate_fc = 0.000001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -161,7 +161,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 100; // Should be 10000 or more
+    const int g_replay_size = 200; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
@@ -359,7 +359,7 @@ int main()
                 }
                 else
                 {
-                    rewards = 1.0; // Win Rewards catch ball
+                    rewards = 2.0; // Win Rewards catch ball
                                      //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -369,7 +369,7 @@ int main()
                 if (gameObj1.square == 1)
                 {
                     //  rewards = -2.35; // Lose Penalty
-                    rewards = -1;
+                    rewards = -1.5;
                     // rewards /= abs_diff;
                 }
                 else
