@@ -21,6 +21,7 @@ using namespace std;
 #define MOVE_STOP 2
 
 // #define USE_MINIBATCH
+#define FULL_RANDOM_REPLAY
 #define Q_ALGORITHM_MODE_A
 
 vector<int> fisher_yates_shuffle(vector<int> table);
@@ -155,11 +156,11 @@ int main()
     {
         dqn_epsilon = warm_up_epsilon;
     }
-    double gamma = 0.4f;
+    double gamma = 0.8f;
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 200; // Should be 10000 or more
+    const int g_replay_size = 3000; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
@@ -179,6 +180,14 @@ int main()
 
     int g_replay_nr = 0; // Used during play
     vector<int> g_replay_state_rand_list;
+#ifdef FULL_RANDOM_REPLAY
+    cout << "Full random replay mode " << endl;
+    vector<int> check_g_replay_list;
+    for (int i = 0; i < g_replay_size; i++)
+    {
+        check_g_replay_list.push_back(0);
+    } // Used during replay training
+#endif
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
     cout << " single_game_state_size = " << single_game_state_size << endl;
     for (int j = 0; j < single_game_state_size; j++)
@@ -436,6 +445,31 @@ int main()
             }
         }
         // g_replay_nr
+
+#ifdef FULL_RANDOM_REPLAY
+        int g_replay_nr = 0;
+        //******************** Go through the batch of replay memory *******************
+        cout << "********************************************************************************" << endl;
+        cout << "********* Run the whole replay batch memory and training the DQN network *******" << endl;
+        cout << "********************************************************************************" << endl;
+        cout << "Training full random ..." << endl;
+        for (int rt = 0; rt < retraing_times; rt++)
+        {
+            //   cout << "single_game_state_size = " << single_game_state_size << endl;
+            // g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
+            {
+                int replay_decided_action = 0;
+                fc_nn_end_block.clear_batch_accum();
+                check_g_replay_list = fisher_yates_shuffle(check_g_replay_list);
+
+                for (int g_replay_state_cnt = 0; g_replay_state_cnt < (single_game_state_size * g_replay_size); g_replay_state_cnt++)
+                {
+                    //     cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
+                    g_replay_nr = check_g_replay_list[g_replay_state_cnt / single_game_state_size];
+                    //    cout << "Run one training state sample at g_replay_nr = " << g_replay_nr << endl;
+                    int single_game_frame_state = g_replay_state_cnt % single_game_state_size;
+
+#else
         for (int g_replay_nr = 0; g_replay_nr < g_replay_size; g_replay_nr++)
         {
             //******************** Go through the batch of replay memory *******************
@@ -444,7 +478,7 @@ int main()
                 cout << "********************************************************************************" << endl;
                 cout << "********* Run the whole replay batch memory and training the DQN network *******" << endl;
                 cout << "********************************************************************************" << endl;
-                cout << "Training..." << endl;
+                cout << "Training one game at a time..." << endl;
             }
 
             //   cout << "single_game_state_size = " << single_game_state_size << endl;
@@ -457,6 +491,8 @@ int main()
                 for (int g_replay_state_cnt = 0; g_replay_state_cnt < single_game_state_size; g_replay_state_cnt++)
                 {
                     int single_game_frame_state = g_replay_state_rand_list[g_replay_state_cnt];
+#endif
+
                     //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
                     double max_Q_target_value = 0.0;
                     if (single_game_frame_state < single_game_state_size - 1)
@@ -591,10 +627,17 @@ int main()
 
                     cout << "                                                                                                       " << endl;
                     std::cout << "\033[F";
-                    cout << "g_replay_nr = " << g_replay_nr << " rt = " << rt << "  g_replay_state_cnt count down = " << single_game_state_size - g_replay_state_cnt   << endl;
+                    int count_down = 0;
+#ifdef FULL_RANDOM_REPLAY
+                    count_down = (single_game_state_size * g_replay_size) - g_replay_state_cnt;
+#else
+                    count_down = single_game_state_size - g_replay_state_cnt;
+#endif
+                    cout << "g_replay_nr = " << g_replay_nr << " rt = " << rt << "  g_replay_state_cnt count down = " << count_down << endl;
                     // Move the cursor up one line (ANSI escape code)
                     std::cout << "\033[F";
                 }
+
             }
         }
         //   imshow("replay_grapics_buffert", replay_grapics_buffert);
