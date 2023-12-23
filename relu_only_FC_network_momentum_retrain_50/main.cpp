@@ -140,7 +140,7 @@ int main()
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.95; //
+    fc_nn_end_block.momentum = 0.98; //
 #endif
     double init_random_weight_propotion = 0.6;
     const double warm_up_epsilon_start = 0.85;
@@ -179,16 +179,17 @@ int main()
     //==== Hyper parameter settings End ===========================
 
     int g_replay_nr = 0; // Used during play
-    vector<int> g_replay_state_rand_list;
+    int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
+    cout << " single_game_state_size = " << single_game_state_size << endl;
 #ifdef FULL_RANDOM_REPLAY
+    cout << "Full random replay mode " << endl;
     vector<int> check_g_replay_list;
-    for (int i = 0; i < g_replay_size; i++)
+    for (int i = 0; i < (single_game_state_size * g_replay_size); i++)
     {
         check_g_replay_list.push_back(0);
     } // Used during replay training
 #endif
-    int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed + 1; // the first for frames will not have any state
-    cout << " single_game_state_size = " << single_game_state_size << endl;
+    vector<int> g_replay_state_rand_list;
     for (int j = 0; j < single_game_state_size; j++)
     {
         g_replay_state_rand_list.push_back(0);
@@ -464,9 +465,9 @@ int main()
                 for (int g_replay_state_cnt = 0; g_replay_state_cnt < (single_game_state_size * g_replay_size); g_replay_state_cnt++)
                 {
                     //     cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
-                    g_replay_nr = check_g_replay_list[g_replay_state_cnt / single_game_state_size];
+                    g_replay_nr = check_g_replay_list[g_replay_state_cnt] / single_game_state_size;
                     //    cout << "Run one training state sample at g_replay_nr = " << g_replay_nr << endl;
-                    int single_game_frame_state = g_replay_state_cnt % single_game_state_size;
+                    int single_game_frame_state = check_g_replay_list[g_replay_state_cnt] % single_game_state_size;
 
 #else
         for (int g_replay_nr = 0; g_replay_nr < g_replay_size; g_replay_nr++)
@@ -626,11 +627,17 @@ int main()
 
                     cout << "                                                                                                       " << endl;
                     std::cout << "\033[F";
-                    cout << "g_replay_nr = " << g_replay_nr << " rt = " << rt << "  g_replay_state_cnt count down = " << single_game_state_size - g_replay_state_cnt << endl;
+                    int count_down = 0;
+#ifdef FULL_RANDOM_REPLAY
+                    count_down = (single_game_state_size * g_replay_size) - g_replay_state_cnt;
+                    cout << "rt = " << rt << " count down = " << count_down << "  g_replay_nr = " << g_replay_nr << endl;
+#else
+                    count_down = single_game_state_size - g_replay_state_cnt;
+                    cout << "g_replay_nr = " << g_replay_nr << " rt = " << rt << "  g_replay_state_cnt count down = " << count_down << endl;
+#endif
                     // Move the cursor up one line (ANSI escape code)
                     std::cout << "\033[F";
                 }
-
             }
         }
         //   imshow("replay_grapics_buffert", replay_grapics_buffert);
