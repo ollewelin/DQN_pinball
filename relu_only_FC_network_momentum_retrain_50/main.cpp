@@ -161,7 +161,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 40; // Should be 10000 or more
+    const int g_replay_size = 2000; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
@@ -457,8 +457,11 @@ int main()
         cout << "********************************************************************************" << endl;
         cout << "********* Run the whole replay batch memory and training the DQN network *******" << endl;
         cout << "********************************************************************************" << endl;
-        cout << "Training full random ..." << endl;
-       
+#ifdef TIMESTEP_RANDOM_REPLAY      
+        cout << "Training full randomize replay both time step and episode randomize ..." << endl;
+#else 
+        cout << "Training episode randomize but timestep run in series backwards ..." << endl;
+#endif
         for (int rt = 0; rt < retraing_times; rt++)
         {
             min_loss = 9999999999999999999.0;
@@ -489,7 +492,11 @@ int main()
                 cout << "********************************************************************************" << endl;
                 cout << "********* Run the whole replay batch memory and training the DQN network *******" << endl;
                 cout << "********************************************************************************" << endl;
-                cout << "Training one game at a time..." << endl;
+#ifdef TIMESTEP_RANDOM_REPLAY      
+        cout << "Training randomize replay time step but throue full episode in a serie ..." << endl;
+#else 
+        cout << "Training timestep run in series backwards and throue full episode in a serie..." << endl;
+#endif
             }
 
             //   cout << "single_game_state_size = " << single_game_state_size << endl;
