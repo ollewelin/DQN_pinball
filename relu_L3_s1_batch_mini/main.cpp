@@ -559,7 +559,7 @@ int main()
 
                     // Search for max Q-value
                     max_Q_target_value = 0.0;
-                    if (single_game_frame_state < single_game_state_size - 1)
+                    if (single_game_frame_state < single_game_state_size)
                     {
                         for (int i = 0; i < end_out_nodes; i++)
                         {
@@ -572,8 +572,8 @@ int main()
                     }
                     else
                     {
-                        cout << "single_game_frame_state = " << single_game_frame_state << endl;
-                        cout << "rewards_here = " << rewards_here << endl;
+                    //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
+                    //    cout << "rewards_here = " << rewards_here << endl;
                         max_Q_target_value = target_off_level;
                     }
 

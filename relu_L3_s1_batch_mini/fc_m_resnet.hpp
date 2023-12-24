@@ -63,7 +63,9 @@ public:
     
     //0 = All activation functions same
     //1 = Last activation layer will set to sigmoid regardless activation_function_mode above
-    int force_last_activation_function_to_sigmoid;
+    //2 = reserved for future use
+    //3 = Last activation fuction removed
+    int force_last_activation_function_mode;
     double fix_leaky_proportion;
     
     //0 = turn OFF skip connections, ordinary fully connected nn block only
