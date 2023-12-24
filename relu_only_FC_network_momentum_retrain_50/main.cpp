@@ -29,6 +29,7 @@ vector<int> fisher_yates_shuffle(vector<int> table);
 
 int main()
 {
+    char answer;
     srand(static_cast<unsigned>(time(NULL))); // Seed the randomizer
     cout << "Convolution neural network under work..." << endl;
     int total_plays = 0;
@@ -145,8 +146,8 @@ int main()
     fc_nn_end_block.momentum = 0.98; //
 #endif
     double init_random_weight_propotion = 0.6;
-    const double warm_up_epsilon_start = 0.85;
-    double warm_up_epsilon = warm_up_epsilon_start;
+    const double warm_up_epsilon_default = 0.85;
+    double warm_up_epsilon = warm_up_epsilon_default;
     const double warm_up_eps_derating = 0.15;
     const int warm_up_eps_nr = 3;
     int warm_up_eps_cnt = 0;
@@ -154,17 +155,39 @@ int main()
     const double stop_min_epsilon = 0.2;
     const double derating_epsilon = 0.001;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
+
+    cout << " warm_up_epsilon is default set to = " << warm_up_epsilon << " and you can set between this value and stop_min_epsilon = " << stop_min_epsilon << endl;
+    cout << "Do you want to set a manual warm_up_epsilon value from start = Y/N " << endl;
+    cin >> answer;
+    if (answer == 'Y' || answer == 'y')
+    {
+        cout << "Set a warm_up_epsilon value between " << warm_up_epsilon << " to stop_min_epsilon = " << stop_min_epsilon << endl;
+        cin >> warm_up_epsilon;
+        if (warm_up_epsilon > warm_up_epsilon_default)
+        {
+            warm_up_epsilon = warm_up_epsilon_default;
+        }
+        if (warm_up_epsilon < stop_min_epsilon)
+        {
+            warm_up_epsilon = stop_min_epsilon;
+        }
+        cout << " warm_up_epsilon is now set to = " << warm_up_epsilon << endl;
+    }
     if (warm_up_eps_nr > 0)
     {
         dqn_epsilon = warm_up_epsilon;
     }
+    cout << " dqn_epsilon = " << dqn_epsilon << endl;
     double gamma = 0.8f;
+
+
+
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
     const int g_replay_size = 20; // Should be 10000 or more
     const int retraing_times = 1;
-    const int save_after_nr = 1;
+    const int save_after_nr = 100;
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
@@ -199,7 +222,7 @@ int main()
         g_replay_state_rand_list.push_back(0);
     }
 
-    char answer;
+
     cout << "Do you want to load kernel weights from saved weight file = Y/N " << endl;
     cin >> answer;
     if (answer == 'Y' || answer == 'y')
