@@ -162,7 +162,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 50; // Should be 10000 or more
+    const int g_replay_size = 20; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
@@ -338,7 +338,7 @@ int main()
                     gameObj1.move_up = decided_action; // Input Action from Agent. 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
                                                        //    cout << " decided_action = " << decided_action << endl;
                     replay_actions_buffert[frame_g][g_replay_nr] = decided_action;
-                    if(frame_g == gameObj1.nr_of_frames - 1)
+                    if(frame_g == gameObj1.nr_of_frames - 2)
                     {
                         debug_dec_act[g_replay_nr] = decided_action;
                     }
@@ -545,7 +545,7 @@ int main()
                         cout << "Error act_idx = " << act_idx << " gameObj1.nr_of_frames = " << gameObj1.nr_of_frames << endl;
                     }
                     replay_decided_action = replay_actions_buffert[act_idx][g_replay_nr];
-                    if(single_game_frame_state == single_game_state_size - 1)
+                    if(single_game_frame_state == single_game_state_size - 2)
                     {
                         if(debug_dec_act[g_replay_nr] != replay_decided_action)
                         {
