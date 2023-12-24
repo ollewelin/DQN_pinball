@@ -135,7 +135,7 @@ int main()
     //=== Now setup the hyper parameters of the Neural Network ====
 
     double target_off_level = 0.5; // OFF action target. 0.0 you Need to use force_last_activation_function_mode = 3
-    double reward_gain = 1.0;
+    double reward_gain = 3.0;
     const double learning_rate_fc = 0.000001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -533,7 +533,8 @@ int main()
 
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************
-                    replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][g_replay_nr];
+                    //replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][g_replay_nr];Bugg   - 1]...  remove - 1
+                    replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed][g_replay_nr];
 
                     //======================================================================
                     //================== Forward Pass Frozen network NEXT state ============
