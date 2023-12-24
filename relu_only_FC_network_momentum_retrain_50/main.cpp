@@ -22,7 +22,7 @@ using namespace std;
 
 //#define USE_MINIBATCH
 //#define EPISODE_RANDOM_REPLAY
-//#define TIMESTEP_RANDOM_REPLAY
+// #define TIMESTEP_RANDOM_REPLAY
 #define Q_ALGORITHM_MODE_A
 
 vector<int> fisher_yates_shuffle(vector<int> table);
@@ -162,7 +162,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 100; // Should be 10000 or more
+    const int g_replay_size = 50; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
@@ -178,9 +178,11 @@ int main()
 #endif
     const int update_frozen_after_samples = 32 * 8;
 
+
+    int debug_dec_act[g_replay_size];
     //==== Hyper parameter settings End ===========================
 
-    int g_replay_nr = 0;                                                        // Used during play
+    int g_replay_nr = 0;                                                    // Used during play
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed; // the first for frames will not have any state
     cout << " single_game_state_size = " << single_game_state_size << endl;
 #ifdef EPISODE_RANDOM_REPLAY
@@ -336,7 +338,10 @@ int main()
                     gameObj1.move_up = decided_action; // Input Action from Agent. 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
                                                        //    cout << " decided_action = " << decided_action << endl;
                     replay_actions_buffert[frame_g][g_replay_nr] = decided_action;
-
+                    if(frame_g == gameObj1.nr_of_frames - 1)
+                    {
+                        debug_dec_act[g_replay_nr] = decided_action;
+                    }
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************
                 }
@@ -350,7 +355,7 @@ int main()
                 abs_diff = 1.0;
             }
 
-           if (gameObj1.win_this_game == 1)
+            if (gameObj1.win_this_game == 1)
             {
                 if (gameObj1.square == 1)
                 {
@@ -533,8 +538,21 @@ int main()
 
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************
-                    replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][g_replay_nr];
-
+                    //replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][g_replay_nr];orginal bug
+                    int act_idx = single_game_frame_state + nr_frames_strobed;
+                    if(act_idx >= gameObj1.nr_of_frames)
+                    {
+                        cout << "Error act_idx = " << act_idx << " gameObj1.nr_of_frames = " << gameObj1.nr_of_frames << endl;
+                    }
+                    replay_decided_action = replay_actions_buffert[act_idx][g_replay_nr];
+                    if(single_game_frame_state == single_game_state_size - 1)
+                    {
+                        if(debug_dec_act[g_replay_nr] != replay_decided_action)
+                        {
+                            cout << endl;
+                            cout << " Error debug_dec_act[g_replay_nr] = " << debug_dec_act[g_replay_nr] << " replay_decided_action = " << replay_decided_action << endl;
+                        }
+                    }
                     //======================================================================
                     //================== Forward Pass Frozen network NEXT state ============
                     single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
@@ -551,22 +569,31 @@ int main()
                     //================== Forward Pass Frozen network complete ==============
                     //======================================================================
 
-                    // Search for max Q-value
-                    max_Q_target_value = 0.0;
-
-                    for (int i = 0; i < end_out_nodes; i++)
-                    {
-                        double action_node = fc_nn_frozen_target_net.output_layer[i];
-                        if (action_node > max_Q_target_value)
-                        {
-                            max_Q_target_value = action_node;
-                        }
-                    }
                     int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
                     double rewards_here = rewards_at_game_replay[rewards_idx_state][g_replay_nr];
-                    //cout << "single_game_frame_state = " << single_game_frame_state << endl;
-                    //cout << "rewards_idx_state = " << rewards_idx_state << endl;
-                    //cout << "rewards_here = " << rewards_here << endl;
+                    // cout << "single_game_frame_state = " << single_game_frame_state << endl;
+                    // cout << "rewards_idx_state = " << rewards_idx_state << endl;
+                    // cout << "rewards_here = " << rewards_here << endl;
+
+                    // Search for max Q-value
+                    max_Q_target_value = 0.0;
+                    if (single_game_frame_state < single_game_state_size)
+                    {
+                        for (int i = 0; i < end_out_nodes; i++)
+                        {
+                            double action_node = fc_nn_frozen_target_net.output_layer[i];
+                            if (action_node > max_Q_target_value)
+                            {
+                                max_Q_target_value = action_node;
+                            }
+                        }
+                    }
+                    else
+                    {
+                    //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
+                    //    cout << "rewards_here = " << rewards_here << endl;
+                        max_Q_target_value = target_off_level;
+                    }
 
                     if (rewards_here != 0.0)
                     {
@@ -651,20 +678,19 @@ int main()
                             max_loss = loss_report;
                         }
                     }
-                    /*
-                                        cout << "                                                                                                       " << endl;
-                                        std::cout << "\033[F";
-                                        int count_down = 0;
-                    #ifdef EPISODE_RANDOM_REPLAY
-                                        count_down = (single_game_state_size * g_replay_size) - g_replay_state_cnt;
-                                        cout << "rt = " << rt << " count down = " << count_down << "  loss = " << loss_report <<  " min_loss = " << min_loss << endl;
-                    #else
-                                        count_down = single_game_state_size - g_replay_state_cnt;
-                                        cout << "g_replay_nr = " << g_replay_nr << " rt = " << rt << "  g_replay_state_cnt count down = " << count_down << "  loss = " << loss_report <<  " min_loss = " << min_loss << endl;
-                    #endif
-                                        // Move the cursor up one line (ANSI escape code)
-                                        std::cout << "\033[F";
-                    */
+
+                    cout << "                                                                                                       " << endl;
+                    std::cout << "\033[F";
+                    int count_down = 0;
+#ifdef EPISODE_RANDOM_REPLAY
+                    count_down = (single_game_state_size * g_replay_size) - g_replay_state_cnt;
+                    cout << "rt = " << rt << " count down = " << count_down << "  loss = " << loss_report << " min_loss = " << min_loss << endl;
+#else
+                    count_down = single_game_state_size - g_replay_state_cnt;
+                    cout << "g_replay_nr = " << g_replay_nr << " rt = " << rt << "  g_replay_state_cnt count down = " << count_down << "  loss = " << loss_report << " min_loss = " << min_loss << endl;
+#endif
+                    // Move the cursor up one line (ANSI escape code)
+                    std::cout << "\033[F";
                 }
             }
 #ifdef EPISODE_RANDOM_REPLAY
