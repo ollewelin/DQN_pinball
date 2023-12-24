@@ -149,34 +149,34 @@ int main()
     const double warm_up_epsilon_default = 0.85;
     double warm_up_epsilon = warm_up_epsilon_default;
     const double warm_up_eps_derating = 0.15;
-    const int warm_up_eps_nr = 3;
+    int warm_up_eps_nr = 3;
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
-    const double stop_min_epsilon = 0.2;
-    const double derating_epsilon = 0.001;
+    const double stop_min_epsilon = 0.15;
+    const double derating_epsilon = 0.0005;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-
-    cout << " warm_up_epsilon is default set to = " << warm_up_epsilon << " and you can set between this value and stop_min_epsilon = " << stop_min_epsilon << endl;
-    cout << "Do you want to set a manual warm_up_epsilon value from start = Y/N " << endl;
-    cin >> answer;
-    if (answer == 'Y' || answer == 'y')
-    {
-        cout << "Set a warm_up_epsilon value between " << warm_up_epsilon << " to stop_min_epsilon = " << stop_min_epsilon << endl;
-        cin >> warm_up_epsilon;
-        if (warm_up_epsilon > warm_up_epsilon_default)
-        {
-            warm_up_epsilon = warm_up_epsilon_default;
-        }
-        if (warm_up_epsilon < stop_min_epsilon)
-        {
-            warm_up_epsilon = stop_min_epsilon;
-        }
-        cout << " warm_up_epsilon is now set to = " << warm_up_epsilon << endl;
-    }
     if (warm_up_eps_nr > 0)
     {
         dqn_epsilon = warm_up_epsilon;
     }
+     cout << "Do you want to set a manual set dqn_epsilon value from start = Y/N " << endl;
+    cin >> answer;
+    if (answer == 'Y' || answer == 'y')
+    {
+        cout << "Set a warm_up_epsilon value between " << warm_up_epsilon << " to stop_min_epsilon = " << stop_min_epsilon << endl;
+        cin >> dqn_epsilon;
+        if (dqn_epsilon > warm_up_epsilon_default)
+        {
+            dqn_epsilon = warm_up_epsilon_default;
+        }
+        if (dqn_epsilon < stop_min_epsilon)
+        {
+            dqn_epsilon = stop_min_epsilon;
+        }
+        cout << " dqn_epsilon is now set to = " << dqn_epsilon << endl;
+        warm_up_eps_nr = 0;
+    }
+
     cout << " dqn_epsilon = " << dqn_epsilon << endl;
     double gamma = 0.8f;
 
