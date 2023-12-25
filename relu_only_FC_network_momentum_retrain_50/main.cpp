@@ -22,7 +22,7 @@ using namespace std;
 
 //#define USE_MINIBATCH
 //#define EPISODE_RANDOM_REPLAY
-// #define TIMESTEP_RANDOM_REPLAY
+//#define TIMESTEP_RANDOM_REPLAY
 #define Q_ALGORITHM_MODE_A
 
 vector<int> fisher_yates_shuffle(vector<int> table);
@@ -47,7 +47,7 @@ int main()
     gameObj1.init_game();       /// Initialize the pinball game with serten parametrers
     gameObj1.slow_motion = 0;   /// 0=full speed game. 1= slow down
     gameObj1.replay_times = 0;  /// If =0 no replay. >0 this is the nuber of replay with serveral diffrent actions so the ageint take the best rewards before make any weights update
-    gameObj1.advanced_game = 0; /// 0= only a ball. 1= ball give awards. square gives punish
+    gameObj1.advanced_game = 1; /// 0= only a ball. 1= ball give awards. square gives punish
     gameObj1.use_image_diff = 0;
     gameObj1.high_precition_mode = 0; /// This will make adjustable rewards highest at center of the pad.
     gameObj1.use_dice_action = 0;
@@ -153,7 +153,7 @@ int main()
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
     const double stop_min_epsilon = 0.15;
-    const double derating_epsilon = 0.0005;
+    const double derating_epsilon = 0.0001;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if (warm_up_eps_nr > 0)
     {
@@ -185,7 +185,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 20; // Should be 10000 or more
+    const int g_replay_size = 1000; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 100;
     int update_frz_cnt = 0;
@@ -199,15 +199,17 @@ int main()
     const int mini_batch_size = 32;
     int mini_batch_cnt = 0;
 #endif
-    const int update_frozen_after_samples = 32 * 8;
+
+    int g_replay_nr = 0;                                                    // Used during play
+    int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed; // the first for frames will not have any state
+    cout << " single_game_state_size = " << single_game_state_size << endl;
+
+    const int update_frozen_after_samples = single_game_state_size * 50;
 
 
     int debug_dec_act[g_replay_size];
     //==== Hyper parameter settings End ===========================
 
-    int g_replay_nr = 0;                                                    // Used during play
-    int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed; // the first for frames will not have any state
-    cout << " single_game_state_size = " << single_game_state_size << endl;
 #ifdef EPISODE_RANDOM_REPLAY
     cout << "Full random replay mode " << endl;
     vector<int> check_g_replay_list;
