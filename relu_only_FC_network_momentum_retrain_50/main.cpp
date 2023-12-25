@@ -135,7 +135,7 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
 
-    double target_off_level = 0.5; // OFF action target. 0.0 you Need to use force_last_activation_function_mode = 3
+    double target_off_level = 0.1; // OFF action target. 0.0 you Need to use force_last_activation_function_mode = 3
     double reward_gain = 1.0;
     const double learning_rate_fc = 0.000001;
     double learning_rate_end = learning_rate_fc;
@@ -178,16 +178,16 @@ int main()
     }
 
     cout << " dqn_epsilon = " << dqn_epsilon << endl;
-    double gamma = 0.8f;
+    double gamma = 0.9f;
 
 
 
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 1000; // Should be 10000 or more
+    const int g_replay_size = 200; // Should be 10000 or more
     const int retraing_times = 1;
-    const int save_after_nr = 100;
+    const int save_after_nr = 2;
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
@@ -204,7 +204,7 @@ int main()
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed; // the first for frames will not have any state
     cout << " single_game_state_size = " << single_game_state_size << endl;
 
-    const int update_frozen_after_samples = single_game_state_size * 50;
+    const int update_frozen_after_samples = single_game_state_size * 20;
 
 
     int debug_dec_act[g_replay_size];
@@ -385,7 +385,7 @@ int main()
                 if (gameObj1.square == 1)
                 {
 
-                    rewards = reward_gain * 0.5; // Win Rewards avoid square
+                    rewards = reward_gain * 0.8; // Win Rewards avoid square
                                                  //       rewards /= abs_diff;
                 }
                 else
@@ -400,13 +400,13 @@ int main()
                 if (gameObj1.square == 1)
                 {
                     //  rewards = -2.35; // Lose Penalty
-                    rewards = reward_gain * (-1.0);
+                    rewards = reward_gain * (-0.1);
                     // rewards /= abs_diff;
                 }
                 else
                 {
                     // rewards = -3.95; // Lose Penalty
-                    rewards = reward_gain * (-0.5);
+                    rewards = reward_gain * (-0.05);
                     // rewards *= abs_diff;
                 }
             }
