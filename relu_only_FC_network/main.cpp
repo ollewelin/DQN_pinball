@@ -589,8 +589,7 @@ int main()
                         }
                     }
                     //======================================================================
-                    //================== Forward Pass Frozen network NEXT state ============
-                    single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
+                    //================== Forward Pass Frozen network state ============
                     // Calculate the starting column index for the ROI in replay_grapics_buffert
                     for (int i = 0; i < end_inp_nodes; i++)
                     {
@@ -611,13 +610,7 @@ int main()
                     fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
                     //================== Forward Pass Frozen network complete ==============
                     //======================================================================
-
-                    int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
-                    double rewards_here = rewards_at_game_replay[rewards_idx_state][g_replay_nr];
-                    // cout << "single_game_frame_state = " << single_game_frame_state << endl;
-                    // cout << "rewards_idx_state = " << rewards_idx_state << endl;
-                    // cout << "rewards_here = " << rewards_here << endl;
-
+ 
                     // Search for max Q-value
                     max_Q_target_value = 0.0;
                     if (single_game_frame_state < single_game_state_size)
@@ -637,6 +630,13 @@ int main()
                     //    cout << "rewards_here = " << rewards_here << endl;
                         max_Q_target_value = target_off_level;
                     }
+                    
+                    single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
+                    int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
+                    double rewards_here = rewards_at_game_replay[rewards_idx_state][g_replay_nr];
+                    // cout << "single_game_frame_state = " << single_game_frame_state << endl;
+                    // cout << "rewards_idx_state = " << rewards_idx_state << endl;
+                    // cout << "rewards_here = " << rewards_here << endl;
 
                     if (rewards_here != 0.0)
                     {
