@@ -68,7 +68,6 @@ int main()
     Size image_size_reduced(pixel_height, pixel_width); // the dst image size,e.g.50x50
 
     vector<vector<int>> replay_actions_buffert;
-
     vector<vector<double>> rewards_at_game_replay;
 
     const int nr_frames_strobed = 4; // 4 Images in serie to make neural network to see movments
@@ -144,7 +143,7 @@ int main()
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.98; //
+    fc_nn_end_block.momentum = 0.9; //
 #endif
     double init_random_weight_propotion = 0.6;
     const double warm_up_epsilon_default = 0.85;
@@ -188,7 +187,7 @@ int main()
 #endif
     const int g_replay_size = 100; // Should be 10000 or more
     const int retraing_times = 1;
-    const int save_after_nr = 100;
+    const int save_after_nr = 10;
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
@@ -334,9 +333,11 @@ int main()
                     float exploring_dice = (float)(rand() % 65535) / 65536; // Through a fair dice. Random value 0..1.0 range
                     int decided_action = 0;
                     double max_decision = 0.0f;
+
                     if (exploring_dice < dqn_epsilon)
                     {
                         // Choose dice action (Exploration mode)
+
                         for (int i = 0; i < end_out_nodes; i++) // end_out_nodes = numbere of actions
                         {
                             float action_dice = (float)(rand() % 65535) / 65536; // Through a fair dice. Random value 0..1.0 range
@@ -351,6 +352,7 @@ int main()
                     else
                     {
                         // Choose predicted action (Exploit mode)
+
                         for (int i = 0; i < end_out_nodes; i++)
                         {
                             // end_out_nodes = numbere of actions
@@ -373,6 +375,7 @@ int main()
                     gameObj1.move_up = decided_action; // Input Action from Agent. 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
                                                        //    cout << " decided_action = " << decided_action << endl;
                     replay_actions_buffert[frame_g][g_replay_nr] = decided_action;
+
                     if(frame_g == gameObj1.nr_of_frames - 2)
                     {
                         debug_dec_act[g_replay_nr] = decided_action;
@@ -590,6 +593,7 @@ int main()
                     }
                     //======================================================================
                     //================== Forward Pass Frozen network state ============
+                    single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
                     // Calculate the starting column index for the ROI in replay_grapics_buffert
                     for (int i = 0; i < end_inp_nodes; i++)
                     {
@@ -610,7 +614,10 @@ int main()
                     fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
                     //================== Forward Pass Frozen network complete ==============
                     //======================================================================
- 
+                    int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
+                    double rewards_transition_to = rewards_at_game_replay[rewards_idx_state][g_replay_nr];
+                    
+                    int terminal_state = 0;                    
                     // Search for max Q-value
                     max_Q_target_value = 0.0;
                     if (single_game_frame_state < single_game_state_size)
@@ -627,44 +634,49 @@ int main()
                     else
                     {
                     //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
-                    //    cout << "rewards_here = " << rewards_here << endl;
-                        max_Q_target_value = target_off_level;
+                    //    cout << "rewards_transition_to = " << rewards_transition_to << endl;
+                        //terminal state
+                        terminal_state = 1; 
                     }
-                    
-                    single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
-                    int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
-                    double rewards_here = rewards_at_game_replay[rewards_idx_state][g_replay_nr];
+
+
                     // cout << "single_game_frame_state = " << single_game_frame_state << endl;
                     // cout << "rewards_idx_state = " << rewards_idx_state << endl;
-                    // cout << "rewards_here = " << rewards_here << endl;
+                    // cout << "rewards_transition_to = " << rewards_transition_to << endl;
 
-                    if (rewards_here != 0.0)
-                    {
-                        //           cout << "rewards_here = " << rewards_here << " at rewards_idx_state = " << rewards_idx_state << " at g_replay_nr = " << g_replay_nr << endl;
-                    }
-                    //     double target_value = rewards_here + gamma * max_Q_target_value;
+  //                  if (rewards_transition_to != 0.0)
+  //                  {
+  //                                 cout << "rewards_transition_to = " << rewards_transition_to << " at rewards_idx_state = " << rewards_idx_state << " at g_replay_nr = " << g_replay_nr << endl;
+  //                  }
+                    //     double target_value = rewards_transition_to + gamma * max_Q_target_value;
                     //        #Q table UPDATE
                     //        Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
-                    //   double target_value = rewards_here + gamma * (max_Q_target_value - );
+                    //   double target_value = rewards_transition_to + gamma * (max_Q_target_value - );
                     // decided_action
 
                     for (int i = 0; i < end_out_nodes; i++)
                     {
                         if (replay_decided_action == i)
                         {
+                            if(terminal_state == 0)
+                            {
 #ifdef Q_ALGORITHM_MODE_A
-                            // target_value = rewards_here + gamma * (max_Q_target_value - );
-                            fc_nn_end_block.target_layer[i] = rewards_here + gamma * max_Q_target_value;
+                            // target_value = rewards_transition_to + gamma * (max_Q_target_value - );
+                            fc_nn_end_block.target_layer[i] = rewards_transition_to + gamma * max_Q_target_value;
 #else
                             // Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
-                            fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_here + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
+                            fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_transition_to + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
 #endif
+                            }
+                            else
+                            {
+                                fc_nn_end_block.target_layer[i] = rewards_transition_to;//Terminal state then the rewards_transition_to is the rewards at this terminal state
+                            }
                         }
                         else
                         {
-                            fc_nn_end_block.target_layer[i] = target_off_level;
-
-                            // fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                            // fc_nn_end_block.target_layer[i] = target_off_level;
+                            fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                         }
                     }
 
