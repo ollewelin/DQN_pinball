@@ -675,8 +675,8 @@ int main()
                         }
                         else
                         {
-                            // fc_nn_end_block.target_layer[i] = target_off_level;
-                            fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                            fc_nn_end_block.target_layer[i] = target_off_level;
+                            //fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                         }
                     }
 
