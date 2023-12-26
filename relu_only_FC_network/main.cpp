@@ -153,7 +153,7 @@ int main()
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
     const double stop_min_epsilon = 0.2;
-    const double derating_epsilon = 0.001;
+    const double derating_epsilon = 0.01;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if (warm_up_eps_nr > 0)
     {
@@ -185,9 +185,9 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 100; // Should be 10000 or more
+    const int g_replay_size = 1000; // Should be 10000 or more
     const int retraing_times = 1;
-    const int save_after_nr = 10;
+    const int save_after_nr = 1;
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
@@ -675,8 +675,8 @@ int main()
                         }
                         else
                         {
-                            fc_nn_end_block.target_layer[i] = target_off_level;
-                            //fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                            //fc_nn_end_block.target_layer[i] = target_off_level;
+                            fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                         }
                     }
 
