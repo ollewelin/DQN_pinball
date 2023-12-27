@@ -137,13 +137,13 @@ int main()
 
     double target_off_level = 0.0; // OFF action target. 0.0 you Need to use force_last_activation_function_to_sigmoid = 3
     double reward_gain = 1.0;
-    const double learning_rate_fc = 0.00001;
+    const double learning_rate_fc = 0.000001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.9; //
+    fc_nn_end_block.momentum = 0.97; //
 #endif
     double init_random_weight_propotion = 0.6;
     const double warm_up_epsilon_default = 0.85;
@@ -185,9 +185,9 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 100; // Should be 10000 or more
+    const int g_replay_size = 10; // Should be 10000 or more
     const int retraing_times = 1;
-    const int save_after_nr = 10;
+    const int save_after_nr = 100;
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
@@ -204,7 +204,7 @@ int main()
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed; // the first for frames will not have any state
     cout << " single_game_state_size = " << single_game_state_size << endl;
 
-    const int update_frozen_after_samples = single_game_state_size * 8;
+    const int update_frozen_after_samples = single_game_state_size * 1;
 
 
     int debug_dec_act[g_replay_size];
@@ -362,7 +362,7 @@ int main()
                                 max_decision = action_node;
                                 decided_action = i;
                             }
-                            if (g_replay_cnt < 1)
+                            if (g_replay_cnt < 1 && frame_g == gameObj1.nr_of_frames-1)
                             {
                                 cout << "action_node = " << action_node << " i = " << i << endl;
                             }
