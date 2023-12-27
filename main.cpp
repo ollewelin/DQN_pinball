@@ -47,7 +47,7 @@ int main()
     gameObj1.init_game();       /// Initialize the pinball game with serten parametrers
     gameObj1.slow_motion = 0;   /// 0=full speed game. 1= slow down
     gameObj1.replay_times = 0;  /// If =0 no replay. >0 this is the nuber of replay with serveral diffrent actions so the ageint take the best rewards before make any weights update
-    gameObj1.advanced_game = 1; /// 0= only a ball. 1= ball give awards. square gives punish
+    gameObj1.advanced_game = 0; /// 0= only a ball. 1= ball give awards. square gives punish
     gameObj1.use_image_diff = 0;
     gameObj1.high_precition_mode = 0; /// This will make adjustable rewards highest at center of the pad.
     gameObj1.use_dice_action = 0;
@@ -186,7 +186,7 @@ int main()
     double alpha = 0.8;
 #endif
     const int g_replay_size = 100; // Should be 10000 or more
-    const int retraing_times = 5;
+    const int retraing_times = 6;
     const int save_after_nr = 10;
     int update_frz_cnt = 0;
     // statistics report
