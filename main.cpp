@@ -185,9 +185,9 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 10; // Should be 10000 or more
-    const int retraing_times = 1;
-    const int save_after_nr = 100;
+    const int g_replay_size = 100; // Should be 10000 or more
+    const int retraing_times = 5;
+    const int save_after_nr = 10;
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
