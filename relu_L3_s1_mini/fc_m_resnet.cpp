@@ -11,7 +11,7 @@ fc_m_resnet::fc_m_resnet(/* args */)
 {
     version_major = 0;
     version_mid = 2;
-    version_minor = 0;
+    version_minor = 1;
     // 0.0.4 fix softmax bugs
     // 0.0.5 fix bug when block type < 2 remove loss calclulation in backprop if not end block
     // 0.0.6 fix bug at  if (block_type < 2){} add else{ .... for end block } at  void fc_m_resnet::set_nr_of_hidden_nodes_on_layer_nr(int nodes)
@@ -20,11 +20,12 @@ fc_m_resnet::fc_m_resnet(/* args */)
     // 0.0.8 fix use_skip_connect_mode printout no mater if (inp_l_size != out_l_size)
     // 0.1.0 "shift_ununiform_skip_connection_after_samp_n" are introduced when ununifor skip connections is the case.
     // 0.1.1 loss_A and loss_B
-    // 0.1.2 Add force_last_activation_function_to_sigmoid = 0;// 1 = Last activation layer will set to sigmoid regardless activation_function_mode set
+    // 0.1.2 Add force_last_activation_function_mode = 0;// 1 = Last activation layer will set to sigmoid regardless activation_function_mode set
     // 0.1.3 Add clipping derivative mode +/- 1.0
     // 0.2.0 Made batch accumulated derivative optimizer possible depending how to call diffrent functions. Add clear weight_der_accu vector
     // weight_der_accu vector is ether used for mini batch accumulated derivative through several backprop_accum() calls or if SGD moment is used for single sample optimizer
     // if mini batch is used call clear_acc_deriv() at start of minibatch
+    // 0.2.1 force_last_activation_function_mode mode 3 removed last activation function (just dot product and bias)
     shift_ununiform_skip_connection_after_samp_n = 0;
     shift_ununiform_skip_connection_sample_counter = 0;
     switch_skip_con_selector = 0;
@@ -48,9 +49,12 @@ fc_m_resnet::fc_m_resnet(/* args */)
     // 1 = Relu simple activation function
     // 2 = Relu fix leaky activation function
     // 3 = Relu random variable leaky activation function
-    force_last_activation_function_to_sigmoid = 0;
+    force_last_activation_function_mode = 0;
     //0 = All activation functions same
     //1 = Last activation layer will set to sigmoid regardless activation_function_mode above
+    //2 = reserved for future use
+    //3 = Last activation fuction removed
+
     fix_leaky_proportion = 0.05;
     use_skip_connect_mode = 0;
     // 0 = turn OFF skip connections, ordinary fully connected nn block only
@@ -495,7 +499,7 @@ double fc_m_resnet::activation_function(double input_data, int end_layer)
     }
     if (this_node_dopped_out == 0)
     {
-        if (activation_function_mode == 0 || (force_last_activation_function_to_sigmoid == 1 && end_layer == 1))
+        if (activation_function_mode == 0 || (force_last_activation_function_mode == 1 && end_layer == 1))
         {
             // 0 = sigmoid activation function
             output_data = 1.0 / (1.0 + exp(-input_data)); // Sigmoid function and put it into
@@ -505,11 +509,12 @@ double fc_m_resnet::activation_function(double input_data, int end_layer)
             // 1 = Relu simple activation function
             // 2 = Relu fix leaky activation function
             // 3 = Relu random variable leaky activation function
-            if (input_data >= 0.0)
+            if (input_data >= 0.0 || (force_last_activation_function_mode == 3 && end_layer == 1))
             {
                 // Positiv value go right though ar Relu (Rectify Linear)
                 output_data = input_data;
-                // cout << "forward + output_data = " << output_data << endl;
+               //  cout << "forward + output_data = " << output_data << endl;
+                 
             }
             else
             {
@@ -528,6 +533,7 @@ double fc_m_resnet::activation_function(double input_data, int end_layer)
                     break;
                 }
             }
+            
         }
     }
     return output_data;
@@ -806,28 +812,26 @@ void fc_m_resnet::backpropagtion(void)
     }
 
     //============ Calculated and Backpropagate output delta and neural network loss ============
-    int nr_out_nodes = output_layer.size();
     int last_delta_layer_nr = internal_delta.size() - 1;
-
-    for (int i = 0; i < nr_out_nodes; i++)
+    for (int i = 0; i < output_nodes; i++)
     {
         if (block_type == 2)
         {
-            if (use_softmax == 0)
+            if (use_softmax == 1 || force_last_activation_function_mode == 3)
             {
-                if(force_last_activation_function_to_sigmoid == 0)
+                internal_delta[last_delta_layer_nr][i] = (target_layer[i] - output_layer[i]);
+            }
+            else
+            {
+                if (force_last_activation_function_mode == 0)
                 {
                     internal_delta[last_delta_layer_nr][i] = delta_activation_func((target_layer[i] - output_layer[i]), output_layer[i]);
                 }
                 else
                 {
-                    //Forced last layer to sigmoid regardless common activation mode settings
+                    // Forced last layer to sigmoid regardless common activation mode settings
                     internal_delta[last_delta_layer_nr][i] = delta_only_sigmoid_func((target_layer[i] - output_layer[i]), output_layer[i]);
                 }
-            }
-            else
-            {
-                internal_delta[last_delta_layer_nr][i] = (target_layer[i] - output_layer[i]);
             }
         }
         else

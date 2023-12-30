@@ -44,7 +44,7 @@ int main()
     gameObj1.init_game();       /// Initialize the pinball game with serten parametrers
     gameObj1.slow_motion = 0;   /// 0=full speed game. 1= slow down
     gameObj1.replay_times = 0;  /// If =0 no replay. >0 this is the nuber of replay with serveral diffrent actions so the ageint take the best rewards before make any weights update
-    gameObj1.advanced_game = 1; /// 0= only a ball. 1= ball give awards. square gives punish
+    gameObj1.advanced_game = 0; /// 0= only a ball. 1= ball give awards. square gives punish
     gameObj1.use_image_diff = 0;
     gameObj1.high_precition_mode = 1; /// This will make adjustable rewards highest at center of the pad.
     gameObj1.use_dice_action = 0;
@@ -96,7 +96,7 @@ int main()
     fc_nn_end_block.block_type = 2;
     fc_nn_end_block.use_softmax = 0;                               // 0= Not softmax for DQN reinforcement learning
     fc_nn_end_block.activation_function_mode = 2;                  // ReLU for all fully connected activation functions except output last layer
-    fc_nn_end_block.force_last_activation_function_to_sigmoid = 0; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
+    fc_nn_end_block.force_last_activation_function_mode = 3; // 1 = Last output last layer will have Sigmoid functions regardless mode settings of activation_function_mode
     fc_nn_end_block.use_skip_connect_mode = 0;                     // 1 for residual network architetcture
     fc_nn_end_block.use_dropouts = 1;
     fc_nn_end_block.dropout_proportion = 0.5;
@@ -105,7 +105,7 @@ int main()
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
-    fc_nn_frozen_target_net.force_last_activation_function_to_sigmoid = fc_nn_end_block.force_last_activation_function_to_sigmoid;
+    fc_nn_frozen_target_net.force_last_activation_function_mode = fc_nn_end_block.force_last_activation_function_mode;
     fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
     fc_nn_frozen_target_net.use_dropouts = 0;
     fc_nn_frozen_target_net.clip_deriv = all_clip_der;
@@ -226,7 +226,7 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
     
-    double target_off_level = 0.5; // OFF action target
+   // double target_off_level = 0.5; // OFF action target
     const double learning_rate_fc = 0.00001;
     const double learning_rate_conv = 0.00001;
     double learning_rate_end = learning_rate_fc;
@@ -247,16 +247,16 @@ int main()
 #endif
     double init_random_weight_propotion = 0.55;
     double init_random_weight_propotion_conv = 0.35;
-    const double warm_up_epsilon_start = 0.95;
+    const double warm_up_epsilon_start = 0.98;
     double warm_up_epsilon = warm_up_epsilon_start;
     const double warm_up_eps_derating = 0.15;
     const int warm_up_eps_nr = 3;
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.60;
-    const double stop_min_epsilon = 0.3;
+    const double stop_min_epsilon = 0.25;
   //  const int games_to_reach_stop_eps = 10000;
    // const double derating_epsilon = (stop_min_epsilon - start_epsilon) / (double)games_to_reach_stop_eps; // Derating speed per batch game
-    const double derating_epsilon = 0.001;
+    const double derating_epsilon = 0.002;
     double dqn_epsilon = start_epsilon;   // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if(warm_up_eps_nr > 0)
     {
@@ -266,7 +266,7 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 10;//Should be 10000 or more
+    const int g_replay_size = 100;//Should be 10000 or more
     int update_frz_cnt = 0;
     // statistics report
     // const int max_w_p_nr = 1000;
@@ -282,7 +282,7 @@ int main()
     const int update_frozen_after_samples = mini_batch_size * 8;
     //const int update_frozen_after_samples = 2000;
 #else
-    const int update_frozen_after_samples = 32 * 1;
+    const int update_frozen_after_samples = 32 * 8;
 #endif
     int debug_dec_act[g_replay_size];
     float debug_last_img_game_zero[L1_tensor_in_size][nr_frames_strobed];
@@ -631,12 +631,12 @@ int main()
                 if(gameObj1.square == 1)
                 {
                     
-                    rewards = 5.0; // Win Rewards avoid square
+                    rewards = 0.3; // Win Rewards avoid square
              //       rewards /= abs_diff;
                 }
                 else
                 {
-                    rewards = 10.0; // Win Rewards catch ball
+                    rewards = 1.0; // Win Rewards catch ball
              //       rewards /= abs_diff;
                 }
                 win_counter++;
@@ -646,13 +646,13 @@ int main()
                 if(gameObj1.square == 1)
                 {
                   //  rewards = -2.35; // Lose Penalty
-                  rewards = -3.0;
+                  rewards = -1.0;
                     //rewards /= abs_diff;
                 }
                 else
                 {
                    // rewards = -3.95; // Lose Penalty
-                   rewards = -3.0;
+                   rewards = -0.4;
                     //rewards *= abs_diff;
                 }
             }
@@ -706,14 +706,17 @@ int main()
                     conv_L3.learning_rate = learning_rate_conv;
                 }
             }
+            
             // Calculate win probablilty
             if (win_p_cnt > 10)
             {
-                cout << " xxxxxxxxxx Debug win_p_cnt = " << win_p_cnt << " g_replay_nr = "<< g_replay_nr <<  endl;
                 now_win_probability = (double)win_counter / (double)(win_p_cnt + 1);
                 if (g_replay_nr == g_replay_size - 1)
                 {
+                    cout << endl;
+                    cout << "*********** " << endl;
                     cout << "Win probaility Now = " << now_win_probability * 100.0 << "% at play count = " << win_p_cnt + 1 << " Old win probablilty = " << last_win_probability * 100.0 << "% total plays = " << total_plays << endl;
+                    cout << "*********** " << endl;
                 }
             }
             else
@@ -1050,7 +1053,7 @@ int main()
                 {
                     // End game state
                     terminal_state = 1;
-                    max_Q_target_value = target_off_level; // Zero Q value at end state Only rewards will be used
+                
               //      cout << "Replay END State at g_replay_nr = " << g_replay_nr << endl;
                 }
                 int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;

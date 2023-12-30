@@ -337,7 +337,7 @@ void pinball_game::start_episode(void)
     {
         ball_angle_derivate = save_replay_start_ball_ang;
     }
-    ball_angle_derivate *= 12.0;
+    ball_angle_derivate *= 6.0;
     ball_angle_derivate -= 6.0;/// -0.5..+0.5 will mean +/- 12.5 deg random ball angle
     frame_steps=0;
     ball_offset_y = game_Height/2;///
@@ -579,15 +579,13 @@ void pinball_game::run_episode(void)
         //cv::putText(gameGrapics, random, cvPoint((3+episode_char/20),(35+((char) (rand() % 16)))), CV_FONT_HERSHEY_PLAIN, 2, cvScalar(0.5),2);// CV_... for Opencv3.1
         cv::putText(gameGrapics, random, cvPoint((3+episode_char/20),(35+((char) (rand() % 16)))), FONT_HERSHEY_PLAIN, 2, cvScalar(0.5),2);
     }
-    imshow("Game", gameGrapics);
+   // imshow("Game", gameGrapics);
+   //waitKey(1);///Wait 1msec for only OpenCV grapics
     if(slow_motion==1)
     {
         waitKey(20);///Wait 100msec
     }
-    else
-    {
-        waitKey(1);///Wait 1msec for only OpenCV grapics
-    }
+
 }
 
 #endif // PINBALL_GAME_H
