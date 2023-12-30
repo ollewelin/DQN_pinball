@@ -4,4 +4,4 @@ On progress.. not finnish yet......
 
 ## Install OpenCV
 
-  mkdir opencv && cd opencv
+    mkdir opencv && cd opencv
