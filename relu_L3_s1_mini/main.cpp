@@ -74,7 +74,7 @@ int main()
     fc_m_resnet fc_nn_end_block;
     fc_m_resnet fc_nn_frozen_target_net;
     int save_cnt = 0;
-    const int save_after_nr = 0;
+    const int save_after_nr = 10;
     string weight_filename_end;
     weight_filename_end = "end_block_weights.dat";
     string L1_kernel_k_weight_filename;
@@ -417,6 +417,7 @@ int main()
                 game_video_full_size = gameObj1.gameGrapics.clone();
                 resize(game_video_full_size, resized_grapics, image_size_reduced);
                 imshow("resized_grapics", resized_grapics); //  resize(src, dst, size);
+                waitKey(1);
                 // Insert resized_grapics into replay_grapics_buffert below
                 // replay_grapics_buffert filled with data from resized_grapics rows from 0 to pixel_height-1 into replay_grapics_buffert rows index pixel_height * frame_g + (resized_grapics rows from 0 to pixel_height-1)
                 // Insert resized_grapics into replay_grapics_buffert
@@ -450,7 +451,7 @@ int main()
                                 }
                             }
                         }
-
+/*
                         if (g_replay_cnt == g_replay_nr - 1)
                         {
                             // Debug
@@ -470,7 +471,7 @@ int main()
                             waitKey(1);
                             // end Debug
                         }
-
+*/
                         //**********************************************************************
                         //****************** Forward Pass training network *********************
                         conv_L1.conv_forward1();
