@@ -34,3 +34,9 @@ Both OPENCV_GENERATE_PKGCONFIG=ON and WITH_GTK=ON need to be turned ON to not ge
 
     ./opencv/build$ sudo cmake -D OPENCV_GENERATE_PKGCONFIG=ON WITH_GTK=ON ..
     ./opencv/build$ sudo make
+
+### Time... for coffe :)
+
+### Put files into the system folder with this command:
+
+    /opencv/build$ sudo make install
