@@ -40,3 +40,7 @@ Both OPENCV_GENERATE_PKGCONFIG=ON and WITH_GTK=ON need to be turned ON to not ge
 ### Put files into the system folder with this command:
 
     /opencv/build$ sudo make install
+
+## Set the path to OpenCV source before start program
+
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/olle/opencv/build/lib
