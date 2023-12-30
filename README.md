@@ -26,11 +26,11 @@ On progress.. not finnish yet......
     
 ### Make build dir
 
-    $ /opencv$ mkdir build
-    $ /opencv$ cd build
+    ./opencv$ mkdir build
+    ./opencv$ cd build
 
 ### Do cmake with OPENCV_GENERATE_PKGCONFIG=ON and with WITH_GTK=ON
 Both OPENCV_GENERATE_PKGCONFIG=ON and WITH_GTK=ON need to be turned ON to not get error later.
 
-    $ /opencv/build$ sudo cmake -D OPENCV_GENERATE_PKGCONFIG=ON WITH_GTK=ON ..
-    $ /opencv/build$ sudo make
+    ./opencv/build$ sudo cmake -D OPENCV_GENERATE_PKGCONFIG=ON WITH_GTK=ON ..
+    ./opencv/build$ sudo make
