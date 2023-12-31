@@ -58,7 +58,7 @@ int main()
     gameObj1.print_out_nodes = 0;
     gameObj1.enable_ball_swan = 0;
     gameObj1.use_character = 0;
-    gameObj1.enabel_3_state = 1; // Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
+    gameObj1.enabel_3_state = 0; // Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
     // Set up a OpenCV mat
     const int pixel_height = 30; /// The input data pixel height, note game_Width = 220
@@ -107,7 +107,7 @@ int main()
     const int end_hid_nodes_L1 = 200;
     const int end_hid_nodes_L2 = 100;
     const int end_hid_nodes_L3 = 10;
-    const int end_out_nodes = 3; // Up, Down and Stop action
+    const int end_out_nodes = 2; // Up, Down 
     for (int i = 0; i < end_inp_nodes; i++)
     {
         fc_nn_end_block.input_layer.push_back(0.0);
