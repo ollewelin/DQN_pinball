@@ -138,13 +138,13 @@ int main()
 
     double target_off_level = 0.0; // OFF action target. 0.0 you Need to use force_last_activation_function_to_sigmoid = 3
     double reward_gain = 1.0;
-    const double learning_rate_fc = 0.000001;
+    const double learning_rate_fc = 0.00001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.02; //
+    fc_nn_end_block.momentum = 0.01; //
 #endif
     double init_random_weight_propotion = 0.6;
     const double warm_up_epsilon_default = 0.85;
@@ -154,7 +154,7 @@ int main()
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
     const double stop_min_epsilon = 0.05;
-    const double derating_epsilon = 0.01;
+    const double derating_epsilon = 0.00001;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if (warm_up_eps_nr > 0)
     {
@@ -187,7 +187,7 @@ int main()
     double alpha = 0.8;
 #endif
     const int g_replay_size = 100; // Should be 10000 or more
-    const int retraing_times = 2;
+    const int retraing_times = 1;
     const int save_after_nr = 10;
     int update_frz_cnt = 0;
     // statistics report
@@ -585,7 +585,7 @@ int main()
                         // Search for max Q-value
                         for (int i = 0; i < end_out_nodes; i++)
                         {
-                            double action_node = fc_nn_frozen_target_net.output_layer[i];
+                            double action_node = fc_nn_end_block.output_layer[i];// Bugg here fc_nn_frozen_target_net.output_layer[i];
                             if (action_node > max_Q_traning_net_value)
                             {
                                 double_DQN_highest_action_from_traning_network = i;//this used later for Double DQN selection of action for Q value read from target network
@@ -721,7 +721,7 @@ int main()
                             fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                         }
                     }
-
+                    // cout << " rewards_transition_to = " << rewards_transition_to << " single_game_frame_state = " << single_game_frame_state << " g_replay_nr = " << g_replay_nr << " rewards_idx_state = " << rewards_idx_state << " terminal_state = " << terminal_state << endl;
                     // fc_nn_end_block.backpropagtion_and_update();
 
 #ifdef USE_MINIBATCH
