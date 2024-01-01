@@ -153,8 +153,8 @@ int main()
     int warm_up_eps_nr = 3;
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
-    const double stop_min_epsilon = 0.05;
-    const double derating_epsilon = 0.00001;
+    const double stop_min_epsilon = 0.1;
+    const double derating_epsilon = 0.001;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if (warm_up_eps_nr > 0)
     {
@@ -179,7 +179,7 @@ int main()
     }
 
     cout << " dqn_epsilon = " << dqn_epsilon << endl;
-    double gamma = 0.9f;
+    double gamma = 0.99f;
 
 
 
@@ -720,8 +720,14 @@ int main()
                             // fc_nn_end_block.target_layer[i] = target_off_level;
                             fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                         }
+              /*
+                        if (single_game_frame_state == 30 || single_game_frame_state == 31)
+                        {
+                            cout << " fc_nn_end_block.target_layer[" << i << "] = " << fc_nn_end_block.target_layer[i] <<  " rewards_transition_to = " << rewards_transition_to << " single_game_frame_state = " << single_game_frame_state << " g_replay_nr = " << g_replay_nr << " rewards_idx_state = " << rewards_idx_state << " terminal_state = " << terminal_state << endl;
+                        }
+              */
                     }
-                    // cout << " rewards_transition_to = " << rewards_transition_to << " single_game_frame_state = " << single_game_frame_state << " g_replay_nr = " << g_replay_nr << " rewards_idx_state = " << rewards_idx_state << " terminal_state = " << terminal_state << endl;
+                    
                     // fc_nn_end_block.backpropagtion_and_update();
 
 #ifdef USE_MINIBATCH

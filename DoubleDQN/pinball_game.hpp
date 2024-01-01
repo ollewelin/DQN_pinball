@@ -339,6 +339,26 @@ void pinball_game::start_episode(void)
     }
     ball_angle_derivate *= 12.0;
     ball_angle_derivate -= 6.0;/// -0.5..+0.5 will mean +/- 12.5 deg random ball angle
+
+
+//Tree state ball 
+    float rand_a = (float) (rand() % 65535) / 65536;///Set ball shoot angle. Random value 0..1.0 range
+    if (rand_a < 1.0 / 3.0)
+    {
+        ball_angle_derivate = -1.0;
+    }
+    else
+    {
+        if (rand_a > 1.0 / 3.0 && rand_a < 2.0 / 3.0)
+        {
+            ball_angle_derivate = 0.0;
+        }
+        else
+        {
+             ball_angle_derivate = 1.0;
+        }
+    }
+
     frame_steps=0;
     ball_offset_y = game_Height/2;///
     pad_position = game_Height/2;///Start the game at center
