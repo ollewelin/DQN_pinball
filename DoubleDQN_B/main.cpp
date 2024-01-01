@@ -489,16 +489,13 @@ int main()
                 int mem_rand_samp = g_replay_state_rand_list[mem_replay_cnt];//Select a random memory replay state
                 g_replay_nr = mem_rand_samp / gameObj1.nr_of_frames;
                 int frame_g = mem_rand_samp % gameObj1.nr_of_frames;
-                int startCol = pixel_width * g_replay_nr;
-
-                
-
                 //Debug
-                cv::Rect roi(startCol, pixel_height * frame_g, pixel_width, pixel_height);
-                replay_grapics_buffert(roi).copyTo(resized_grapics);
-                imshow("resized_grapics", resized_grapics); //  resize(src, dst, size);
-                waitKey(1);
-                //End Debug
+                // int startCol = pixel_width * g_replay_nr;
+                //  cv::Rect roi(startCol, pixel_height * frame_g, pixel_width, pixel_height);
+                //  replay_grapics_buffert(roi).copyTo(resized_grapics);
+                //  imshow("resized_grapics", resized_grapics); //  resize(src, dst, size);
+                //  waitKey(1);
+                // End Debug
                 int terminal_state = 0;
                 if(frame_g < gameObj1.nr_of_frames - 1)
                 {
