@@ -55,7 +55,7 @@ int main()
     gameObj1.print_out_nodes = 0;
     gameObj1.enable_ball_swan = 0;
     gameObj1.use_character = 0;
-    gameObj1.enabel_3_state = 0; // Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
+    gameObj1.enabel_3_state = 1; // Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
     // Set up a OpenCV mat
     const int pixel_height = 30; /// The input data pixel height, note game_Width = 220
@@ -104,7 +104,7 @@ int main()
     const int end_hid_nodes_L1 = 200;
     const int end_hid_nodes_L2 = 100;
     const int end_hid_nodes_L3 = 10;
-    const int end_out_nodes = 2; // Up, Down 
+    const int end_out_nodes = 3; // Up, Down, Stop
     for (int i = 0; i < end_inp_nodes; i++)
     {
         fc_nn_end_block.input_layer.push_back(0.0);
@@ -133,14 +133,14 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
 
-    double reward_gain = 1.0;
+    double reward_gain = 0.1;
     const double learning_rate_fc = 0.00001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.001; //
+    fc_nn_end_block.momentum = 0.01; //
 #endif
     double init_random_weight_propotion = 0.6;
     const double warm_up_epsilon_default = 0.85;
@@ -150,7 +150,7 @@ int main()
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
     const double stop_min_epsilon = 0.1;
-    const double derating_epsilon = 0.004;
+    const double derating_epsilon = 0.01;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if (warm_up_eps_nr > 0)
     {
@@ -176,9 +176,9 @@ int main()
 
     cout << " dqn_epsilon = " << dqn_epsilon << endl;
     double gamma = 0.99f;
-    const int g_replay_size = 200; // Should be 10000 or more
+    const int g_replay_size = 1000; // Should be 10000 or more
     const int retraing_times = 1;
-    const int save_after_nr = 5;
+    const int save_after_nr = 1;
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
