@@ -149,8 +149,8 @@ int main()
     int warm_up_eps_nr = 3;
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
-    const double stop_min_epsilon = 0.1;
-    const double derating_epsilon = 0.025;
+    const double stop_min_epsilon = 0.05;
+    const double derating_epsilon = 0.0025;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if (warm_up_eps_nr > 0)
     {
@@ -176,12 +176,12 @@ int main()
 
     cout << " dqn_epsilon = " << dqn_epsilon << endl;
     double gamma = 0.85f;
-    const int g_replay_size = 10000; // Should be 10000 or more
+    const int g_replay_size = 20000; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
     // statistics report
-    const int max_w_p_nr = 10000;
+    const int max_w_p_nr = 20000;
     int win_p_cnt = 0;
     int win_counter = 0;
     double last_win_probability = 0.5;
