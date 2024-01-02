@@ -214,16 +214,7 @@ int main()
     cin >> answer;
     if (answer == 'Y' || answer == 'y')
     {
-        cout << "Do you want to randomize fully connected layers Y or N load weights  = Y/N " << endl;
-        cin >> answer;
-        if (answer == 'Y' || answer == 'y')
-        {
-            fc_nn_end_block.randomize_weights(init_random_weight_propotion);
-        }
-        else
-        {
-            fc_nn_end_block.load_weights(weight_filename_end);
-        }
+        fc_nn_end_block.load_weights(weight_filename_end);
     }
     else
     {
