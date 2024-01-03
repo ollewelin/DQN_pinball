@@ -143,9 +143,9 @@ int main()
     fc_nn_end_block.momentum = 0.001; //
 #endif
     double init_random_weight_propotion = 0.6;
-    const double warm_up_epsilon_default = 0.85;
+    const double warm_up_epsilon_default = 0.98;
     double warm_up_epsilon = warm_up_epsilon_default;
-    const double warm_up_eps_derating = 0.15;
+    const double warm_up_eps_derating = 0.1;
     int warm_up_eps_nr = 3;
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
