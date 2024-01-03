@@ -61,7 +61,7 @@ int main()
     const int pixel_height = 30; /// The input data pixel height, note game_Width = 220
     const int pixel_width = 30;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
-    Mat input_frm;
+    Mat input_frm, neuron_0_atL1, neuron_1_atL1 , neuron_2_atL1, neuron_3_atL1, img_debug;
 
     Size image_size_reduced(pixel_height, pixel_width); // the dst image size,e.g.50x50
 
@@ -235,6 +235,11 @@ int main()
     int replay_col_size = pixel_width * g_replay_size;
     replay_grapics_buffert.create(replay_row_size, replay_col_size, CV_32FC1);
     input_frm.create(pixel_height, pixel_width, CV_32FC1);
+    neuron_0_atL1.create(pixel_height * nr_frames_strobed, pixel_width, CV_32FC1);
+    neuron_1_atL1.create(pixel_height * nr_frames_strobed, pixel_width, CV_32FC1);
+    neuron_2_atL1.create(pixel_height * nr_frames_strobed, pixel_width, CV_32FC1);
+    neuron_3_atL1.create(pixel_height * nr_frames_strobed, pixel_width, CV_32FC1);
+    img_debug.create(pixel_height * nr_frames_strobed, pixel_width, CV_32FC1);
 
     cout << "replay_grapics_buffert rows = " << replay_grapics_buffert.rows << endl;
     cout << "replay_grapics_buffert cols = " << replay_grapics_buffert.cols << endl;
@@ -637,6 +642,26 @@ int main()
                         {
                             max_loss = loss_report;
                         }
+
+                        //Show some of the first neuron what it learn to see
+                        //vector<vector<vector<double>>> all_weights;//3D [layer_nr][node_nr][weights_from_previous_layer]
+                        int input_weight_size = fc_nn_frozen_target_net.input_layer.size();
+                        float image_offset = 0.5;
+                        for(int i=0;i<input_weight_size;i++)
+                        {
+                            int row = i / pixel_width;
+                            int col = i % pixel_width;
+                            neuron_0_atL1.at<float>(row, col) = fc_nn_frozen_target_net.all_weights[0][0][i] + image_offset;
+                            neuron_1_atL1.at<float>(row, col) = fc_nn_frozen_target_net.all_weights[0][1][i] + image_offset;
+                            neuron_2_atL1.at<float>(row, col) = fc_nn_frozen_target_net.all_weights[0][2][i] + image_offset;
+                            neuron_3_atL1.at<float>(row, col) = fc_nn_frozen_target_net.all_weights[0][3][i] + image_offset;
+                        }
+                        imshow("neuron_0_atL1", neuron_0_atL1);
+                        imshow("neuron_1_atL1", neuron_1_atL1);
+                        imshow("neuron_2_atL1", neuron_2_atL1);
+                        imshow("neuron_3_atL1", neuron_3_atL1);
+                        waitKey(10);
+
                     }
 
                     cout << "                                                                                                       " << endl;
