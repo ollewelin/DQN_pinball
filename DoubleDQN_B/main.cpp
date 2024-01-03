@@ -176,12 +176,12 @@ int main()
 
     cout << " dqn_epsilon = " << dqn_epsilon << endl;
     double gamma = 0.85f;
-    const int g_replay_size = 20000; // Should be 10000 or more
+    const int g_replay_size = 10000; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
     // statistics report
-    const int max_w_p_nr = 20000;
+    const int max_w_p_nr = 10000;
     int win_p_cnt = 0;
     int win_counter = 0;
     double last_win_probability = 0.5;
