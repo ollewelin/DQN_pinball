@@ -20,10 +20,8 @@ using namespace std;
 #define MOVE_UP 1
 #define MOVE_STOP 2
 
-//#define USE_MINIBATCH
-#define EPISODE_RANDOM_REPLAY
-#define TIMESTEP_RANDOM_REPLAY
-#define Q_ALGORITHM_MODE_A
+#define USE_MINIBATCH
+#define USE_DOUBLE_DQN
 
 vector<int> fisher_yates_shuffle(vector<int> table);
 
@@ -47,7 +45,7 @@ int main()
     gameObj1.init_game();       /// Initialize the pinball game with serten parametrers
     gameObj1.slow_motion = 0;   /// 0=full speed game. 1= slow down
     gameObj1.replay_times = 0;  /// If =0 no replay. >0 this is the nuber of replay with serveral diffrent actions so the ageint take the best rewards before make any weights update
-    gameObj1.advanced_game = 0; /// 0= only a ball. 1= ball give awards. square gives punish
+    gameObj1.advanced_game = 1; /// 0= only a ball. 1= ball give awards. square gives punish
     gameObj1.use_image_diff = 0;
     gameObj1.high_precition_mode = 0; /// This will make adjustable rewards highest at center of the pad.
     gameObj1.use_dice_action = 0;
@@ -63,7 +61,7 @@ int main()
     const int pixel_height = 30; /// The input data pixel height, note game_Width = 220
     const int pixel_width = 30;  /// The input data pixel width, note game_Height = 200
     Mat resized_grapics, replay_grapics_buffert, game_video_full_size, upsampl_conv_view;
-    Mat input_frm;
+    Mat input_frm, img_debug, input_weights_mat;
 
     Size image_size_reduced(pixel_height, pixel_width); // the dst image size,e.g.50x50
 
@@ -103,10 +101,10 @@ int main()
     int end_inp_nodes = pixel_height * pixel_width * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
     const int end_hid_layers = 3;
-    const int end_hid_nodes_L1 = 200;
-    const int end_hid_nodes_L2 = 100;
-    const int end_hid_nodes_L3 = 30;
-    const int end_out_nodes = 3; // Up, Down and Stop action
+    const int end_hid_nodes_L1 = 40;
+    const int end_hid_nodes_L2 = 20;
+    const int end_hid_nodes_L3 = 10;
+    const int end_out_nodes = 3; // Up, Down, Stop
     for (int i = 0; i < end_inp_nodes; i++)
     {
         fc_nn_end_block.input_layer.push_back(0.0);
@@ -135,31 +133,29 @@ int main()
 
     //=== Now setup the hyper parameters of the Neural Network ====
 
-    double target_off_level = 0.0; // OFF action target. 0.0 you Need to use force_last_activation_function_to_sigmoid = 3
-    double reward_gain = 1.0;
-    const double learning_rate_fc = 0.00001;
-    double learning_rate_end = learning_rate_fc;
-    fc_nn_end_block.learning_rate = learning_rate_end;
+    double reward_gain = 2.0;
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
+    const double learning_rate_fc = 0.0001;
+
 #else
-    fc_nn_end_block.momentum = 0.9; //
+    fc_nn_end_block.momentum = 0.001; //
+    const double learning_rate_fc = 0.000001;
+
 #endif
-    double init_random_weight_propotion = 0.6;
-    const double warm_up_epsilon_default = 0.85;
+    double learning_rate_end = learning_rate_fc;
+    fc_nn_end_block.learning_rate = learning_rate_end;
+
+    double init_random_weight_propotion = 0.2;
+    const double warm_up_epsilon_default = 0.98;
     double warm_up_epsilon = warm_up_epsilon_default;
-    const double warm_up_eps_derating = 0.15;
-    int warm_up_eps_nr = 3;
-    int warm_up_eps_cnt = 0;
+    const double warm_up_eps_derating = 0.05;
     const double start_epsilon = 0.50;
-    const double stop_min_epsilon = 0.2;
-    const double derating_epsilon = 0.01;
-    double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    if (warm_up_eps_nr > 0)
-    {
-        dqn_epsilon = warm_up_epsilon;
-    }
-     cout << "Do you want to set a manual set dqn_epsilon value from start = Y/N " << endl;
+    const double stop_min_epsilon = 0.05;
+    const double derating_epsilon = 0.005;
+    double dqn_epsilon = warm_up_epsilon_default; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
+
+    cout << "Do you want to set a manual set dqn_epsilon value from start = Y/N " << endl;
     cin >> answer;
     if (answer == 'Y' || answer == 'y')
     {
@@ -174,53 +170,39 @@ int main()
             dqn_epsilon = stop_min_epsilon;
         }
         cout << " dqn_epsilon is now set to = " << dqn_epsilon << endl;
-        warm_up_eps_nr = 0;
     }
 
     cout << " dqn_epsilon = " << dqn_epsilon << endl;
-    double gamma = 0.8f;
-
-
-
-#ifndef Q_ALGORITHM_MODE_A
-    double alpha = 0.8;
-#endif
-    const int g_replay_size = 1000; // Should be 10000 or more
+    double gamma = 0.98f;
+    const int g_replay_size = 10000; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
     // statistics report
-    const int max_w_p_nr = 1000;
+    const int max_w_p_nr = 10000;
     int win_p_cnt = 0;
     int win_counter = 0;
     double last_win_probability = 0.5;
     double now_win_probability = last_win_probability;
 #ifdef USE_MINIBATCH
-    const int mini_batch_size = 32;
+    const int mini_batch_size = 16;
     int mini_batch_cnt = 0;
 #endif
 
     int g_replay_nr = 0;                                                    // Used during play
     int single_game_state_size = gameObj1.nr_of_frames - nr_frames_strobed; // the first for frames will not have any state
-    cout << " single_game_state_size = " << single_game_state_size << endl;
 
-    const int update_frozen_after_samples = single_game_state_size * 8;
+    cout << " gameObj1.nr_of_frames = " << gameObj1.nr_of_frames << endl;
+
+    const int update_frozen_after_samples = single_game_state_size * 32;
 
 
-    int debug_dec_act[g_replay_size];
-    float debug_last_img_game_zero[end_inp_nodes];
     //==== Hyper parameter settings End ===========================
 
-#ifdef EPISODE_RANDOM_REPLAY
     cout << "Full random replay mode " << endl;
-    vector<int> check_g_replay_list;
-    for (int i = 0; i < (single_game_state_size * g_replay_size); i++)
-    {
-        check_g_replay_list.push_back(0);
-    } // Used during replay training
-#endif
+
     vector<int> g_replay_state_rand_list;
-    for (int j = 0; j < single_game_state_size; j++)
+    for (int j = 0; j < gameObj1.nr_of_frames * g_replay_size ; j++)
     {
         g_replay_state_rand_list.push_back(0);
     }
@@ -230,16 +212,7 @@ int main()
     cin >> answer;
     if (answer == 'Y' || answer == 'y')
     {
-        cout << "Do you want to randomize fully connected layers Y or N load weights  = Y/N " << endl;
-        cin >> answer;
-        if (answer == 'Y' || answer == 'y')
-        {
-            fc_nn_end_block.randomize_weights(init_random_weight_propotion);
-        }
-        else
-        {
-            fc_nn_end_block.load_weights(weight_filename_end);
-        }
+        fc_nn_end_block.load_weights(weight_filename_end);
     }
     else
     {
@@ -260,6 +233,8 @@ int main()
     int replay_col_size = pixel_width * g_replay_size;
     replay_grapics_buffert.create(replay_row_size, replay_col_size, CV_32FC1);
     input_frm.create(pixel_height, pixel_width, CV_32FC1);
+    input_weights_mat.create(pixel_height * nr_frames_strobed, pixel_width * end_hid_nodes_L1, CV_32FC1);
+    img_debug.create(pixel_height * nr_frames_strobed, pixel_width, CV_32FC1);
 
     cout << "replay_grapics_buffert rows = " << replay_grapics_buffert.rows << endl;
     cout << "replay_grapics_buffert cols = " << replay_grapics_buffert.cols << endl;
@@ -320,10 +295,6 @@ int main()
                         }
                         float pixelValue = replay_grapics_buffert.at<float>(replay_row, replay_column);
                         fc_nn_frozen_target_net.input_layer[i] = pixelValue;
-                        if(g_replay_cnt == 0 && frame_g == gameObj1.nr_of_frames-2)
-                        {
-                            debug_last_img_game_zero[i] = pixelValue;
-                        }
                     }
 
                     //**********************************************************************
@@ -362,7 +333,7 @@ int main()
                                 max_decision = action_node;
                                 decided_action = i;
                             }
-                            if (g_replay_cnt < 1)
+                            if (g_replay_cnt < 1 && frame_g == gameObj1.nr_of_frames-1)
                             {
                                 cout << "action_node = " << action_node << " i = " << i << endl;
                             }
@@ -375,11 +346,6 @@ int main()
                     gameObj1.move_up = decided_action; // Input Action from Agent. 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
                                                        //    cout << " decided_action = " << decided_action << endl;
                     replay_actions_buffert[frame_g][g_replay_nr] = decided_action;
-
-                    if(frame_g == gameObj1.nr_of_frames - 2)
-                    {
-                        debug_dec_act[g_replay_nr] = decided_action;
-                    }
                     //****************** Forward Pass training network complete ************
                     //**********************************************************************
                 }
@@ -398,7 +364,7 @@ int main()
                 if (gameObj1.square == 1)
                 {
 
-                    rewards = reward_gain * 0.8; // Win Rewards avoid square
+                    rewards = reward_gain * 1.0; // Win Rewards avoid square
                                                  //       rewards /= abs_diff;
                 }
                 else
@@ -413,13 +379,13 @@ int main()
                 if (gameObj1.square == 1)
                 {
                     //  rewards = -2.35; // Lose Penalty
-                    rewards = reward_gain * (-0.5);
+                    rewards = reward_gain * (-1.0);
                     // rewards /= abs_diff;
                 }
                 else
                 {
                     // rewards = -3.95; // Lose Penalty
-                    rewards = reward_gain * (-0.5);
+                    rewards = reward_gain * (-1.0);
                     // rewards *= abs_diff;
                 }
             }
@@ -475,14 +441,9 @@ int main()
 
         if (dqn_epsilon > stop_min_epsilon)
         {
-            if (warm_up_eps_cnt < warm_up_eps_nr)
+            if (dqn_epsilon > start_epsilon)
             {
                 dqn_epsilon -= warm_up_eps_derating;
-                if (dqn_epsilon < start_epsilon)
-                {
-                    dqn_epsilon = start_epsilon; // Limit warm up warm_up_eps_derating if go below the start_epsilon value during warm up epsilon
-                }
-                warm_up_eps_cnt++;
             }
             else
             {
@@ -495,192 +456,131 @@ int main()
         double max_loss = 0.0;
         double avg_loss = 0.0;
         int loss_update_cnt = 0;
-#ifdef EPISODE_RANDOM_REPLAY
         int g_replay_nr = 0;
+    
         //******************** Go through the batch of replay memory *******************
         cout << "********************************************************************************" << endl;
         cout << "********* Run the whole replay batch memory and training the DQN network *******" << endl;
         cout << "********************************************************************************" << endl;
-#ifdef TIMESTEP_RANDOM_REPLAY
         cout << "Training full randomize replay both time step and episode randomize ..." << endl;
-#else
-        cout << "Training episode randomize but timestep run in series backwards ..." << endl;
-#endif
         for (int rt = 0; rt < retraing_times; rt++)
         {
             min_loss = 9999999999999999999.0;
-            //   cout << "single_game_state_size = " << single_game_state_size << endl;
-            // g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
-            {
-                int replay_decided_action = 0;
-                fc_nn_end_block.clear_batch_accum();
-                check_g_replay_list = fisher_yates_shuffle(check_g_replay_list);
-
-                for (int g_replay_state_cnt = 0; g_replay_state_cnt < (single_game_state_size * g_replay_size); g_replay_state_cnt++)
-                {
-                    //     cout << "Run one training state sample at replay memory at check_state_nr = " << check_state_nr << endl;
-                    g_replay_nr = check_g_replay_list[g_replay_state_cnt] / single_game_state_size;
-                    //    cout << "Run one training state sample at g_replay_nr = " << g_replay_nr << endl;
-#ifdef TIMESTEP_RANDOM_REPLAY
-                    int single_game_frame_state = check_g_replay_list[g_replay_state_cnt] % single_game_state_size;
-#else
-                    int single_game_frame_state = single_game_state_size - 1 - (g_replay_state_cnt % single_game_state_size);
-#endif
-
-#else
-        for (int g_replay_nr = 0; g_replay_nr < g_replay_size; g_replay_nr++)
-        {
-            //******************** Go through the batch of replay memory *******************
-            if (g_replay_nr == 0)
-            {
-                cout << "********************************************************************************" << endl;
-                cout << "********* Run the whole replay batch memory and training the DQN network *******" << endl;
-                cout << "********************************************************************************" << endl;
-#ifdef TIMESTEP_RANDOM_REPLAY
-                cout << "Training randomize replay time step but throue full episode in a serie ..." << endl;
-#else
-                cout << "Training timestep run in series backwards and throue full episode in a serie..." << endl;
-#endif
-            }
-
-            //   cout << "single_game_state_size = " << single_game_state_size << endl;
-            // g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
             int replay_decided_action = 0;
             fc_nn_end_block.clear_batch_accum();
-            for (int rt = 0; rt < retraing_times; rt++)
+            g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);//Shuffle random list         
+            
+            for (int mem_replay_cnt = 0; mem_replay_cnt <  gameObj1.nr_of_frames * g_replay_size; mem_replay_cnt++)
             {
-                g_replay_state_rand_list = fisher_yates_shuffle(g_replay_state_rand_list);
-                for (int g_replay_state_cnt = 0; g_replay_state_cnt < single_game_state_size; g_replay_state_cnt++)
+                int mem_rand_samp = g_replay_state_rand_list[mem_replay_cnt];//Select a random memory replay state
+                g_replay_nr = mem_rand_samp / gameObj1.nr_of_frames;
+                int frame_g = mem_rand_samp % gameObj1.nr_of_frames;
+                //Debug
+                // int startCol = pixel_width * g_replay_nr;
+                //  cv::Rect roi(startCol, pixel_height * frame_g, pixel_width, pixel_height);
+                //  replay_grapics_buffert(roi).copyTo(resized_grapics);
+                //  imshow("resized_grapics", resized_grapics); //  resize(src, dst, size);
+                //  waitKey(1);
+                // End Debug
+                int terminal_state = 0;
+                if(frame_g < gameObj1.nr_of_frames - 1)
                 {
-#ifdef TIMESTEP_RANDOM_REPLAY
-                    int single_game_frame_state = g_replay_state_rand_list[g_replay_state_cnt];
-#else
-                    int single_game_frame_state = single_game_state_size - 1 - g_replay_state_cnt;
-#endif
+                    terminal_state = 0;
+                }
+                else
+                {
+                    terminal_state = 1;
+                }
 
-#endif
-                    //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
-                    double max_Q_target_value = 0.0;
-                    // Calculate the starting column index for the ROI in replay_grapics_buffert
+                int double_DQN_highest_action_from_traning_network = 0;
+                
+
+
+                if (frame_g > nr_frames_strobed - 1) // Wait until all 4 images is up there in the game after start
+                {
+                    if(terminal_state == 0)
+                    {
+                        //Do double DQN by inference next state through training network
+                        frame_g++; // Step to next step for double DQN by inference next state trhough training network
+                        for (int i = 0; i < end_inp_nodes; i++)
+                        {
+                            int row = i / pixel_width;
+                            int col = i % pixel_width;
+                            int replay_column = col + pixel_width * g_replay_nr;
+                            int replay_row = pixel_height * (frame_g - nr_frames_strobed) + row;
+                            float pixelValue = replay_grapics_buffert.at<float>(replay_row, replay_column);
+                            fc_nn_end_block.input_layer[i] = pixelValue;
+                        }
+                        fc_nn_end_block.forward_pass(); // Forward pass though fully connected network
+                        // Search for max Q-value
+                        double max_Q_traning_net_value = 0.0;
+                        for (int i = 0; i < end_out_nodes; i++)
+                        {
+                            double action_node = fc_nn_end_block.output_layer[i];// Bugg here fc_nn_frozen_target_net.output_layer[i];
+                            if (action_node > max_Q_traning_net_value)
+                            {
+                                double_DQN_highest_action_from_traning_network = i;//this used later for Double DQN selection of action for Q value read from target network
+                                max_Q_traning_net_value = action_node;
+                            }
+                        }
+                        frame_g--; // Roll back to original state to go through training network for this state we are in
+                    }
                     for (int i = 0; i < end_inp_nodes; i++)
                     {
                         int row = i / pixel_width;
                         int col = i % pixel_width;
-                        float pixelValue = replay_grapics_buffert.at<float>(pixel_height * single_game_frame_state + row, col + pixel_width * g_replay_nr);
+                        int replay_column = col + pixel_width * g_replay_nr;
+                        int replay_row = pixel_height * (frame_g - nr_frames_strobed) + row;
+                        float pixelValue = replay_grapics_buffert.at<float>(replay_row, replay_column);
                         fc_nn_end_block.input_layer[i] = pixelValue;
                     }
                     //**********************************************************************
                     //****************** Forward Pass training network *********************
-
-                    fc_nn_end_block.forward_pass(); // Forward pass though fully connected network
-
-                    //****************** Forward Pass training network complete ************
                     //**********************************************************************
-                    //replay_decided_action = replay_actions_buffert[single_game_frame_state + nr_frames_strobed - 1][g_replay_nr];orginal bug
-                    int act_idx = single_game_frame_state + nr_frames_strobed;
-                    if(act_idx >= gameObj1.nr_of_frames)
+                    fc_nn_end_block.forward_pass(); // Forward pass though fully connected network
+                    double max_Q_target_value = 0.0;
+                    replay_decided_action = replay_actions_buffert[frame_g][g_replay_nr];
+                    if(terminal_state == 0)
                     {
-                        cout << "Error act_idx = " << act_idx << " gameObj1.nr_of_frames = " << gameObj1.nr_of_frames << endl;
-                    }
-                    replay_decided_action = replay_actions_buffert[act_idx][g_replay_nr];
-                    if(single_game_frame_state == single_game_state_size - 2)
-                    {
-                        if(debug_dec_act[g_replay_nr] != replay_decided_action)
+                        // Not in Terminal state
+                        frame_g++; // Step to next step for run through the target network next state to se what Q value for this state is
+                        for (int i = 0; i < end_inp_nodes; i++)
                         {
-                            cout << endl;
-                            cout << " Error debug_dec_act[g_replay_nr] = " << debug_dec_act[g_replay_nr] << " replay_decided_action = " << replay_decided_action << endl;
+                            int row = i / pixel_width;
+                            int col = i % pixel_width;
+                            int replay_column = col + pixel_width * g_replay_nr;
+                            int replay_row = pixel_height * (frame_g - nr_frames_strobed) + row;
+                            float pixelValue = replay_grapics_buffert.at<float>(replay_row, replay_column);
+                            fc_nn_frozen_target_net.input_layer[i] = pixelValue;
                         }
-                    }
-                    //======================================================================
-                    //================== Forward Pass Frozen network state ============
-                    single_game_frame_state++; // Take NEXT state to peak into and get next state Q-value for a target value to train on
-                    // Calculate the starting column index for the ROI in replay_grapics_buffert
-                    for (int i = 0; i < end_inp_nodes; i++)
-                    {
-                        int row = i / pixel_width;
-                        int col = i % pixel_width;
-                        float pixelValue = replay_grapics_buffert.at<float>(pixel_height * single_game_frame_state + row, col + pixel_width * g_replay_nr);
-                        fc_nn_frozen_target_net.input_layer[i] = pixelValue;
-
-                        if(g_replay_nr == 0 && single_game_frame_state == single_game_state_size-2)
-                        {
-                            if(debug_last_img_game_zero[i] != pixelValue)
-                            {
-                                cout << " Error debug_last_img_game_zero[" << i << "] = " << debug_last_img_game_zero[i] << " but pixelValue = " << pixelValue << endl;
-                            }
-                        }
-                    }
-                    // Start Forward pass fully connected network
-                    fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
-                    //================== Forward Pass Frozen network complete ==============
-                    //======================================================================
-                    int rewards_idx_state = single_game_frame_state + nr_frames_strobed - 1;
-                    double rewards_transition_to = rewards_at_game_replay[rewards_idx_state][g_replay_nr];
-                    
-                    int terminal_state = 0;                    
-                    // Search for max Q-value
-                    max_Q_target_value = 0.0;
-                    if (single_game_frame_state < single_game_state_size)
-                    {
-                        for (int i = 0; i < end_out_nodes; i++)
-                        {
-                            double action_node = fc_nn_frozen_target_net.output_layer[i];
-                            if (action_node > max_Q_target_value)
-                            {
-                                max_Q_target_value = action_node;
-                            }
-                        }
+                        //**********************************************************************
+                        //****************** Forward Pass training network *********************
+                        //**********************************************************************
+                        fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
+                        max_Q_target_value = fc_nn_frozen_target_net.output_layer[double_DQN_highest_action_from_traning_network];
                     }
                     else
                     {
-                    //    cout << "single_game_frame_state = " << single_game_frame_state << endl;
-                    //    cout << "rewards_transition_to = " << rewards_transition_to << endl;
-                        //terminal state
-                        terminal_state = 1; 
+                        //Terminal state
                     }
-
-
-                    // cout << "single_game_frame_state = " << single_game_frame_state << endl;
-                    // cout << "rewards_idx_state = " << rewards_idx_state << endl;
-                    // cout << "rewards_transition_to = " << rewards_transition_to << endl;
-
-  //                  if (rewards_transition_to != 0.0)
-  //                  {
-  //                                 cout << "rewards_transition_to = " << rewards_transition_to << " at rewards_idx_state = " << rewards_idx_state << " at g_replay_nr = " << g_replay_nr << endl;
-  //                  }
-                    //     double target_value = rewards_transition_to + gamma * max_Q_target_value;
-                    //        #Q table UPDATE
-                    //        Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
-                    //   double target_value = rewards_transition_to + gamma * (max_Q_target_value - );
-                    // decided_action
-
                     for (int i = 0; i < end_out_nodes; i++)
                     {
                         if (replay_decided_action == i)
                         {
-                            if(terminal_state == 0)
+                            if (terminal_state == 0)
                             {
-#ifdef Q_ALGORITHM_MODE_A
-                            // target_value = rewards_transition_to + gamma * (max_Q_target_value - );
-                            fc_nn_end_block.target_layer[i] = rewards_transition_to + gamma * max_Q_target_value;
-#else
-                            // Q[state,action] = Q[state,action] + ALPHA * (reward + GAMMA * np.max(Q[state_next,:]) - Q[state,action])
-                            fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i] + alpha * (rewards_transition_to + gamma * max_Q_target_value - fc_nn_end_block.target_layer[i]);
-#endif
+                                fc_nn_end_block.target_layer[i] = rewards_at_game_replay[frame_g][g_replay_nr] + gamma * max_Q_target_value;
                             }
                             else
                             {
-                                fc_nn_end_block.target_layer[i] = rewards_transition_to;//Terminal state then the rewards_transition_to is the rewards at this terminal state
+                                fc_nn_end_block.target_layer[i] = rewards_at_game_replay[frame_g][g_replay_nr]; // Terminal state then the rewards_transition_to is the rewards at this terminal state
                             }
                         }
                         else
                         {
-                            //fc_nn_end_block.target_layer[i] = target_off_level;
                             fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                         }
                     }
-
-                    // fc_nn_end_block.backpropagtion_and_update();
 
 #ifdef USE_MINIBATCH
                     fc_nn_end_block.backpropagtion();
@@ -732,39 +632,42 @@ int main()
                         {
                             max_loss = loss_report;
                         }
+
+                        //Show some of the first neuron what it learn to see
+                        //vector<vector<vector<double>>> all_weights;//3D [layer_nr][node_nr][weights_from_previous_layer]
+                        int input_weight_size = fc_nn_frozen_target_net.input_layer.size();
+                        float image_offset = 0.5;
+                        for (int h = 0; h < end_hid_nodes_L1; h++)
+                        {
+                            for (int i = 0; i < input_weight_size; i++)
+                            {
+                                int row = i / pixel_width;
+                                int col = i % pixel_width;
+                                int col_all_neuron = col + h * pixel_width;
+                                input_weights_mat.at<float>(row, col_all_neuron) = fc_nn_frozen_target_net.all_weights[0][h][i] + image_offset;
+                            }
+                        }
+                        imshow("input_weights_mat", input_weights_mat);
+                        waitKey(10);
+
                     }
 
                     cout << "                                                                                                       " << endl;
                     std::cout << "\033[F";
-                    int count_down = 0;
-#ifdef EPISODE_RANDOM_REPLAY
-                    count_down = (single_game_state_size * g_replay_size) - g_replay_state_cnt;
+                    int count_down = gameObj1.nr_of_frames * g_replay_size - mem_replay_cnt;
                     cout << "rt = " << rt << " count down = " << count_down << "  loss = " << loss_report << " min_loss = " << min_loss << endl;
-#else
-                    count_down = single_game_state_size - g_replay_state_cnt;
-                    cout << "g_replay_nr = " << g_replay_nr << " rt = " << rt << "  g_replay_state_cnt count down = " << count_down << "  loss = " << loss_report << " min_loss = " << min_loss << endl;
-#endif
                     // Move the cursor up one line (ANSI escape code)
                     std::cout << "\033[F";
                 }
             }
-#ifdef EPISODE_RANDOM_REPLAY
+
             avg_loss = avg_loss / loss_update_cnt;
             cout << endl;
             cout << "***********************" << endl;
             cout << "Avarage loss = " << avg_loss << endl;
             cout << "***********************" << endl;
-        }
-#else
-        }
-        avg_loss = avg_loss / loss_update_cnt;
-        cout << endl;
-        cout << "***********************" << endl;
-        cout << "Avarage loss = " << avg_loss << endl;
-        cout << "***********************" << endl;
-        avg_loss = 0.0;
+       }
 
-#endif
         //   imshow("replay_grapics_buffert", replay_grapics_buffert);
         //   waitKey(1);
 
