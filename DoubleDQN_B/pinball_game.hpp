@@ -43,6 +43,7 @@ public:
     int replay_times;///If =0 no replay. >0 this is the nuber of replay with serveral diffrent actions so the ageint take the best rewards before make any weights update
     int replay_count;//
     int replay_episode;
+    int use_only_3_fix_ball_angle;
     float pix2hid_learning_rate;
     float hid2out_learning_rate;
     float max_rewards;
@@ -293,7 +294,7 @@ void pinball_game::init_game(void)
 {
     //print opencv version
     printf("opencv version: %d.%d.%d\n",CV_VERSION_MAJOR,CV_VERSION_MINOR,CV_VERSION_REVISION);
-
+    use_only_3_fix_ball_angle=0;
     replay_count=0;
     use_character=0;
     enable_ball_swan=0;///default yes swan
@@ -342,23 +343,25 @@ void pinball_game::start_episode(void)
 
 
 //Tree state ball 
-    float rand_a = (float) (rand() % 65535) / 65536;///Set ball shoot angle. Random value 0..1.0 range
-    if (rand_a < 1.0 / 3.0)
+    if(use_only_3_fix_ball_angle==1)
     {
-        ball_angle_derivate = -1.0;
-    }
-    else
-    {
-        if (rand_a > 1.0 / 3.0 && rand_a < 2.0 / 3.0)
+        float rand_a = (float)(rand() % 65535) / 65536; /// Set ball shoot angle. Random value 0..1.0 range
+        if (rand_a < 1.0 / 3.0)
         {
-            ball_angle_derivate = 0.0;
+            ball_angle_derivate = -1.0;
         }
         else
         {
-             ball_angle_derivate = 1.0;
+            if (rand_a > 1.0 / 3.0 && rand_a < 2.0 / 3.0)
+            {
+                ball_angle_derivate = 0.0;
+            }
+            else
+            {
+                ball_angle_derivate = 1.0;
+            }
         }
     }
-
     frame_steps=0;
     ball_offset_y = game_Height/2;///
     pad_position = game_Height/2;///Start the game at center

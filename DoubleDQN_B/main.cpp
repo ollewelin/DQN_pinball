@@ -22,6 +22,7 @@ using namespace std;
 
 //#define USE_MINIBATCH
 #define USE_DOUBLE_DQN
+//#define USE_SET_ALL_STATE_REWARDS
 
 vector<int> fisher_yates_shuffle(vector<int> table);
 
@@ -46,6 +47,7 @@ int main()
     gameObj1.slow_motion = 0;   /// 0=full speed game. 1= slow down
     gameObj1.replay_times = 0;  /// If =0 no replay. >0 this is the nuber of replay with serveral diffrent actions so the ageint take the best rewards before make any weights update
     gameObj1.advanced_game = 0; /// 0= only a ball. 1= ball give awards. square gives punish
+    gameObj1.use_only_3_fix_ball_angle = 0;//1= only 3 ball angles
     gameObj1.use_image_diff = 0;
     gameObj1.high_precition_mode = 0; /// This will make adjustable rewards highest at center of the pad.
     gameObj1.use_dice_action = 0;
@@ -54,6 +56,7 @@ int main()
     gameObj1.flip_reward_sign = 0;
     gameObj1.print_out_nodes = 0;
     gameObj1.enable_ball_swan = 0;
+    
     gameObj1.use_character = 0;
     gameObj1.enabel_3_state = 1; // Input Action from Agent. move_up: 1= Move up pad. 0= Move down pad. 2= STOP used only when enabel_3_state = 1
 
@@ -132,8 +135,11 @@ int main()
     //============ Neural Network Size setup is finnish ! ==================
 
     //=== Now setup the hyper parameters of the Neural Network ====
+#ifdef USE_SET_ALL_STATE_REWARDS
+    const double all_state_reward_derating = 0.9;
+#endif
 
-    double reward_gain = 0.1;
+    double reward_gain = 0.5;
     const double learning_rate_fc = 0.000001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
@@ -146,11 +152,11 @@ int main()
     const double warm_up_epsilon_default = 0.98;
     double warm_up_epsilon = warm_up_epsilon_default;
     const double warm_up_eps_derating = 0.1;
-    int warm_up_eps_nr = 3;
+    int warm_up_eps_nr = 10;
     int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
-    const double stop_min_epsilon = 0.05;
-    const double derating_epsilon = 0.005;
+    const double stop_min_epsilon = 0.15;
+    const double derating_epsilon = 0.001;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
     if (warm_up_eps_nr > 0)
     {
@@ -409,6 +415,15 @@ int main()
             // Move the cursor up one line (ANSI escape code)
             std::cout << "\033[F";
 
+            
+#ifdef USE_SET_ALL_STATE_REWARDS
+            double derated_reward = rewards * all_state_reward_derating;
+            for(int i=gameObj1.nr_of_frames-2;i>0;i--)
+            {
+                rewards_at_game_replay[i][g_replay_nr] = derated_reward;
+                derated_reward *= all_state_reward_derating;
+            }
+#endif
             rewards_at_game_replay[gameObj1.nr_of_frames - 1][g_replay_nr] = rewards;
             total_plays++;
 
@@ -565,6 +580,7 @@ int main()
                         //**********************************************************************
                         fc_nn_frozen_target_net.forward_pass(); // Forward pass though fully connected network
                         max_Q_target_value = fc_nn_frozen_target_net.output_layer[double_DQN_highest_action_from_traning_network];
+                        
                     }
                     else
                     {
@@ -572,22 +588,31 @@ int main()
                     }
                     for (int i = 0; i < end_out_nodes; i++)
                     {
-                        if (replay_decided_action == i)
+                        if (terminal_state == 0)
                         {
-                            if (terminal_state == 0)
+                            if (replay_decided_action == i)
                             {
                                 fc_nn_end_block.target_layer[i] = rewards_at_game_replay[frame_g][g_replay_nr] + gamma * max_Q_target_value;
                             }
                             else
                             {
-                                fc_nn_end_block.target_layer[i] = rewards_at_game_replay[frame_g][g_replay_nr]; // Terminal state then the rewards_transition_to is the rewards at this terminal state
+                                fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
                             }
                         }
                         else
                         {
-                            fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                            replay_decided_action = replay_actions_buffert[frame_g - 1][g_replay_nr];//Use the decided action from previous state transistion as decided action in terminal state instead of use the terminal state action how don't have any thing to do with rewards
+                            if (replay_decided_action == i)
+                            {
+                                fc_nn_end_block.target_layer[i] = rewards_at_game_replay[frame_g][g_replay_nr]; // Terminal state then the rewards_transition_to is the rewards at this terminal state
+                            }
+                            else
+                            {
+                                fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                            }
                         }
                     }
+
 
 #ifdef USE_MINIBATCH
                     fc_nn_end_block.backpropagtion();
@@ -659,10 +684,11 @@ int main()
 
                     }
 
-                    cout << "                                                                                                       " << endl;
+                    cout << "                                                                                                                                                    " << endl;
                     std::cout << "\033[F";
                     int count_down = gameObj1.nr_of_frames * g_replay_size - mem_replay_cnt;
-                    cout << "rt = " << rt << " count down = " << count_down << "  loss = " << loss_report << " min_loss = " << min_loss << endl;
+                    //cout << "rt = " << rt << " count down = " << count_down << "  loss = " << loss_report << " min_loss = " << min_loss << endl;
+                    cout << "rt = " << rt << " count down = " << count_down << "  loss = " << loss_report << " min_loss = " << min_loss << " rewards_at_game_replay[" << frame_g << "][" << g_replay_nr << "] = " << rewards_at_game_replay[frame_g][g_replay_nr] << endl;
                     // Move the cursor up one line (ANSI escape code)
                     std::cout << "\033[F";
                 }
