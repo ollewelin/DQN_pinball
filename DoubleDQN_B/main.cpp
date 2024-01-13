@@ -139,29 +139,23 @@ int main()
     const double all_state_reward_derating = 0.9;
 #endif
 
-    double reward_gain = 0.5;
+    double reward_gain = 20.0;
     const double learning_rate_fc = 0.000001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.001; //
+    fc_nn_end_block.momentum = 0.0001; //
 #endif
     double init_random_weight_propotion = 0.6;
     const double warm_up_epsilon_default = 0.98;
     double warm_up_epsilon = warm_up_epsilon_default;
     const double warm_up_eps_derating = 0.1;
-    int warm_up_eps_nr = 10;
-    int warm_up_eps_cnt = 0;
     const double start_epsilon = 0.50;
     const double stop_min_epsilon = 0.15;
     const double derating_epsilon = 0.001;
     double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
-    if (warm_up_eps_nr > 0)
-    {
-        dqn_epsilon = warm_up_epsilon;
-    }
      cout << "Do you want to set a manual set dqn_epsilon value from start = Y/N " << endl;
     cin >> answer;
     if (answer == 'Y' || answer == 'y')
@@ -177,7 +171,6 @@ int main()
             dqn_epsilon = stop_min_epsilon;
         }
         cout << " dqn_epsilon is now set to = " << dqn_epsilon << endl;
-        warm_up_eps_nr = 0;
     }
 
     cout << " dqn_epsilon = " << dqn_epsilon << endl;
@@ -387,13 +380,13 @@ int main()
                 if (gameObj1.square == 1)
                 {
                     //  rewards = -2.35; // Lose Penalty
-                    rewards = reward_gain * (-1.0);
+                    rewards = reward_gain * (-0.78);
                     // rewards /= abs_diff;
                 }
                 else
                 {
                     // rewards = -3.95; // Lose Penalty
-                    rewards = reward_gain * (-1.0);
+                    rewards = reward_gain * (-0.78);
                     // rewards *= abs_diff;
                 }
             }
@@ -458,14 +451,9 @@ int main()
 
         if (dqn_epsilon > stop_min_epsilon)
         {
-            if (warm_up_eps_cnt < warm_up_eps_nr)
+            if (dqn_epsilon > start_epsilon)
             {
                 dqn_epsilon -= warm_up_eps_derating;
-                if (dqn_epsilon < start_epsilon)
-                {
-                    dqn_epsilon = start_epsilon; // Limit warm up warm_up_eps_derating if go below the start_epsilon value during warm up epsilon
-                }
-                warm_up_eps_cnt++;
             }
             else
             {
