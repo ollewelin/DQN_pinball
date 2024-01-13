@@ -182,12 +182,12 @@ int main()
 
     cout << " dqn_epsilon = " << dqn_epsilon << endl;
     double gamma = 0.85f;
-    const int g_replay_size = 10000; // Should be 10000 or more
+    const int g_replay_size = 1000; // Should be 10000 or more
     const int retraing_times = 1;
     const int save_after_nr = 1;
     int update_frz_cnt = 0;
     // statistics report
-    const int max_w_p_nr = 10000;
+    const int max_w_p_nr = 1000;
     int win_p_cnt = 0;
     int win_counter = 0;
     double last_win_probability = 0.5;
@@ -586,6 +586,28 @@ int main()
                     {
                         //Terminal state
                     }
+
+/*
+                    for (int i = 0; i < end_out_nodes; i++)
+                    {
+                        if (replay_decided_action == i)
+                        {
+                            if (terminal_state == 0)
+                            {
+                                fc_nn_end_block.target_layer[i] = rewards_at_game_replay[frame_g][g_replay_nr] + gamma * max_Q_target_value;
+                            }
+                            else
+                            {
+                                fc_nn_end_block.target_layer[i] = rewards_at_game_replay[frame_g][g_replay_nr]; // Terminal state then the rewards_transition_to is the rewards at this terminal state
+                            }
+                        }
+                        else
+                        {
+                            fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
+                        }
+                    }
+*/
+
                     for (int i = 0; i < end_out_nodes; i++)
                     {
                         if (terminal_state == 0)
@@ -601,15 +623,7 @@ int main()
                         }
                         else
                         {
-                            replay_decided_action = replay_actions_buffert[frame_g - 1][g_replay_nr];//Use the decided action from previous state transistion as decided action in terminal state instead of use the terminal state action how don't have any thing to do with rewards
-                            if (replay_decided_action == i)
-                            {
-                                fc_nn_end_block.target_layer[i] = rewards_at_game_replay[frame_g][g_replay_nr]; // Terminal state then the rewards_transition_to is the rewards at this terminal state
-                            }
-                            else
-                            {
-                                fc_nn_end_block.target_layer[i] = fc_nn_end_block.target_layer[i]; // No change
-                            }
+                            fc_nn_end_block.target_layer[i] = rewards_at_game_replay[frame_g][g_replay_nr]; //Same rewards to all action at terminal state becuse action don't matter at terminal state
                         }
                     }
 
