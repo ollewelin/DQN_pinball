@@ -139,23 +139,23 @@ int main()
     const double all_state_reward_derating = 0.9;
 #endif
 
-    double reward_gain = 20.0;
-    const double learning_rate_fc = 0.000001;
+    double reward_gain = 1.0;
+    const double learning_rate_fc = 0.0001;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.0001; //
+    fc_nn_end_block.momentum = 0.01; //
 #endif
-    double init_random_weight_propotion = 0.6;
+    double init_random_weight_propotion = 0.1;
     const double warm_up_epsilon_default = 0.98;
     double warm_up_epsilon = warm_up_epsilon_default;
     const double warm_up_eps_derating = 0.1;
     const double start_epsilon = 0.50;
     const double stop_min_epsilon = 0.15;
     const double derating_epsilon = 0.001;
-    double dqn_epsilon = start_epsilon; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
+    double dqn_epsilon = warm_up_epsilon_default; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
      cout << "Do you want to set a manual set dqn_epsilon value from start = Y/N " << endl;
     cin >> answer;
     if (answer == 'Y' || answer == 'y')
