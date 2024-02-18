@@ -80,7 +80,8 @@ int main()
     weight_filename_end = "end_block_weights.dat";
 
 
-    const int all_clip_der = 0;
+    const int all_clip_der = 1;
+    const double L2_norm_regulate = 0.1;
 
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
@@ -91,6 +92,7 @@ int main()
     fc_nn_end_block.use_dropouts = 0;
     fc_nn_end_block.dropout_proportion = 0.0;
     fc_nn_end_block.clip_deriv = all_clip_der;
+    fc_nn_end_block.L2_norm_regulate = L2_norm_regulate;
 
     fc_nn_frozen_target_net.block_type = fc_nn_end_block.block_type;
     fc_nn_frozen_target_net.use_softmax = fc_nn_end_block.use_softmax;
@@ -99,6 +101,8 @@ int main()
     fc_nn_frozen_target_net.use_skip_connect_mode = fc_nn_end_block.use_skip_connect_mode;
     fc_nn_frozen_target_net.use_dropouts = 0;
     fc_nn_frozen_target_net.clip_deriv = all_clip_der;
+    fc_nn_frozen_target_net.L2_norm_regulate = L2_norm_regulate;
+
     // output channels
     int end_inp_nodes = pixel_height * pixel_width * nr_frames_strobed;
     cout << "end_inp_nodes = " << end_inp_nodes << endl;
@@ -137,13 +141,13 @@ int main()
 
     double target_off_level = 0.0; // OFF action target. 0.0 you Need to use force_last_activation_function_to_sigmoid = 3
     double reward_gain = 1.0;
-    const double learning_rate_fc = 0.000001;
+    const double learning_rate_fc = 0.01;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
     fc_nn_end_block.momentum = 1.0; // 1.0 for batch fc backpropagation
 #else
-    fc_nn_end_block.momentum = 0.02; //
+    fc_nn_end_block.momentum = 0.95; //
 #endif
     double init_random_weight_propotion = 0.6;
     const double warm_up_epsilon_default = 0.85;
@@ -185,9 +189,9 @@ int main()
 #ifndef Q_ALGORITHM_MODE_A
     double alpha = 0.8;
 #endif
-    const int g_replay_size = 100; // Should be 10000 or more
-    const int retraing_times = 6;
-    const int save_after_nr = 10;
+    const int g_replay_size = 1000; // Should be 10000 or more
+    const int retraing_times = 1;
+    const int save_after_nr = 2;
     int update_frz_cnt = 0;
     // statistics report
     const int max_w_p_nr = 1000;
