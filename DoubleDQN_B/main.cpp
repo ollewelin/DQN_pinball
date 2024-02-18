@@ -81,8 +81,8 @@ int main()
     weight_filename_end = "end_block_weights.dat";
 
 
-    const int all_clip_der = 0;
-    const double L2_norm_regulate = 0.2;
+    const int all_clip_der = 1;
+    const double L2_norm_regulate = 0.1;
 
     fc_nn_end_block.get_version();
     fc_nn_end_block.block_type = 2;
@@ -143,7 +143,7 @@ int main()
 #endif
 
     double reward_gain = 1.0;
-    const double learning_rate_fc = 0.001;
+    const double learning_rate_fc = 0.01;
     double learning_rate_end = learning_rate_fc;
     fc_nn_end_block.learning_rate = learning_rate_end;
 #ifdef USE_MINIBATCH
@@ -154,8 +154,8 @@ int main()
     double init_random_weight_propotion = 0.1;
     const double warm_up_epsilon_default = 0.98;
     double warm_up_epsilon = warm_up_epsilon_default;
-    const double warm_up_eps_derating = 0.1;
-    const double start_epsilon = 0.50;
+    const double warm_up_eps_derating = 0.001;
+    const double start_epsilon = 0.95;
     const double stop_min_epsilon = 0.15;
     const double derating_epsilon = 0.001;
     double dqn_epsilon = warm_up_epsilon_default; // Exploring vs exploiting parameter weight if dice above this threshold chouse random action. If dice below this threshold select strongest outoput action node
